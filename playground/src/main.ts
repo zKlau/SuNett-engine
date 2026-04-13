@@ -10,15 +10,15 @@ async function main(filePath: string) {
   try {
     const song = parse_guitar_pro(bytes, filePath);
 
-    console.log("Parsed Song:", song);
-    console.log("Title:", song.name);
-    console.log("Tracks:", song.tracks.length);
-    console.log("Notes", song.tracks[0]?.measures[0].voices[0].beats[0].notes);
+    console.log("Parsed Song:", song.copyright);
+    // console.log("Title:", song.name);
+    // console.log("Tracks:", song.tracks.length);
+    // console.log("Notes", song.tracks[0]?.measures[0].voices[0].beats[0].notes);
   } catch (e) {
     console.error("Parsing failed:", e);
   }
 }
 
-main("/tabs/barre.gp");
+main("/tabs/hpb.gp5");
 
 setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
