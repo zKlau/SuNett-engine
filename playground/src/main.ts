@@ -1,17 +1,17 @@
 import "./style.css";
 
-import { setupCounter } from "./counter.ts";
 import { parse_guitar_pro } from "sunett-parser";
+import type {Song} from "../../src/types/song.ts";
+
+
 
 async function main(filePath: string) {
   const response = await fetch(filePath);
   const bytes = new Uint8Array(await response.arrayBuffer());
 
   try {
-    const song = parse_guitar_pro(bytes, filePath);
-
-    console.log("Parsed Song:", song.copyright);
-    // console.log("Title:", song.name);
+    const song:Song = parse_guitar_pro(bytes, filePath);
+    console.log("Title:", song.tracks[0].measures[0].clef);
     // console.log("Tracks:", song.tracks.length);
     // console.log("Notes", song.tracks[0]?.measures[0].voices[0].beats[0].notes);
   } catch (e) {
@@ -19,6 +19,9 @@ async function main(filePath: string) {
   }
 }
 
+
+
+
+
 main("/tabs/hpb.gp5");
 
-setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
