@@ -1,4 +1,5 @@
-import type { Duration, TimeSignature, KeySignature } from "./duration.ts";
+import type { Duration, TimeSignature, KeySignature } from "./duration";
+import { Voice } from "./voice";
 
 export type Measure = {
     number: number;
@@ -8,10 +9,10 @@ export type Measure = {
     time_signature: TimeSignature;
     track_index: number;
     header_index: number;
-    clef: MeasureClef;
-    // voices: Voice[]; // Might not be neccessary for now
-    line_break: LineBreak;
+    clef: keyof typeof MeasureClef;
+    line_break: keyof typeof LineBreak;
     simile_mark?: string;
+    voices: Voice[];
 };
 
 export type MeasureHeader = {
@@ -20,50 +21,41 @@ export type MeasureHeader = {
     time_signature: TimeSignature;
     tempo: number;
     repeat_open: boolean;
-    triplet_feel: TripletFeel;
+    repeat_close:number
+    repeat_alternative: number;
+    triplet_feel: keyof typeof TripletFeel;
     key_signature: KeySignature;
     double_bar: boolean;
     fermatas: MeasureFermata[];
     free_time: boolean;
 };
 
-export enum TripletFeel {
-    None = "None",
-    Eighth = "Eighth",
-    Sixteenth = "Sixteenth",
-}
+export const TripletFeel = {
+    None: "None",
+    Eighth: "Eighth",
+    Sixteenth: "Sixteenth",
+} as const;
 
 type MeasureFermata = {
-    fermata_type: FermataType;
+    fermata_type: keyof typeof FermataType;
     offset: [number, number];
 };
 
-enum MeasureClef {
-    Treble = "Treble",
-    Bass = "Bass",
-    Tenor = "Tenor",
-    Alto = "Alto",
-    Percussion = "Percussion",
-}
+const MeasureClef = {
+    Treble: "Treble",
+    Bass: "Bass",
+    Tenor: "Tenor",
+    Alto: "Alto",
+    Percussion: "Percussion",
+} as const;
 
-enum LineBreak {
-    None = "None",
-    Break = "Break",
-    Page = "Page",
-}
-enum FermataType {
-    Short = "Short",
-    Medium = "Medium",
-    Long = "Long",
-}
-
-/* Stores the information about a group of measures which are repeated.
-
-type RepeatGroup = {
-    measure_headers: [],
-    closings: [],
-    openings: [],
-    is_closed: boolean,
-};
-
-*/
+const LineBreak = {
+    None: "None",
+    Break: "Break",
+    Page: "Page",
+} as const;
+const FermataType = {
+    Short: "Short",
+    Medium: "Medium",
+    Long: "Long",
+} as const;

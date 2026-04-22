@@ -1,8 +1,9 @@
 import type { Duration, TimeSignature, KeySignature } from "./duration";
-import type { MeasureHeader, TripletFeel } from "./measure";
+import type { MeasureHeader } from "./measure";
 import type { Lyrics } from "./lyrics";
 import type { Track } from "./track"; 
 import { MidiChannel } from "./channels";
+import { TripletFeel } from "./measure";
 
 export type Song = {
     version: Version;
@@ -20,7 +21,7 @@ export type Song = {
     date: string;
     lyrics: Lyrics;
     key: KeySignature;
-    triplet_feel?: TripletFeel;
+    triplet_feel?: typeof TripletFeel;
     tracks: Track[],
 };
 
