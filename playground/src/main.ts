@@ -13,16 +13,16 @@ async function main(filePath: string) {
   try {
     const song:Song = parse_guitar_pro(bytes, filePath);
    
-    // for(let measure in song.measure_headers){
-    //   console.log("Measure:", measure);
-    //   console.log("Tempo:", song.measure_headers[measure].tempo);
-    //   console.log("Repeat Open:", song.measure_headers[measure].repeat_open);
-    //   console.log("Repeat Close:", song.measure_headers[measure].repeat_close);
-    //   console.log("Repeat Alternative:", song.measure_headers[measure].repeat_alternative, "\n ");
-    //   console.log("Key Signature:", song.measure_headers[measure].key_signature, "\n ");
-    // }
+    for(let measure in song.measure_headers){
+      console.log("Measure:", measure);
+      console.log("Tempo:", song.measure_headers[measure].tempo);
+      console.log("Repeat Open:", song.measure_headers[measure].repeat_open);
+      console.log("Repeat Close:", song.measure_headers[measure].repeat_close);
+      console.log("Repeat Alternative:", song.measure_headers[measure].repeat_alternative, "\n ");
+      console.log("Key Signature:", song.measure_headers[measure].key_signature, "\n ");
+    }
     
-    // console.log("Notes", song.tracks[0]?.measures[0].voices[0].beats[0].notes);   
+    console.log("Notes", song.tracks[0]?.measures[0].voices[0].beats[0].notes);   
     //! Bar Ticks = (960 * 4 / DenominatorValue) * Numerator
     console.log(song.tracks[0]?.measures[0].voices[0].beats[0].notes[0].effect.bend);
 

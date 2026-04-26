@@ -1,6 +1,6 @@
 import { Duration } from "../../duration";
 
-export type TrillEffect  = {
-    fret: number,
-    duration: Duration,
+export type TrillEffect = {
+    fret: number;
+    duration: Duration;
 };

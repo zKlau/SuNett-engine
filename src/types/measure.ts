@@ -1,4 +1,4 @@
-import type { Duration, TimeSignature, KeySignature } from "./duration";
+import type { TimeSignature, KeySignature } from "./duration";
 import { Voice } from "./voice";
 
 export type Measure = {

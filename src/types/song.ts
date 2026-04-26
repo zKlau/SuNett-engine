@@ -1,4 +1,4 @@
-import type { Duration, TimeSignature, KeySignature } from "./duration";
+import type { KeySignature } from "./duration";
 import type { MeasureHeader } from "./measure";
 import type { Lyrics } from "./lyrics";
 import type { Track } from "./track"; 
