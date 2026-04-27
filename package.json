@@ -19,7 +19,9 @@
     "typecheck": "tsc --noEmit",
     "knip": "knip --production",
     "prettier:check": "prettier --check .",
-    "prettier:write": "prettier --write ."
+    "prettier:write": "prettier --write .",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "knip": "^6.7.0",
+    "oxlint": "^1.62.0",
     "prettier": "3.8.3",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
