@@ -21,13 +21,15 @@
     "prettier:check": "prettier --check .",
     "prettier:write": "prettier --write .",
     "lint": "oxlint",
-    "lint:fix": "oxlint --fix"
+    "lint:fix": "oxlint --fix",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "husky": "^9.1.7",
     "knip": "^6.7.0",
     "oxlint": "^1.62.0",
     "prettier": "3.8.3",
