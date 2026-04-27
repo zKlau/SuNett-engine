@@ -17,7 +17,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "knip": "knip --production"
+    "knip": "knip --production",
+    "prettier:check": "prettier --check .",
+    "prettier:write": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -25,6 +27,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "knip": "^6.7.0",
+    "prettier": "3.8.3",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vite-plugin-wasm": "^3.6.0"
