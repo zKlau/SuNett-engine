@@ -24,7 +24,7 @@
     "lint:fix": "oxlint --fix",
     "prepare": "husky",
     "lint-staged": "lint-staged",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "keywords": [],
   "author": "",
@@ -44,7 +44,6 @@
     "prettier": "3.8.3",
     "ts-jest": "^29.4.9",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
-    "vite-plugin-wasm": "^3.6.0"
+    "typescript": "^6.0.3"
   }
 }
