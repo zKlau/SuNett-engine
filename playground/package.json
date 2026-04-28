@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "sunett-parser": "file:///E:/Projects/SuNet-parser/guitarproparser-wasm/lib/pkg"
+    "sunett-parser": "file:../../guitarproparser-wasm/lib/pkg"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
