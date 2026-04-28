@@ -16,13 +16,34 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "knip": "knip --production",
+    "prettier:check": "prettier --check .",
+    "prettier:write": "prettier --write .",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "test": "jest --passWithNoTests"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-typescript": "^7.28.5",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.6.0",
+    "babel-jest": "^30.3.0",
+    "husky": "^9.1.7",
+    "jest": "^30.3.0",
+    "knip": "^6.7.0",
+    "lint-staged": "^16.4.0",
+    "oxlint": "^1.62.0",
+    "prettier": "3.8.3",
+    "ts-jest": "^29.4.9",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   }
 }
