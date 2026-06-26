@@ -31,8 +31,6 @@ export type Track = {
   port: number;
   fret_count: number;
   indicate_tuning: boolean;
-  // use_rse:boolean; Shouldn't be neccessary
-  // rse: TrackRse; Shouldn't be neccessary
   measures: Measure[];
   settings: TrackSettings;
 };

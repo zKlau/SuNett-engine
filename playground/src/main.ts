@@ -1,7 +1,9 @@
+// oxlint-disable no-console
 import "./style.css";
 
 import { parse_guitar_pro } from "sunett-parser";
 import type { Song } from "../../src/types/song.ts";
+import { TabsRenderer } from "../../src/utils/tabs/tabsRenderer.ts";
 
 async function main(filePath: string) {
   const response = await fetch(filePath);
@@ -10,32 +12,21 @@ async function main(filePath: string) {
   try {
     const song: Song = parse_guitar_pro(bytes, filePath);
 
-    for (const measure in song.measure_headers) {
-      console.log("Measure:", measure);
-      console.log("Tempo:", song.measure_headers[measure].tempo);
-      console.log("Repeat Open:", song.measure_headers[measure].repeat_open);
-      console.log("Repeat Close:", song.measure_headers[measure].repeat_close);
-      console.log(
-        "Repeat Alternative:",
-        song.measure_headers[measure].repeat_alternative,
-        "\n ",
-      );
-      console.log(
-        "Key Signature:",
-        song.measure_headers[measure].key_signature,
-        "\n ",
-      );
-    }
+    const t = new TabsRenderer(song);
+    t.generateMeasures(1);
+    console.log(song.tracks);
 
-    console.log("Notes", song.tracks[0]?.measures[0].voices[0].beats[0].notes);
-    //! Bar Ticks = (960 * 4 / DenominatorValue) * Numerator
-    console.log(
-      song.tracks[0]?.measures[0].voices[0].beats[0].notes[0].effect.bend,
-    );
+    displayTitle(song.name);
   } catch (e) {
     console.error("Parsing failed:", e);
   }
 }
+function displayTitle(name: string) {
+  const element = document.getElementById("songTitle");
+  if (element) {
+    element.textContent = name;
+  }
+}
 
-// main("/tabs/sweetChild.gp3");
-main("/tabs/test.gpx");
+// main("/tabs/test.gpx");
+main("/tabs/hpb.gp5");
