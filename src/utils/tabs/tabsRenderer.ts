@@ -41,7 +41,8 @@ export class TabsRenderer {
     this.rendererCleanups.get(svg)?.();
 
     const config = normalizeOptions(options);
-    const track = this.song.tracks[trackIndex] ?? this.song.tracks[0];
+    const resolvedTrackIndex = options.trackIndex ?? trackIndex;
+    const track = this.song.tracks[resolvedTrackIndex] ?? this.song.tracks[0];
 
     if (!track) {
       return;
@@ -430,6 +431,7 @@ export class TabsRenderer {
         parent,
         leftX + constants.REPEAT_DOT_OFFSET,
         top,
+        bottom,
         bounds.stringSpacing,
       );
     }
@@ -457,6 +459,7 @@ export class TabsRenderer {
         parent,
         rightX - constants.REPEAT_DOT_OFFSET,
         top,
+        bottom,
         bounds.stringSpacing,
       );
 
@@ -510,10 +513,15 @@ export class TabsRenderer {
     parent: SVGGElement,
     x: number,
     top: number,
+    bottom: number,
     stringSpacing: number,
   ) {
     const radius = constants.REPEAT_DOT_RADIUS;
-    const dotYs = [top + stringSpacing * 1.5, top + stringSpacing * 3.5];
+    const maxOffset = Math.max(0.5, (bottom - top) / stringSpacing - 0.5);
+    const dotOffsets = [clamp(1.5, 0.5, maxOffset), clamp(3.5, 0.5, maxOffset)];
+    const dotYs = Array.from(new Set(dotOffsets)).map(
+      (offset) => top + stringSpacing * offset,
+    );
 
     for (const cy of dotYs) {
       const dot = this.createSvgElement("path");

@@ -295,15 +295,6 @@ code {
   }
 }
 
-.nz5XOG_strings {
-  stroke: var(--tab-strings);
-  stroke-linecap: square;
-  stroke-width: 1px;
-  fill: none;
-  vector-effect: non-scaling-stroke;
-  shape-rendering: crispedges;
-}
-
 #tabs {
   display: block;
   width: 100%;
