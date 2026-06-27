@@ -157,7 +157,7 @@ code {
 }
 
 #app {
-  width: 1126px;
+  width: min(100%, 1600px);
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
@@ -293,4 +293,44 @@ code {
     right: 0;
     border-right-color: var(--border);
   }
+}
+
+#tabs {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.string {
+  stroke: var(--text-h);
+  opacity: 0.68;
+  stroke-linecap: butt;
+  stroke-width: 1px;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispedges;
+}
+
+/* Line thickness comes from the renderer (TabsRendererConstants) via the
+   stroke-width attribute, so it is intentionally not set here. */
+.barline {
+  stroke: var(--text-h);
+  opacity: 0.68;
+  stroke-linecap: butt;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispedges;
+}
+
+.repeat-dot {
+  fill: var(--text-h);
+  stroke: none;
+}
+
+.measure-index,
+.repeat-count {
+  fill: var(--text-h);
+  font-family: var(--mono);
+  font-size: 11px;
+  opacity: 0.45;
 }
