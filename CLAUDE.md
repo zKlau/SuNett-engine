@@ -5,7 +5,7 @@ parsed Guitar Pro song data. Shipped as a distributable library (dual ESM/CJS vi
 `tsup`), not an application.
 
 > Status: early / WIP. The package entry `src/index.ts` is still a stub, and the
-> renderer (`generateMeasures`) is **not yet exported** from it — `tsup` only bundles
+> renderer (`TabsRenderer`) is **not yet exported** from it — `tsup` only bundles
 > `src/index.ts`, so the build currently ships nothing usable. Note/fret drawing is
 > also not implemented yet (`renderMeasure` stops after strings, barlines, and labels).
 
@@ -27,13 +27,15 @@ must lint clean and typecheck.
 
 ```
 src/
-  index.ts                 # package entry (currently a stub)
+  index.ts                       # package entry (currently a stub)
   constants/
-    tabRenderer.ts         # TabsRendererConstants — layout/spacing defaults
+    tabRendererConstants.ts      # TabsRendererConstants — layout/spacing defaults
   utils/
-    tabsRenderer.ts        # generateMeasures() + layout math & SVG drawing
-    tabsRendererConfig.ts  # normalizeOptions() — merge options over constants
-  types/                   # Guitar Pro domain model (mirrors the sunett-parser output)
+    songHelper.ts                # SongHelper class — name/tracks/measures accessors over a Song
+    tabs/
+      tabsRenderer.ts            # TabsRenderer class — layout math & SVG drawing
+      tabsOptionsNormalizer.ts   # normalizeOptions() — merge options over constants
+  types/                         # Guitar Pro domain model (mirrors the sunett-parser output)
     song.ts track.ts measure.ts voice.ts note.ts
     duration.ts pitch.ts octaves.ts channels.ts lyrics.ts mixTable.ts barre.ts
     beats/    beat.ts beatDisplay.ts slap.ts stroke.ts
@@ -41,10 +43,10 @@ src/
     notes/    fingering.ts noteEffects.ts noteType.ts
       effects/ bend.ts grace.ts harmonic.ts slide.ts tremoloPicking.ts trill.ts
     UI/       measureContext.ts measureBounds.ts rendererOptions.ts tabLayout.ts
-playground/                # separate Vite app for manual visual testing
-  src/main.ts              # parses a .gp* fixture via sunett-parser, calls generateMeasures
-  public/tabs/*.gp*        # Guitar Pro fixtures
-.claude/skills/            # Claude Code skills for this repo (see folder README)
+playground/                      # separate Vite app for manual visual testing
+  src/main.ts                    # parses a .gp* fixture, new TabsRenderer(song).generateMeasures()
+  public/tabs/*.gp*              # Guitar Pro fixtures
+.claude/skills/                  # Claude Code skills for this repo (see folder README)
 ```
 
 ### How it fits together
@@ -53,13 +55,18 @@ playground/                # separate Vite app for manual visual testing
   (`Song → Track → Measure → Voice → Beat → Note` plus headers, chords, durations,
   and note effects). They mirror the output of **`sunett-parser`**, a separate WASM
   Guitar Pro parser (`../../guitarproparser-wasm`).
-- **Renderer** (`src/utils/tabsRenderer.ts`) — `generateMeasures(song, options)` finds
-  an `<svg>` target (default `#tabs`), computes a responsive layout, and draws string
-  lines, barlines (repeats, double/final bars), and measure-index labels. It re-renders
-  on resize via `ResizeObserver` and tracks per-SVG cleanup in a `WeakMap`.
+- **Renderer** (`src/utils/tabs/tabsRenderer.ts`) — the `TabsRenderer` class wraps a
+  `Song`; `new TabsRenderer(song).generateMeasures(trackIndex?, options?)` finds an
+  `<svg>` target (default `#tabs`), computes a responsive layout, and draws string lines,
+  barlines (repeats, double/final bars), and measure-index labels. The string count comes
+  from the track's tuning (`track.strings.length`, capped by `MAX_STRING_COUNT`). It
+  re-renders on resize via `ResizeObserver` and tracks per-SVG cleanup in a `WeakMap`.
+  `SongHelper` (`src/utils/songHelper.ts`) is a small companion class for reading a song's
+  name, tracks, and measures.
 - **Styling lives in the consumer**, not the library. The renderer only assigns CSS
-  classes (`tab-string`, `tab-barline`, `tab-measure-index`, `tab-repeat-dot`, …); the
-  actual styles live in the consuming app's CSS (see `playground/src/style.css`).
+  classes (`string`, `barline` + `barline-start/-end/-inner/-repeat-open`, `repeat-dot`,
+  `repeat-count`, `measure-index`, …); the actual styles live in the consuming app's CSS
+  (see `playground/src/style.css`).
 - **Playground** is its own package. It imports the renderer directly from `../../src`
   (source, not the built `dist`) and requires `vite-plugin-wasm` to load the parser.
   Run it with `npm run dev` from inside `playground/`.
@@ -68,9 +75,11 @@ playground/                # separate Vite app for manual visual testing
 
 Match the existing code. Concretely:
 
-- **Functions**: prefer named `function` declarations over arrow-function consts for
-  module-level functions. Export only the public surface; keep helpers un-exported in
-  the same file, defined top-down (callers above callees).
+- **Structure**: stateful pieces are classes (`TabsRenderer`, `SongHelper`) — expose a
+  small public API and keep the rest `private`, with public methods first and private
+  helpers below (top-down, callers above callees). Pure, stateless utilities stay as
+  module-level `function` declarations (e.g. `clamp`), preferred over arrow-function
+  consts; export only the public surface.
 - **Types**: use `type` aliases, not `interface`. Model enums as
   `const Foo = { ... } as const` and reference them with `keyof typeof Foo`; co-locate
   each enum-like const with the type that uses it.
@@ -90,7 +99,9 @@ Match the existing code. Concretely:
   `calculateMeasureWidths`) separate from DOM/SVG drawing (`renderMeasure`,
   `renderStringLines`). DOM-touching code guards `typeof document === "undefined"`.
 - **SVG**: create elements with `document.createElementNS` via the `createSvgElement`
-  helper; style via CSS classes only — never inline visual styles in TS.
+  helper. Appearance (color, opacity) lives in CSS classes; only geometry and
+  constant-driven widths (e.g. `stroke-width` from `tabRendererConstants`) are set as
+  attributes in TS — never hardcode visual styling inline.
 - **No `console`** in library code (oxlint warns); the playground opts out per-file with
   `// oxlint-disable no-console`.
 - **Formatting**: Prettier defaults (2-space indent, double quotes, semicolons, trailing
