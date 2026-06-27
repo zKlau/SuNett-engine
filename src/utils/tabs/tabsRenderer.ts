@@ -96,11 +96,9 @@ export class TabsRenderer {
       return;
     }
 
-    if (typeof target === "string") {
-      return document.querySelector<SVGSVGElement>(target) ?? undefined;
-    }
-
-    return target;
+    const element =
+      typeof target === "string" ? document.querySelector(target) : target;
+    return element instanceof SVGSVGElement ? element : undefined;
   }
 
   private getMeasureContexts(track: Track): MeasureContext[] {
@@ -114,7 +112,7 @@ export class TabsRenderer {
   }
 
   private countStrings(track: Track): number {
-    return track.strings.length || constants.MAX_STRING_COUNT;
+    return track.strings.length || constants.DEFAULT_STRING_COUNT;
   }
 
   private calculateLayout(
