@@ -77,7 +77,6 @@ export class TabsRenderer {
       svg.setAttribute("width", `${width}`);
       svg.setAttribute("height", `${height}`);
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.setAttribute("role", "img");
     };
 
     render();
