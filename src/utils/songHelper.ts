@@ -16,7 +16,7 @@ export class SongHelper {
     return this.song.tracks;
   }
 
-  getTrack(index: number): Track {
+  getTrack(index: number): Track | undefined {
     return this.song.tracks[index];
   }
   getTrackName(track: Track): string {
