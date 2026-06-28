@@ -1,6 +1,3 @@
-// Minimal builders for the Guitar Pro domain model. Tests live outside `src`,
-// so they are excluded from `tsc`/build/knip; the `as unknown as` casts keep
-// fixtures small by only populating the fields the renderer actually reads.
 import type { Measure } from "../src/types/measure";
 import type { Song } from "../src/types/song";
 import type { Track } from "../src/types/track";
