@@ -1,12 +1,12 @@
 export type TabRendererOptions = {
   target?: string | SVGSVGElement;
   trackIndex?: number;
-  preferredMeasuresPerRow?: number;
+  measuresPerRow?: number;
   minMeasureWidth?: number;
   defaultMeasureWidth?: number;
   maxMeasureWidth?: number;
   minStringSpacing?: number;
-  defaultStringSpacing?: number;
+  stringSpacing?: number;
   maxStringSpacing?: number;
   measureGap?: number;
   rowGap?: number;

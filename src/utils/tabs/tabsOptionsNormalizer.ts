@@ -4,10 +4,8 @@ import { TabsRendererConstants as constants } from "../../constants/tabRendererC
 export function normalizeOptions(options: TabRendererOptions) {
   return {
     trackIndex: options.trackIndex ?? 0,
-    preferredMeasuresPerRow: Math.max(
-      1,
-      options.preferredMeasuresPerRow ?? constants.DEFAULT_MEASURES_PER_ROW,
-    ),
+    measuresPerRow:
+      options.measuresPerRow ?? constants.DEFAULT_MEASURES_PER_ROW,
     minMeasureWidth: options.minMeasureWidth ?? constants.MIN_MEASURE_WIDTH,
 
     defaultMeasureWidth:
@@ -17,8 +15,7 @@ export function normalizeOptions(options: TabRendererOptions) {
 
     minStringSpacing: options.minStringSpacing ?? constants.MIN_STRING_SPACING,
 
-    defaultStringSpacing:
-      options.defaultStringSpacing ?? constants.DEFAULT_STRING_SPACING,
+    stringSpacing: options.stringSpacing ?? constants.STRING_SPACING,
 
     maxStringSpacing: options.maxStringSpacing ?? constants.MAX_STRING_SPACING,
 
@@ -26,8 +23,8 @@ export function normalizeOptions(options: TabRendererOptions) {
 
     rowGap: options.rowGap ?? constants.ROW_GAP,
 
-    paddingX: options.paddingX ?? constants.PADDING_X,
+    paddingX: options.paddingX ?? constants.TAB_PADDING_X,
 
-    paddingY: options.paddingY ?? constants.PADDING_Y,
+    paddingY: options.paddingY ?? constants.TAB_PADDING_Y,
   };
 }

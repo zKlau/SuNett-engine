@@ -4,10 +4,10 @@ import type { Track } from "../../types/track";
 import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
 import type { TabRendererOptions } from "../../types/UI/rendererOptions";
-import type { MeasureLayout, TabLayout } from "../../types/UI/tabLayout";
-import { normalizeOptions } from "./tabsOptionsNormalizer";
+import type { TabLayout } from "../../types/UI/tabLayout";
 
-type RendererConfig = ReturnType<typeof normalizeOptions>;
+import { normalizeOptions } from "./tabsOptionsNormalizer";
+import { LayoutCalculation } from "./layoutCalculation";
 
 type RepeatLine = {
   className: string;
@@ -49,11 +49,11 @@ export class TabsRenderer {
     }
 
     const measures = this.getMeasureContexts(track);
-
+    const layoutCalculation = new LayoutCalculation(track, config);
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
       const svgWidth = parentWidth || config.defaultMeasureWidth;
-      const layout = this.calculateLayout(svgWidth, track, measures, config);
+      const layout = layoutCalculation.calculateLayout(svgWidth, measures);
 
       this.clearSvg(svg);
 
@@ -113,184 +113,6 @@ export class TabsRenderer {
 
   private countStrings(track: Track): number {
     return track.strings.length || constants.DEFAULT_STRING_COUNT;
-  }
-
-  private calculateLayout(
-    svgWidth: number,
-    track: Track,
-    measures: MeasureContext[],
-    config: RendererConfig,
-  ): TabLayout {
-    const availableWidth = Math.max(0, svgWidth - config.paddingX * 2);
-
-    const preferredWidth = clamp(
-      Math.floor(
-        (availableWidth -
-          config.measureGap * (config.preferredMeasuresPerRow - 1)) /
-          config.preferredMeasuresPerRow,
-      ),
-      config.minMeasureWidth,
-      config.maxMeasureWidth,
-    );
-
-    const measureWidth = clamp(
-      preferredWidth,
-      config.minMeasureWidth,
-      config.maxMeasureWidth,
-    );
-
-    const stringSpacing = clamp(
-      (measureWidth / config.defaultMeasureWidth) * config.defaultStringSpacing,
-      config.minStringSpacing,
-      config.maxStringSpacing,
-    );
-
-    const stringCount = this.countStrings(track);
-
-    const measureHeight =
-      constants.NOTE_TOP_PADDING +
-      stringSpacing * (stringCount - 1) +
-      constants.NOTE_BOTTOM_PADDING;
-
-    const measureWidths = this.calculateMeasureWidths(
-      measures,
-      measureWidth,
-      config,
-    );
-
-    const measureLayouts = this.calculateMeasureLayouts(
-      measureWidths,
-      availableWidth,
-      measureHeight,
-      config,
-    );
-
-    const contentWidth = measureLayouts.reduce(
-      (maxWidth, measureLayout) =>
-        Math.max(
-          maxWidth,
-          measureLayout.x + measureLayout.width - config.paddingX,
-        ),
-      0,
-    );
-    const rowCount =
-      measureLayouts.reduce(
-        (maxRow, measureLayout) => Math.max(maxRow, measureLayout.row),
-        0,
-      ) + 1;
-
-    return {
-      measureLayouts,
-      stringSpacing,
-      measureHeight,
-      rowHeight: measureHeight + config.rowGap,
-      contentWidth,
-      measureGap: config.measureGap,
-      paddingX: config.paddingX,
-      paddingY: config.paddingY,
-      rowCount,
-      stringCount,
-    };
-  }
-
-  private calculateMeasureWidths(
-    measures: MeasureContext[],
-    baseMeasureWidth: number,
-    config: RendererConfig,
-  ): number[] {
-    const measureWeights = measures.map((measureContext) =>
-      this.getMeasureWeight(measureContext),
-    );
-    const averageWeight =
-      measureWeights.reduce((total, weight) => total + weight, 0) /
-      Math.max(1, measureWeights.length);
-
-    return measureWeights.map((weight) =>
-      clamp(
-        baseMeasureWidth * (weight / averageWeight),
-        config.minMeasureWidth,
-        config.maxMeasureWidth,
-      ),
-    );
-  }
-
-  private calculateMeasureLayouts(
-    measureWidths: number[],
-    availableWidth: number,
-    measureHeight: number,
-    config: RendererConfig,
-  ): MeasureLayout[] {
-    const measureRows: number[][] = [];
-    let currentRow: number[] = [];
-    let currentRowWidth = 0;
-
-    measureWidths.forEach((measureWidth) => {
-      const widthWithGap =
-        currentRowWidth === 0 ? measureWidth : measureWidth + config.measureGap;
-
-      if (
-        currentRowWidth > 0 &&
-        currentRowWidth + widthWithGap > availableWidth
-      ) {
-        measureRows.push(currentRow);
-        currentRow = [];
-        currentRowWidth = 0;
-      }
-
-      currentRow.push(measureWidth);
-      currentRowWidth +=
-        currentRowWidth === 0 ? measureWidth : measureWidth + config.measureGap;
-    });
-
-    if (currentRow.length > 0) {
-      measureRows.push(currentRow);
-    }
-
-    return measureRows.flatMap((measureRow, row) => {
-      const rowWidth = this.getRowWidth(measureRow, config.measureGap);
-
-      const extraMeasureWidth =
-        measureRow.length === 1
-          ? 0
-          : Math.max(0, availableWidth - rowWidth) / measureRow.length;
-      let x = config.paddingX;
-      const y = config.paddingY + row * (measureHeight + config.rowGap);
-
-      return measureRow.map((measureWidth) => {
-        const width = measureWidth + extraMeasureWidth;
-        const measureLayout = {
-          x,
-          y,
-          width,
-          row,
-        };
-
-        x += width + config.measureGap;
-
-        return measureLayout;
-      });
-    });
-  }
-
-  private getRowWidth(measureWidths: number[], measureGap: number) {
-    return (
-      measureWidths.reduce((total, measureWidth) => total + measureWidth, 0) +
-      Math.max(0, measureWidths.length - 1) * measureGap
-    );
-  }
-
-  private getMeasureWeight(measureContext: MeasureContext) {
-    const beats = measureContext.measure.voices.flatMap((voice) => voice.beats);
-    const noteCount = beats.reduce(
-      (total, beat) => total + beat.notes.length,
-      0,
-    );
-
-    return Math.max(
-      1,
-      beats.length * constants.MEASURE_BEAT_WEIGHT +
-        noteCount * constants.MEASURE_NOTE_WEIGHT,
-    );
   }
 
   private renderMeasure(
@@ -358,7 +180,7 @@ export class TabsRenderer {
     measureIndex.setAttribute("x", `${measureX}`);
     measureIndex.setAttribute(
       "y",
-      `${measureY + constants.NOTE_TOP_PADDING - constants.MEASURE_INDEX_OFFSET}`,
+      `${measureY + constants.MEASURE_TOP_PADDING - constants.MEASURE_INDEX_OFFSET}`,
     );
     measureIndex.textContent = `${measureContext.index + 1}`;
 
@@ -374,7 +196,7 @@ export class TabsRenderer {
       const stringPath = this.createSvgElement("path");
       const y =
         bounds.y +
-        constants.NOTE_TOP_PADDING +
+        constants.MEASURE_TOP_PADDING +
         stringIndex * bounds.stringSpacing;
 
       stringPath.setAttribute("class", "string");
@@ -394,8 +216,8 @@ export class TabsRenderer {
     bounds: MeasureBounds,
     isRowStart: boolean,
   ) {
-    const top = bounds.y + constants.NOTE_TOP_PADDING;
-    const bottom = bounds.y + bounds.height - constants.NOTE_BOTTOM_PADDING;
+    const top = bounds.y + constants.MEASURE_TOP_PADDING;
+    const bottom = bounds.y + bounds.height - constants.MEASURE_BOTTOM_PADDING;
     const leftX = bounds.x;
     const rightX = bounds.x + bounds.width;
 
