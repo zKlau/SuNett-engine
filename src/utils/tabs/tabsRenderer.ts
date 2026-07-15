@@ -6,6 +6,7 @@ import type { MeasureContext } from "../../types/UI/measureContext";
 import type { TabRendererOptions } from "../../types/UI/rendererOptions";
 import type { TabLayout } from "../../types/UI/tabLayout";
 
+import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
 
@@ -109,10 +110,6 @@ export class TabsRenderer {
         this.song.measure_headers[measure.header_index],
       index,
     }));
-  }
-
-  private countStrings(track: Track): number {
-    return track.strings.length || constants.DEFAULT_STRING_COUNT;
   }
 
   private renderMeasure(
@@ -393,8 +390,4 @@ export class TabsRenderer {
   private createSvgElement<K extends keyof SVGElementTagNameMap>(tagName: K) {
     return document.createElementNS(TabsRenderer.SVG_NAMESPACE, tagName);
   }
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
