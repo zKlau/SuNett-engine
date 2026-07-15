@@ -6,16 +6,14 @@ describe("normalizeOptions", () => {
     const config = normalizeOptions({});
 
     expect(config.trackIndex).toBe(0);
-    expect(config.preferredMeasuresPerRow).toBe(
-      constants.DEFAULT_MEASURES_PER_ROW,
-    );
+    expect(config.measuresPerRow).toBe(constants.DEFAULT_MEASURES_PER_ROW);
     expect(config.minMeasureWidth).toBe(constants.MIN_MEASURE_WIDTH);
     expect(config.defaultMeasureWidth).toBe(constants.DEFAULT_MEASURE_WIDTH);
     expect(config.maxMeasureWidth).toBe(constants.MAX_MEASURE_WIDTH);
-    expect(config.defaultStringSpacing).toBe(constants.DEFAULT_STRING_SPACING);
+    expect(config.stringSpacing).toBe(constants.STRING_SPACING);
     expect(config.rowGap).toBe(constants.ROW_GAP);
-    expect(config.paddingX).toBe(constants.PADDING_X);
-    expect(config.paddingY).toBe(constants.PADDING_Y);
+    expect(config.paddingX).toBe(constants.TAB_PADDING_X);
+    expect(config.paddingY).toBe(constants.TAB_PADDING_Y);
   });
 
   it("prefers provided options over constants", () => {
@@ -37,12 +35,8 @@ describe("normalizeOptions", () => {
     expect(config.minStringSpacing).toBe(0);
   });
 
-  it("clamps preferredMeasuresPerRow to at least 1", () => {
-    expect(
-      normalizeOptions({ preferredMeasuresPerRow: 0 }).preferredMeasuresPerRow,
-    ).toBe(1);
-    expect(
-      normalizeOptions({ preferredMeasuresPerRow: -5 }).preferredMeasuresPerRow,
-    ).toBe(1);
+  it("clamps measuresPerRow to at least 1", () => {
+    expect(normalizeOptions({ measuresPerRow: 0 }).measuresPerRow).toBe(1);
+    expect(normalizeOptions({ measuresPerRow: -5 }).measuresPerRow).toBe(1);
   });
 });
