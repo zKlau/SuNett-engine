@@ -230,7 +230,17 @@ describe("renderMeasureNotes", () => {
     const expectedY =
       bounds.y + constants.MEASURE_TOP_PADDING + 2 * bounds.stringSpacing;
     const note = parent.querySelector("g.tab-note")!;
-    expect(note.getAttribute("transform")).toBe(`translate(77 ${expectedY})`);
+    expect(note.getAttribute("transform")).toBeNull();
+    expect(note.getAttribute("x")).toBe("77");
+    expect(note.getAttribute("y")).toBe(`${expectedY}`);
+
+    const text = note.querySelector(".tab-note-text")!;
+    expect(text.getAttribute("x")).toBe("77");
+    expect(text.getAttribute("y")).toBe(`${expectedY}`);
+
+    const bg = note.querySelector(".tab-note-bg")!;
+    expect(Number(bg.getAttribute("x"))).toBeLessThan(77);
+    expect(Number(bg.getAttribute("y"))).toBeLessThan(expectedY);
   });
 
   it("omits the background rect when background is false", () => {

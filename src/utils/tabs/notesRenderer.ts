@@ -129,7 +129,8 @@ function buildDefaultNote(
   const className = modifiers ? `${prefix} ${modifiers}` : prefix;
 
   group.setAttribute("class", className);
-  group.setAttribute("transform", `translate(${x} ${y})`);
+  group.setAttribute("x", `${x}`);
+  group.setAttribute("y", `${y}`);
   group.setAttribute("data-fret", `${note.value}`);
   group.setAttribute("data-string", `${note.string}`);
   group.setAttribute("data-kind", note.kind);
@@ -146,8 +147,8 @@ function buildDefaultNote(
   if (config.background) {
     const bg = context.createElement("rect");
     bg.setAttribute("class", `${prefix}-bg`);
-    bg.setAttribute("x", `${-glyphWidth / 2}`);
-    bg.setAttribute("y", `${-config.backgroundHeight / 2}`);
+    bg.setAttribute("x", `${x - glyphWidth / 2}`);
+    bg.setAttribute("y", `${y - config.backgroundHeight / 2}`);
     bg.setAttribute("width", `${glyphWidth}`);
     bg.setAttribute("height", `${config.backgroundHeight}`);
     group.append(bg);
@@ -155,6 +156,8 @@ function buildDefaultNote(
 
   const text = context.createElement("text");
   text.setAttribute("class", `${prefix}-text`);
+  text.setAttribute("x", `${x}`);
+  text.setAttribute("y", `${y}`);
   text.setAttribute("text-anchor", "middle");
   text.setAttribute("dominant-baseline", "central");
   text.setAttribute("font-size", `${fontSize}`);
