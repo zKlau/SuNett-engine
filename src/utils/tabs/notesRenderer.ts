@@ -11,7 +11,7 @@ const SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
 
 type NoteConfig = ReturnType<typeof normalizeOptions>["notes"];
 
-export type NotesRenderRequest = {
+type NotesRenderRequest = {
   parent: SVGGElement;
   measure: Measure;
   measureIndex: number;
