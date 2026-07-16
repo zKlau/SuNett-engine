@@ -22,6 +22,8 @@ export function normalizeOptions(options: TabRendererOptions) {
 
     maxStringSpacing: options.maxStringSpacing ?? constants.MAX_STRING_SPACING,
 
+    invertStrings: options.invertStrings ?? constants.INVERT_STRINGS,
+
     measureGap: options.measureGap ?? constants.MEASURE_GAP,
 
     rowGap: options.rowGap ?? constants.ROW_GAP,

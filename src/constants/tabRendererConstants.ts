@@ -8,6 +8,7 @@ export const TabsRendererConstants = {
   STRING_SPACING: 16,
   MIN_STRING_SPACING: 9,
   MAX_STRING_SPACING: 24,
+  INVERT_STRINGS: false,
   MEASURE_GAP: 0,
   ROW_GAP: 34,
   TAB_PADDING_X: 18,

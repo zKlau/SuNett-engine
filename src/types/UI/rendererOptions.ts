@@ -10,6 +10,7 @@ export type TabRendererOptions = {
   minStringSpacing?: number;
   stringSpacing?: number;
   maxStringSpacing?: number;
+  invertStrings?: boolean;
   measureGap?: number;
   rowGap?: number;
   paddingX?: number;

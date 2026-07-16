@@ -40,6 +40,14 @@ describe("normalizeOptions", () => {
     expect(normalizeOptions({ measuresPerRow: -5 }).measuresPerRow).toBe(1);
   });
 
+  it("defaults invertStrings to the constant and respects an explicit value", () => {
+    expect(normalizeOptions({}).invertStrings).toBe(constants.INVERT_STRINGS);
+    expect(normalizeOptions({ invertStrings: true }).invertStrings).toBe(true);
+    expect(normalizeOptions({ invertStrings: false }).invertStrings).toBe(
+      false,
+    );
+  });
+
   describe("notes", () => {
     it("falls back to constants when notes are omitted", () => {
       const { notes } = normalizeOptions({});

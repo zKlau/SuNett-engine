@@ -18,6 +18,7 @@ type NotesRenderRequest = {
   beatLayouts: BeatLayout[];
   bounds: MeasureBounds;
   stringCount: number;
+  invertStrings?: boolean;
   config: NoteConfig;
 };
 
@@ -30,6 +31,7 @@ type NoteRenderRequest = {
   note: Note;
   bounds: MeasureBounds;
   stringCount: number;
+  invertStrings: boolean;
   config: NoteConfig;
 };
 
@@ -41,6 +43,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     beatLayouts,
     bounds,
     stringCount,
+    invertStrings = false,
     config,
   } = request;
 
@@ -60,6 +63,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
         note,
         bounds,
         stringCount,
+        invertStrings,
         config,
       });
     }
@@ -76,6 +80,7 @@ function renderNote(request: NoteRenderRequest) {
     note,
     bounds,
     stringCount,
+    invertStrings,
     config,
   } = request;
 
@@ -86,10 +91,9 @@ function renderNote(request: NoteRenderRequest) {
     return;
   }
 
+  const stringRow = invertStrings ? stringCount - note.string : note.string - 1;
   const y =
-    bounds.y +
-    constants.MEASURE_TOP_PADDING +
-    (note.string - 1) * bounds.stringSpacing;
+    bounds.y + constants.MEASURE_TOP_PADDING + stringRow * bounds.stringSpacing;
 
   const context: NoteRenderContext = {
     note,
