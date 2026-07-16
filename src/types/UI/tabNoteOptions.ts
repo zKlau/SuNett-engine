@@ -11,4 +11,5 @@ export type TabNoteOptions = {
   backgroundHeight?: number;
   background?: boolean;
   classPrefix?: string;
+  defaultStyles?: boolean;
 };

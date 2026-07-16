@@ -11,6 +11,7 @@ import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
 import { calculateBeatLayouts } from "./notesLayout";
 import { renderMeasureNotes } from "./notesRenderer";
+import { buildNoteStyles } from "./notesStyles";
 
 type RepeatLine = {
   className: string;
@@ -67,6 +68,7 @@ export class TabsRenderer {
       const layout = layoutCalculation.calculateLayout(svgWidth, measures);
 
       this.clearSvg(svg);
+      this.renderDefaultStyles(svg, config);
 
       const pass: RenderPass = {
         layout,
@@ -427,6 +429,16 @@ export class TabsRenderer {
     repeatCountText.textContent = `x${repeatCount}`;
 
     parent.append(repeatCountText);
+  }
+
+  private renderDefaultStyles(svg: SVGSVGElement, config: RendererConfig) {
+    if (!config.notes.defaultStyles) {
+      return;
+    }
+
+    const style = this.createSvgElement("style");
+    style.textContent = buildNoteStyles(config.notes.classPrefix);
+    svg.append(style);
   }
 
   private clearSvg(svg: SVGSVGElement) {

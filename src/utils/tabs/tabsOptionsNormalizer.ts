@@ -42,6 +42,7 @@ function normalizeNoteOptions(options: TabNoteOptions) {
       options.backgroundHeight ?? constants.NOTE_BACKGROUND_HEIGHT,
     background: options.background ?? true,
     classPrefix: options.classPrefix ?? constants.NOTE_CLASS_PREFIX,
+    defaultStyles: options.defaultStyles ?? true,
     render: options.render,
     onCreate: options.onCreate,
     onClick: options.onClick,

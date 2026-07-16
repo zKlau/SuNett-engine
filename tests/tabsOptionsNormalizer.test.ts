@@ -64,6 +64,14 @@ describe("normalizeOptions", () => {
       expect(notes.background).toBe(false);
     });
 
+    it("defaults defaultStyles to true and respects an explicit false", () => {
+      expect(normalizeOptions({}).notes.defaultStyles).toBe(true);
+      expect(
+        normalizeOptions({ notes: { defaultStyles: false } }).notes
+          .defaultStyles,
+      ).toBe(false);
+    });
+
     it("overrides size, padding and prefix when provided", () => {
       const { notes } = normalizeOptions({
         notes: { fontSize: 14, paddingX: 6, classPrefix: "note" },
