@@ -39,4 +39,57 @@ describe("normalizeOptions", () => {
     expect(normalizeOptions({ measuresPerRow: 0 }).measuresPerRow).toBe(1);
     expect(normalizeOptions({ measuresPerRow: -5 }).measuresPerRow).toBe(1);
   });
+
+  describe("notes", () => {
+    it("falls back to constants when notes are omitted", () => {
+      const { notes } = normalizeOptions({});
+
+      expect(notes.fontSize).toBe(constants.NOTE_FONT_SIZE);
+      expect(notes.paddingX).toBe(constants.NOTE_PADDING_X);
+      expect(notes.backgroundHeight).toBe(constants.NOTE_BACKGROUND_HEIGHT);
+      expect(notes.classPrefix).toBe(constants.NOTE_CLASS_PREFIX);
+      expect(notes.background).toBe(true);
+    });
+
+    it("falls back to constants when notes are an empty object", () => {
+      const { notes } = normalizeOptions({ notes: {} });
+
+      expect(notes.fontSize).toBe(constants.NOTE_FONT_SIZE);
+      expect(notes.background).toBe(true);
+    });
+
+    it("respects an explicit background: false (does not coerce via ||)", () => {
+      const { notes } = normalizeOptions({ notes: { background: false } });
+
+      expect(notes.background).toBe(false);
+    });
+
+    it("overrides size, padding and prefix when provided", () => {
+      const { notes } = normalizeOptions({
+        notes: { fontSize: 14, paddingX: 6, classPrefix: "note" },
+      });
+
+      expect(notes.fontSize).toBe(14);
+      expect(notes.paddingX).toBe(6);
+      expect(notes.classPrefix).toBe("note");
+    });
+
+    it("passes callbacks through unchanged", () => {
+      const render = () => null;
+      const onCreate = () => undefined;
+      const onClick = () => undefined;
+      const onPointerEnter = () => undefined;
+      const onPointerLeave = () => undefined;
+
+      const { notes } = normalizeOptions({
+        notes: { render, onCreate, onClick, onPointerEnter, onPointerLeave },
+      });
+
+      expect(notes.render).toBe(render);
+      expect(notes.onCreate).toBe(onCreate);
+      expect(notes.onClick).toBe(onClick);
+      expect(notes.onPointerEnter).toBe(onPointerEnter);
+      expect(notes.onPointerLeave).toBe(onPointerLeave);
+    });
+  });
 });

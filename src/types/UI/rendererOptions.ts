@@ -1,3 +1,5 @@
+import type { TabNoteOptions } from "./tabNoteOptions";
+
 export type TabRendererOptions = {
   target?: string | SVGSVGElement;
   trackIndex?: number;
@@ -12,4 +14,5 @@ export type TabRendererOptions = {
   rowGap?: number;
   paddingX?: number;
   paddingY?: number;
+  notes?: TabNoteOptions;
 };

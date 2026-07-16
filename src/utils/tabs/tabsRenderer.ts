@@ -9,6 +9,8 @@ import type { TabLayout } from "../../types/UI/tabLayout";
 import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
+import { calculateBeatLayouts } from "./notesLayout";
+import { renderMeasureNotes } from "./notesRenderer";
 
 type RepeatLine = {
   className: string;
@@ -16,6 +18,14 @@ type RepeatLine = {
   top: number;
   bottom: number;
   width: number;
+};
+
+type RendererConfig = ReturnType<typeof normalizeOptions>;
+
+type RenderPass = {
+  layout: TabLayout;
+  config: RendererConfig;
+  totalMeasures: number;
 };
 
 export class TabsRenderer {
@@ -58,14 +68,14 @@ export class TabsRenderer {
 
       this.clearSvg(svg);
 
+      const pass: RenderPass = {
+        layout,
+        config,
+        totalMeasures: measures.length,
+      };
+
       measures.forEach((measureContext, index) => {
-        this.renderMeasure(
-          svg,
-          measureContext,
-          index,
-          layout,
-          index === measures.length - 1,
-        );
+        this.renderMeasure(svg, measureContext, index, pass);
       });
 
       const rowCount = layout.rowCount;
@@ -116,9 +126,9 @@ export class TabsRenderer {
     svg: SVGSVGElement,
     measureContext: MeasureContext,
     index: number,
-    layout: TabLayout,
-    isLastMeasure: boolean,
+    pass: RenderPass,
   ) {
+    const { layout, config, totalMeasures } = pass;
     const measureLayout = layout.measureLayouts[index];
 
     if (!measureLayout) {
@@ -128,11 +138,13 @@ export class TabsRenderer {
     const previousLayout = layout.measureLayouts[index - 1];
     const isRowStart =
       !previousLayout || previousLayout.row !== measureLayout.row;
+    const isLastMeasure = index === totalMeasures - 1;
 
     const { x, y, width } = measureLayout;
     const measureGroup = this.createSvgElement("g");
     const stringsGroup = this.createSvgElement("g");
     const barlinesGroup = this.createSvgElement("g");
+    const notesGroup = this.createSvgElement("g");
     const labelsGroup = this.createSvgElement("g");
 
     measureGroup.setAttribute("class", "measure");
@@ -146,6 +158,7 @@ export class TabsRenderer {
 
     stringsGroup.setAttribute("class", "measure-strings");
     barlinesGroup.setAttribute("class", "measure-barlines");
+    notesGroup.setAttribute("class", "measure-notes");
     labelsGroup.setAttribute("class", "measure-labels");
 
     const bounds: MeasureBounds = {
@@ -160,9 +173,44 @@ export class TabsRenderer {
     this.renderMeasureIndex(labelsGroup, measureContext, x, y);
     this.renderStringLines(stringsGroup, bounds, layout.stringCount);
     this.renderRepeatLines(barlinesGroup, measureContext, bounds, isRowStart);
+    this.renderNotes(notesGroup, measureContext, bounds, layout, config);
 
-    measureGroup.append(stringsGroup, barlinesGroup, labelsGroup);
+    measureGroup.append(stringsGroup, barlinesGroup, notesGroup, labelsGroup);
     svg.append(measureGroup);
+  }
+
+  private renderNotes(
+    parent: SVGGElement,
+    measureContext: MeasureContext,
+    bounds: MeasureBounds,
+    layout: TabLayout,
+    config: RendererConfig,
+  ) {
+    const startPadding = Math.min(
+      constants.MEASURE_CONTENT_PADDING_START,
+      bounds.width / 3,
+    );
+    const endPadding = Math.min(
+      constants.MEASURE_CONTENT_PADDING_END,
+      bounds.width / 3,
+    );
+    const contentWidth = Math.max(0, bounds.width - startPadding - endPadding);
+
+    const beatLayouts = calculateBeatLayouts(
+      measureContext.measure,
+      bounds.x + startPadding,
+      contentWidth,
+    );
+
+    renderMeasureNotes({
+      parent,
+      measure: measureContext.measure,
+      measureIndex: measureContext.index,
+      beatLayouts,
+      bounds,
+      stringCount: layout.stringCount,
+      config: config.notes,
+    });
   }
 
   private renderMeasureIndex(
