@@ -1,3 +1,4 @@
+import type { TabNoteOptions } from "../../types/UI/tabNoteOptions";
 import type { TabRendererOptions } from "../../types/UI/rendererOptions";
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 
@@ -28,5 +29,23 @@ export function normalizeOptions(options: TabRendererOptions) {
     paddingX: options.paddingX ?? constants.TAB_PADDING_X,
 
     paddingY: options.paddingY ?? constants.TAB_PADDING_Y,
+
+    notes: normalizeNoteOptions(options.notes ?? {}),
+  };
+}
+
+function normalizeNoteOptions(options: TabNoteOptions) {
+  return {
+    fontSize: options.fontSize ?? constants.NOTE_FONT_SIZE,
+    paddingX: options.paddingX ?? constants.NOTE_PADDING_X,
+    backgroundHeight:
+      options.backgroundHeight ?? constants.NOTE_BACKGROUND_HEIGHT,
+    background: options.background ?? true,
+    classPrefix: options.classPrefix ?? constants.NOTE_CLASS_PREFIX,
+    render: options.render,
+    onCreate: options.onCreate,
+    onClick: options.onClick,
+    onPointerEnter: options.onPointerEnter,
+    onPointerLeave: options.onPointerLeave,
   };
 }
