@@ -24,6 +24,8 @@ export function normalizeOptions(options: TabRendererOptions) {
 
     invertStrings: options.invertStrings ?? constants.INVERT_STRINGS,
 
+    showTuning: options.showTuning ?? constants.SHOW_TUNING,
+
     measureGap: options.measureGap ?? constants.MEASURE_GAP,
 
     rowGap: options.rowGap ?? constants.ROW_GAP,

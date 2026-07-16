@@ -182,5 +182,39 @@ describe("LayoutCalculation", () => {
 
       expect(layout.rowCount).toBeGreaterThan(1);
     });
+
+    it("reserves a left gutter for tuning labels by default", () => {
+      const layout = layoutCalculation.calculateLayout(1000, measures);
+
+      expect(layout.tuningGutter).toBe(constants.TUNING_GUTTER);
+      expect(layout.measureLayouts[0].x).toBe(
+        config.paddingX + constants.TUNING_GUTTER,
+      );
+    });
+
+    it("drops the gutter when showTuning is false", () => {
+      const noTuningConfig = normalizeOptions({ showTuning: false });
+      const noTuningLayout = new LayoutCalculation(
+        track,
+        noTuningConfig,
+      ).calculateLayout(1000, measures);
+
+      expect(noTuningLayout.tuningGutter).toBe(0);
+      expect(noTuningLayout.measureLayouts[0].x).toBe(noTuningConfig.paddingX);
+    });
+
+    it("reserves no gutter for a percussion track (no tuning to show)", () => {
+      const percussionTrack = {
+        ...makeTrack(0, track.measures),
+        percussion_track: true,
+      } as unknown as typeof track;
+      const percussionLayout = new LayoutCalculation(
+        percussionTrack,
+        config,
+      ).calculateLayout(1000, measures);
+
+      expect(percussionLayout.tuningGutter).toBe(0);
+      expect(percussionLayout.measureLayouts[0].x).toBe(config.paddingX);
+    });
   });
 });
