@@ -243,6 +243,31 @@ describe("renderMeasureNotes", () => {
     expect(Number(bg.getAttribute("y"))).toBeLessThan(expectedY);
   });
 
+  it("mirrors the string row vertically when invertStrings is set", () => {
+    const measure = makeMeasureFromVoices([
+      [makeBeat({ notes: [makeNote({ string: 1 })] })],
+    ]);
+    const parent = makeParent();
+    const bounds = makeBounds({ y: 40, stringSpacing: 12 });
+
+    renderMeasureNotes({
+      parent,
+      measure,
+      measureIndex: 0,
+      beatLayouts: [makeBeatLayout()],
+      bounds,
+      stringCount: 6,
+      invertStrings: true,
+      config: makeNoteConfig(),
+    });
+
+    // string 1 of 6 sits on the bottom row (index 5) when inverted.
+    const expectedY =
+      bounds.y + constants.MEASURE_TOP_PADDING + 5 * bounds.stringSpacing;
+    const note = parent.querySelector("g.tab-note")!;
+    expect(note.getAttribute("y")).toBe(`${expectedY}`);
+  });
+
   it("omits the background rect when background is false", () => {
     const measure = makeMeasureFromVoices([
       [makeBeat({ notes: [makeNote()] })],

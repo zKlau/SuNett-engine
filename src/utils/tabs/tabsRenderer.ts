@@ -209,6 +209,7 @@ export class TabsRenderer {
       beatLayouts,
       bounds,
       stringCount: layout.stringCount,
+      invertStrings: config.invertStrings,
       config: config.notes,
     });
   }
