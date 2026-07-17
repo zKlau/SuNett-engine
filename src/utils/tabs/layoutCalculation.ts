@@ -143,8 +143,9 @@ export class LayoutCalculation {
       this.config.minStringSpacing,
       this.config.maxStringSpacing,
     );
-    const stringCount: number =
-      this.track.strings.length || constants.DEFAULT_STRING_COUNT;
+    const stringCount: number = this.track.percussion_track
+      ? constants.PERCUSSION_LINE_COUNT
+      : this.track.strings.length || constants.DEFAULT_STRING_COUNT;
 
     const measureHeight: number =
       constants.MEASURE_TOP_PADDING +
