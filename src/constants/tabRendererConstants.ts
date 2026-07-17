@@ -29,4 +29,6 @@ export const TabsRendererConstants = {
   NOTE_PADDING_X: 3,
   NOTE_BACKGROUND_HEIGHT: 12,
   NOTE_CLASS_PREFIX: "tab-note",
+  NOTE_TRANSFORM_BOX: "fill-box",
+  NOTE_TRANSFORM_ORIGIN: "center",
 };
