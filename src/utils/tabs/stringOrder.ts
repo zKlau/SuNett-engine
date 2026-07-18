@@ -17,7 +17,7 @@ export function stringDisplayRow(
   reverse: boolean,
   invert: boolean,
 ): number {
-  const index = stringNumber - 1;
+  const index = stringNumber;
   const flip = reverse !== invert;
   return flip ? stringCount - 1 - index : index;
 }
