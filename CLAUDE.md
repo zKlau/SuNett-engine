@@ -1,5 +1,7 @@
 # SuNett-engine
 
+NEVER ADD COMMENTS EXCEPT JSDOC
+
 A TypeScript library that renders **guitar tablature as SVG in the browser** from
 parsed Guitar Pro song data. Shipped as a distributable library (dual ESM/CJS via
 `tsup`), not an application.

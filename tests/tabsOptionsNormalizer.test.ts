@@ -48,6 +48,12 @@ describe("normalizeOptions", () => {
     );
   });
 
+  it("defaults showTuning to the constant and respects an explicit value", () => {
+    expect(normalizeOptions({}).showTuning).toBe(constants.SHOW_TUNING);
+    expect(normalizeOptions({ showTuning: false }).showTuning).toBe(false);
+    expect(normalizeOptions({ showTuning: true }).showTuning).toBe(true);
+  });
+
   describe("notes", () => {
     it("falls back to constants when notes are omitted", () => {
       const { notes } = normalizeOptions({});

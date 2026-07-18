@@ -335,6 +335,13 @@ code {
   opacity: 0.45;
 }
 
+.tuning-label {
+  fill: var(--text-h);
+  font-family: var(--mono);
+  font-size: 11px;
+  opacity: 0.6;
+}
+
 .tab-note-bg {
   fill: var(--bg);
   stroke: none;

@@ -13,6 +13,7 @@ import { calculateBeatLayouts } from "./notesLayout";
 import { renderMeasureNotes } from "./notesRenderer";
 import { buildNoteStyles } from "./notesStyles";
 import { shouldReverseStrings } from "./stringOrder";
+import { stringTuningLabels } from "./stringTuning";
 
 type RepeatLine = {
   className: string;
@@ -29,6 +30,7 @@ type RenderPass = {
   config: RendererConfig;
   totalMeasures: number;
   reverseStrings: boolean;
+  tuningLabels: string[];
 };
 
 export class TabsRenderer {
@@ -64,6 +66,10 @@ export class TabsRenderer {
 
     const measures = this.getMeasureContexts(track);
     const reverseStrings = shouldReverseStrings(track);
+    const tuningLabels = config.showTuning ? stringTuningLabels(track) : [];
+    if (reverseStrings) {
+      tuningLabels.reverse();
+    }
     const layoutCalculation = new LayoutCalculation(track, config);
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
@@ -78,6 +84,7 @@ export class TabsRenderer {
         config,
         totalMeasures: measures.length,
         reverseStrings,
+        tuningLabels,
       };
 
       measures.forEach((measureContext, index) => {
@@ -178,6 +185,14 @@ export class TabsRenderer {
 
     this.renderMeasureIndex(labelsGroup, measureContext, x, y);
     this.renderStringLines(stringsGroup, bounds, layout.stringCount);
+    if (measureContext.index === 0) {
+      this.renderTuningLabels(
+        labelsGroup,
+        bounds,
+        pass.tuningLabels,
+        layout.stringCount,
+      );
+    }
     this.renderRepeatLines(barlinesGroup, measureContext, bounds, isRowStart);
     this.renderNotes(notesGroup, measureContext, bounds, pass);
 
@@ -240,6 +255,39 @@ export class TabsRenderer {
     parent.append(measureIndex);
   }
 
+  private renderTuningLabels(
+    parent: SVGGElement,
+    bounds: MeasureBounds,
+    tuningLabels: string[],
+    stringCount: number,
+  ) {
+    for (let stringIndex = 0; stringIndex < stringCount; stringIndex += 1) {
+      const label = tuningLabels[stringIndex];
+      if (!label) {
+        continue;
+      }
+
+      const tuningLabel = this.createSvgElement("text");
+      const y =
+        bounds.y +
+        constants.MEASURE_TOP_PADDING +
+        stringIndex * bounds.stringSpacing;
+
+      tuningLabel.setAttribute("class", "tuning-label");
+      tuningLabel.setAttribute("string-index", `${stringIndex}`);
+      tuningLabel.setAttribute(
+        "x",
+        `${bounds.x - constants.TUNING_LABEL_OFFSET}`,
+      );
+      tuningLabel.setAttribute("y", `${y}`);
+      tuningLabel.setAttribute("text-anchor", "middle");
+      tuningLabel.setAttribute("dominant-baseline", "central");
+      tuningLabel.textContent = label;
+
+      parent.append(tuningLabel);
+    }
+  }
+
   private renderStringLines(
     parent: SVGGElement,
     bounds: MeasureBounds,
@@ -283,7 +331,7 @@ export class TabsRenderer {
     );
     const finalBar = bounds.isLastMeasure && !closeRepeat;
 
-    if (isRowStart) {
+    if (isRowStart && measureContext.index !== 0) {
       this.appendRepeatLine(
         parent,
         this.measureBar("barline-start", leftX, top, bottom),
