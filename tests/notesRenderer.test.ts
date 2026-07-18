@@ -261,7 +261,6 @@ describe("renderMeasureNotes", () => {
       config: makeNoteConfig(),
     });
 
-    // string 1 of 6 sits on the bottom row (index 5) when inverted.
     const expectedY =
       bounds.y + constants.MEASURE_TOP_PADDING + 5 * bounds.stringSpacing;
     const note = parent.querySelector("g.tab-note")!;
@@ -293,11 +292,9 @@ describe("renderMeasureNotes", () => {
       return parent.querySelector("g.tab-note")!;
     };
 
-    // reverse alone flips string 1 to the bottom row (index 5)...
     expect(renderStringOne({ reverseStrings: true }).getAttribute("y")).toBe(
       `${rowY(5)}`,
     );
-    // ...and reverse + invert cancel, returning it to the top row (index 0).
     expect(
       renderStringOne({
         reverseStrings: true,

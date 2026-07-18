@@ -21,8 +21,6 @@ function setupSvg(): SVGSVGElement {
   return document.querySelector("#tabs") as SVGSVGElement;
 }
 
-// A lowest-pitch-first (GPIF-style) 6-string tuning: strings 1..6 ascend in
-// pitch, so the renderer must flip them to draw the highest string on top.
 function makeAscendingTrack(): Track {
   return {
     name: "Track",
@@ -60,7 +58,6 @@ describe("TabsRenderer string order (notes)", () => {
     new TabsRenderer(makeSong([makeAscendingTrack()])).generateMeasures();
 
     const measure = svg.querySelector(".measure")!;
-    // String-line y positions, top (row 0) to bottom.
     const lineYs = Array.from(measure.querySelectorAll(".string"))
       .map((line) => Number(line.getAttribute("d")!.split(" ")[2]))
       .sort((a, b) => a - b);
@@ -72,9 +69,7 @@ describe("TabsRenderer string order (notes)", () => {
       return lineYs.indexOf(Number(note.getAttribute("y")));
     };
 
-    // string 6 is the highest pitch (64) -> top line
     expect(rowOfFret("1")).toBe(0);
-    // string 1 is the lowest pitch (40) -> bottom line
     expect(rowOfFret("2")).toBe(5);
   });
 });
