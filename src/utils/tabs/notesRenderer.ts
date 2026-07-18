@@ -6,6 +6,7 @@ import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { BeatLayout } from "../../types/UI/noteLayout";
 import type { NoteRenderContext } from "../../types/UI/noteRenderContext";
 import type { normalizeOptions } from "./tabsOptionsNormalizer";
+import { stringDisplayRow } from "./stringOrder";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
 
@@ -19,6 +20,7 @@ type NotesRenderRequest = {
   bounds: MeasureBounds;
   stringCount: number;
   invertStrings?: boolean;
+  reverseStrings?: boolean;
   config: NoteConfig;
 };
 
@@ -32,6 +34,7 @@ type NoteRenderRequest = {
   bounds: MeasureBounds;
   stringCount: number;
   invertStrings: boolean;
+  reverseStrings: boolean;
   config: NoteConfig;
 };
 
@@ -44,6 +47,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     bounds,
     stringCount,
     invertStrings = false,
+    reverseStrings = false,
     config,
   } = request;
 
@@ -64,6 +68,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
         bounds,
         stringCount,
         invertStrings,
+        reverseStrings,
         config,
       });
     }
@@ -81,6 +86,7 @@ function renderNote(request: NoteRenderRequest) {
     bounds,
     stringCount,
     invertStrings,
+    reverseStrings,
     config,
   } = request;
 
@@ -91,7 +97,12 @@ function renderNote(request: NoteRenderRequest) {
     return;
   }
 
-  const stringRow = invertStrings ? stringCount - note.string : note.string - 1;
+  const stringRow = stringDisplayRow(
+    note.string,
+    stringCount,
+    reverseStrings,
+    invertStrings,
+  );
   const y =
     bounds.y + constants.MEASURE_TOP_PADDING + stringRow * bounds.stringSpacing;
 

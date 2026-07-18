@@ -268,6 +268,44 @@ describe("renderMeasureNotes", () => {
     expect(note.getAttribute("y")).toBe(`${expectedY}`);
   });
 
+  it("mirrors the string row when reverseStrings is set, and cancels with invert", () => {
+    const bounds = makeBounds({ y: 40, stringSpacing: 12 });
+    const rowY = (row: number) =>
+      bounds.y + constants.MEASURE_TOP_PADDING + row * bounds.stringSpacing;
+
+    const renderStringOne = (overrides: {
+      reverseStrings?: boolean;
+      invertStrings?: boolean;
+    }) => {
+      const parent = makeParent();
+      renderMeasureNotes({
+        parent,
+        measure: makeMeasureFromVoices([
+          [makeBeat({ notes: [makeNote({ string: 1 })] })],
+        ]),
+        measureIndex: 0,
+        beatLayouts: [makeBeatLayout()],
+        bounds,
+        stringCount: 6,
+        config: makeNoteConfig(),
+        ...overrides,
+      });
+      return parent.querySelector("g.tab-note")!;
+    };
+
+    // reverse alone flips string 1 to the bottom row (index 5)...
+    expect(renderStringOne({ reverseStrings: true }).getAttribute("y")).toBe(
+      `${rowY(5)}`,
+    );
+    // ...and reverse + invert cancel, returning it to the top row (index 0).
+    expect(
+      renderStringOne({
+        reverseStrings: true,
+        invertStrings: true,
+      }).getAttribute("y"),
+    ).toBe(`${rowY(0)}`);
+  });
+
   it("omits the background rect when background is false", () => {
     const measure = makeMeasureFromVoices([
       [makeBeat({ notes: [makeNote()] })],
