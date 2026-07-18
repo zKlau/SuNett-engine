@@ -12,6 +12,7 @@ import { LayoutCalculation } from "./layoutCalculation";
 import { calculateBeatLayouts } from "./notesLayout";
 import { renderMeasureNotes } from "./notesRenderer";
 import { buildNoteStyles } from "./notesStyles";
+import { shouldReverseStrings } from "./stringOrder";
 
 type RepeatLine = {
   className: string;
@@ -27,6 +28,7 @@ type RenderPass = {
   layout: TabLayout;
   config: RendererConfig;
   totalMeasures: number;
+  reverseStrings: boolean;
 };
 
 export class TabsRenderer {
@@ -61,6 +63,7 @@ export class TabsRenderer {
     }
 
     const measures = this.getMeasureContexts(track);
+    const reverseStrings = shouldReverseStrings(track);
     const layoutCalculation = new LayoutCalculation(track, config);
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
@@ -74,6 +77,7 @@ export class TabsRenderer {
         layout,
         config,
         totalMeasures: measures.length,
+        reverseStrings,
       };
 
       measures.forEach((measureContext, index) => {
@@ -130,7 +134,7 @@ export class TabsRenderer {
     index: number,
     pass: RenderPass,
   ) {
-    const { layout, config, totalMeasures } = pass;
+    const { layout, totalMeasures } = pass;
     const measureLayout = layout.measureLayouts[index];
 
     if (!measureLayout) {
@@ -175,7 +179,7 @@ export class TabsRenderer {
     this.renderMeasureIndex(labelsGroup, measureContext, x, y);
     this.renderStringLines(stringsGroup, bounds, layout.stringCount);
     this.renderRepeatLines(barlinesGroup, measureContext, bounds, isRowStart);
-    this.renderNotes(notesGroup, measureContext, bounds, layout, config);
+    this.renderNotes(notesGroup, measureContext, bounds, pass);
 
     measureGroup.append(stringsGroup, barlinesGroup, notesGroup, labelsGroup);
     svg.append(measureGroup);
@@ -185,9 +189,9 @@ export class TabsRenderer {
     parent: SVGGElement,
     measureContext: MeasureContext,
     bounds: MeasureBounds,
-    layout: TabLayout,
-    config: RendererConfig,
+    pass: RenderPass,
   ) {
+    const { layout, config } = pass;
     const startPadding = Math.min(
       constants.MEASURE_CONTENT_PADDING_START,
       bounds.width / 3,
@@ -212,6 +216,7 @@ export class TabsRenderer {
       bounds,
       stringCount: layout.stringCount,
       invertStrings: config.invertStrings,
+      reverseStrings: pass.reverseStrings,
       config: config.notes,
     });
   }

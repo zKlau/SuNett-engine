@@ -13,7 +13,7 @@ async function main(filePath: string) {
     const song: Song = parse_guitar_pro(bytes, filePath);
 
     const t = new TabsRenderer(song);
-    t.generateMeasures(6);
+    t.generateMeasures(5);
     console.log(song.tracks);
 
     displayTitle(song.name);
@@ -28,5 +28,7 @@ function displayTitle(name: string) {
   }
 }
 
-main("/tabs/7string.gp");
+// main("/tabs/7string.gp");
 // main("/tabs/hpb.gp5");
+main("/tabs/mop.gp")
+
