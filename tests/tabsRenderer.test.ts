@@ -109,6 +109,40 @@ describe("LayoutCalculation", () => {
       expect(layout.stringCount).toBe(6);
     });
 
+    describe("stringCount", () => {
+      function stringCountFor(track: ReturnType<typeof makeTrack>) {
+        const trackMeasures = track.measures.map((measure, index) =>
+          makeMeasureContext(measure, index),
+        );
+
+        return new LayoutCalculation(track, config).calculateLayout(
+          1000,
+          trackMeasures,
+        ).stringCount;
+      }
+
+      it("uses the tuning's string count for a pitched track", () => {
+        const sevenString = makeTrack(7, [makeMeasure(2)], "7-string guitar");
+
+        expect(stringCountFor(sevenString)).toBe(7);
+      });
+
+      it("falls back to the default when a pitched track has no tuning", () => {
+        const untuned = makeTrack(0, [makeMeasure(2)], "No tuning");
+
+        expect(stringCountFor(untuned)).toBe(constants.DEFAULT_STRING_COUNT);
+      });
+
+      it("renders a fixed percussion staff regardless of tuning length", () => {
+        // Drum tracks come back from the parser with a 6-string fallback tuning,
+        // so the percussion_track flag — not strings.length — must drive the count.
+        const drums = makeTrack(6, [makeMeasure(2)], "Drums", true);
+
+        expect(stringCountFor(drums)).toBe(constants.PERCUSSION_LINE_COUNT);
+        expect(drums.strings).toHaveLength(6);
+      });
+    });
+
     it("produces one layout per measure", () => {
       const layout = layoutCalculation.calculateLayout(1000, measures);
 

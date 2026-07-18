@@ -34,10 +34,12 @@ export function makeTrack(
   stringCount: number,
   measures: Measure[],
   name = "Track",
+  percussion = false,
 ): Track {
   return {
     name,
     strings: Array.from({ length: stringCount }, (_, index) => [index, 0]),
+    percussion_track: percussion,
     measures,
   } as unknown as Track;
 }
