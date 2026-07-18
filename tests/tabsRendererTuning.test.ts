@@ -51,8 +51,7 @@ describe("TabsRenderer tuning labels", () => {
 
   it("draws the tuning once next to the first measure, top line first", () => {
     const svg = setupSvg();
-    // Several measures so the layout wraps onto multiple rows; the tuning must
-    // still be drawn only once (not repeated per system).
+
     const renderer = new TabsRenderer(makeSong([makeTuningTrack(4)]));
 
     renderer.generateMeasures();
