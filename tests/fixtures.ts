@@ -85,7 +85,7 @@ export function makeNote(overrides: Partial<Note> = {}): Note {
   return {
     value: 0,
     velocity: 0,
-    string: 1,
+    string: 0,
     kind: "Normal",
     duration_percent: 1,
     swap_accidentals: false,

@@ -37,8 +37,8 @@ function makeAscendingTrack(): Track {
         [
           makeBeat({
             notes: [
-              makeNote({ string: 6, value: 1 }),
-              makeNote({ string: 1, value: 2 }),
+              makeNote({ string: 5, value: 1 }),
+              makeNote({ string: 0, value: 2 }),
             ],
           }),
         ],

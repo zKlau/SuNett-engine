@@ -45,23 +45,23 @@ describe("shouldReverseStrings", () => {
 describe("stringDisplayRow", () => {
   const stringCount = 6;
 
-  it("maps string N to row N-1 with no reverse and no invert", () => {
-    expect(stringDisplayRow(1, stringCount, false, false)).toBe(0);
-    expect(stringDisplayRow(6, stringCount, false, false)).toBe(5);
+  it("maps a zero-based string index to the same row without flips", () => {
+    expect(stringDisplayRow(0, stringCount, false, false)).toBe(0);
+    expect(stringDisplayRow(5, stringCount, false, false)).toBe(5);
   });
 
   it("mirrors when reversing (thinnest string moves to the top)", () => {
-    expect(stringDisplayRow(1, stringCount, true, false)).toBe(5);
-    expect(stringDisplayRow(6, stringCount, true, false)).toBe(0);
+    expect(stringDisplayRow(0, stringCount, true, false)).toBe(5);
+    expect(stringDisplayRow(5, stringCount, true, false)).toBe(0);
   });
 
   it("mirrors when inverting", () => {
-    expect(stringDisplayRow(1, stringCount, false, true)).toBe(5);
-    expect(stringDisplayRow(6, stringCount, false, true)).toBe(0);
+    expect(stringDisplayRow(0, stringCount, false, true)).toBe(5);
+    expect(stringDisplayRow(5, stringCount, false, true)).toBe(0);
   });
 
   it("cancels out when reverse and invert are both set", () => {
-    expect(stringDisplayRow(1, stringCount, true, true)).toBe(0);
-    expect(stringDisplayRow(6, stringCount, true, true)).toBe(5);
+    expect(stringDisplayRow(0, stringCount, true, true)).toBe(0);
+    expect(stringDisplayRow(5, stringCount, true, true)).toBe(5);
   });
 });

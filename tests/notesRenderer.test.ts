@@ -25,9 +25,9 @@ describe("renderMeasureNotes", () => {
       [
         makeBeat({
           notes: [
-            makeNote({ string: 1, value: 3 }),
-            makeNote({ string: 2, value: 5 }),
-            makeNote({ string: 6, value: 0 }),
+            makeNote({ string: 0, value: 3 }),
+            makeNote({ string: 1, value: 5 }),
+            makeNote({ string: 5, value: 0 }),
           ],
         }),
       ],
@@ -97,8 +97,8 @@ describe("renderMeasureNotes", () => {
       [
         makeBeat({
           notes: [
-            makeNote({ string: 0 }),
-            makeNote({ string: 7 }),
+            makeNote({ string: -1 }),
+            makeNote({ string: 6 }),
             makeNote({ string: 3 }),
           ],
         }),
@@ -126,8 +126,8 @@ describe("renderMeasureNotes", () => {
       [
         makeBeat({
           notes: [
-            makeNote({ string: 1, value: 7 }),
-            makeNote({ string: 2, value: 12, kind: "Dead" }),
+            makeNote({ string: 0, value: 7 }),
+            makeNote({ string: 1, value: 12, kind: "Dead" }),
           ],
         }),
       ],
@@ -212,7 +212,7 @@ describe("renderMeasureNotes", () => {
 
   it("positions notes at beatLayout.x and stringY", () => {
     const measure = makeMeasureFromVoices([
-      [makeBeat({ notes: [makeNote({ string: 3 })] })],
+      [makeBeat({ notes: [makeNote({ string: 0 })] })],
     ]);
     const parent = makeParent();
     const bounds = makeBounds({ x: 20, y: 40, stringSpacing: 12 });
@@ -227,8 +227,7 @@ describe("renderMeasureNotes", () => {
       config: makeNoteConfig(),
     });
 
-    const expectedY =
-      bounds.y + constants.MEASURE_TOP_PADDING + 2 * bounds.stringSpacing;
+    const expectedY = bounds.y + constants.MEASURE_TOP_PADDING;
     const note = parent.querySelector("g.tab-note")!;
     expect(note.getAttribute("transform")).toBeNull();
     expect(note.getAttribute("x")).toBe("77");
@@ -245,7 +244,7 @@ describe("renderMeasureNotes", () => {
 
   it("mirrors the string row vertically when invertStrings is set", () => {
     const measure = makeMeasureFromVoices([
-      [makeBeat({ notes: [makeNote({ string: 1 })] })],
+      [makeBeat({ notes: [makeNote({ string: 0 })] })],
     ]);
     const parent = makeParent();
     const bounds = makeBounds({ y: 40, stringSpacing: 12 });
@@ -261,6 +260,7 @@ describe("renderMeasureNotes", () => {
       config: makeNoteConfig(),
     });
 
+    // String 0 of 6 sits on the bottom row (index 5) when inverted.
     const expectedY =
       bounds.y + constants.MEASURE_TOP_PADDING + 5 * bounds.stringSpacing;
     const note = parent.querySelector("g.tab-note")!;
@@ -280,7 +280,7 @@ describe("renderMeasureNotes", () => {
       renderMeasureNotes({
         parent,
         measure: makeMeasureFromVoices([
-          [makeBeat({ notes: [makeNote({ string: 1 })] })],
+          [makeBeat({ notes: [makeNote({ string: 0 })] })],
         ]),
         measureIndex: 0,
         beatLayouts: [makeBeatLayout()],
