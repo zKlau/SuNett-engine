@@ -16,6 +16,7 @@ import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
 import type { ThemeVariable } from "../../theme/variables";
 import { ThemeVariables, themeVar } from "../../theme/variables";
+import { applyTheme, clearTheme } from "../../theme/theme";
 
 type RepeatLine = {
   className: string;
@@ -72,6 +73,10 @@ export class TabsRenderer {
     if (reverseStrings) {
       tuningLabels.reverse();
     }
+    if (config.theme) {
+      applyTheme(config.theme, svg);
+    }
+
     const layoutCalculation = new LayoutCalculation(track, config);
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
@@ -111,7 +116,12 @@ export class TabsRenderer {
     const resizeObserver = new ResizeObserver(render);
     resizeObserver.observe(svg.parentElement ?? svg);
 
-    const cleanup = () => resizeObserver.disconnect();
+    const cleanup = () => {
+      resizeObserver.disconnect();
+      if (config.theme) {
+        clearTheme(svg);
+      }
+    };
     this.rendererCleanups.set(svg, cleanup);
 
     return cleanup;
