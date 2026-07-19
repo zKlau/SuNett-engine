@@ -65,10 +65,19 @@ playground/                      # separate Vite app for manual visual testing
   re-renders on resize via `ResizeObserver` and tracks per-SVG cleanup in a `WeakMap`.
   `SongHelper` (`src/utils/songHelper.ts`) is a small companion class for reading a song's
   name, tracks, and measures.
-- **Styling lives in the consumer**, not the library. The renderer only assigns CSS
-  classes (`string`, `barline` + `barline-start/-end/-inner/-repeat-open`, `repeat-dot`,
-  `repeat-count`, `measure-index`, …); the actual styles live in the consuming app's CSS
-  (see `playground/src/style.css`).
+- **Theming** (`src/theme/`) — appearance is driven by a small set of `--sunett-*` CSS
+  variables (`src/theme/variables.ts` is the single source of truth). The renderer writes
+  safe defaults as **SVG presentation attributes** (`themeVar(...)` → `var(--x, fallback)`),
+  which sit below every CSS rule in the cascade, so consumer CSS always wins without
+  `!important` and an unstyled tab still renders. Consumers override via a plain
+  stylesheet, a shipped preset (`styles/` → `dist/`, exposed through the `exports` map),
+  or `defineTheme()` passed as `TabRendererOptions.theme` (applied as inline vars on the
+  target `<svg>`, scoping it to that tab). Themes cover **appearance only** — layout stays
+  in `TabRendererOptions`/`src/constants/`, per-note styling in the `render`/`onCreate`
+  hooks. Each preset exists twice (a JS object and a CSS file); `tests/themePresets.test.ts`
+  asserts the two never drift. The renderer still assigns classes (`string`, `barline` +
+  `barline-start/-end/-inner/-repeat-open`, `repeat-dot`, `repeat-count`, `measure-index`, …)
+  as override hooks (see `playground/src/style.css`).
 - **Playground** is its own package. It imports the renderer directly from `../../src`
   (source, not the built `dist`) and requires `vite-plugin-wasm` to load the parser.
   Run it with `npm run dev` from inside `playground/`.
