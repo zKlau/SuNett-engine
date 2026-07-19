@@ -57,12 +57,16 @@ function normalizeTheme(theme: TabRendererOptions["theme"]): Theme | undefined {
   return theme;
 }
 
+/**
+ * `fontSize` and `backgroundHeight` stay optional here: when omitted they are
+ * derived per render from the layout's string spacing by `resolveNoteMetrics`,
+ * which needs a measured layout this early step does not have.
+ */
 function normalizeNoteOptions(options: TabNoteOptions) {
   return {
-    fontSize: options.fontSize ?? constants.NOTE_FONT_SIZE,
+    fontSize: options.fontSize,
     paddingX: options.paddingX ?? constants.NOTE_PADDING_X,
-    backgroundHeight:
-      options.backgroundHeight ?? constants.NOTE_BACKGROUND_HEIGHT,
+    backgroundHeight: options.backgroundHeight,
     background: options.background ?? true,
     classPrefix: options.classPrefix ?? constants.NOTE_CLASS_PREFIX,
     defaultStyles: options.defaultStyles ?? true,

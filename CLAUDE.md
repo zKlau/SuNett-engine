@@ -78,6 +78,14 @@ playground/                      # separate Vite app for manual visual testing
   asserts the two never drift. The renderer still assigns classes (`string`, `barline` +
   `barline-start/-end/-inner/-repeat-open`, `repeat-dot`, `repeat-count`, `measure-index`, …)
   as override hooks (see `playground/src/style.css`).
+- **Sizes that layout math depends on are not themeable.** Note font size feeds the
+  TS-computed background rect (`notesRenderer`), and string spacing feeds `measureHeight`
+  and the SVG `viewBox` (`layoutCalculation`) — a CSS variable is opaque to that math, so
+  both stay numeric options. `resolveNoteMetrics` (`src/utils/tabs/noteMetrics.ts`) derives
+  note font size from the layout's string spacing each render so notes scale with the tab,
+  and derives background height from the font size so they cannot desync; an explicit
+  `notes.fontSize` overrides and stays fixed. Only sizes nothing measures (label text) are
+  theme variables.
 - **Playground** is its own package. It imports the renderer directly from `../../src`
   (source, not the built `dist`) and requires `vite-plugin-wasm` to load the parser.
   Run it with `npm run dev` from inside `playground/`.

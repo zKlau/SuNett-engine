@@ -9,6 +9,8 @@ import type { MeasureContext } from "../src/types/UI/measureContext";
 import type { BeatLayout } from "../src/types/UI/noteLayout";
 import type { TabNoteOptions } from "../src/types/UI/tabNoteOptions";
 import { normalizeOptions } from "../src/utils/tabs/tabsOptionsNormalizer";
+import { resolveNoteMetrics } from "../src/utils/tabs/noteMetrics";
+import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
 
 export function makeMeasure(beatCount: number, notesPerBeat = 0): Measure {
   const beats = Array.from({ length: beatCount }, () => ({
@@ -134,4 +136,9 @@ export function makeBeatLayout(
 
 export function makeNoteConfig(overrides: TabNoteOptions = {}) {
   return normalizeOptions({ notes: overrides }).notes;
+}
+
+/** Note sizes at the default string spacing: 10px text on a 12px background. */
+export function makeNoteMetrics(overrides: TabNoteOptions = {}) {
+  return resolveNoteMetrics(overrides, constants.STRING_SPACING);
 }

@@ -107,9 +107,33 @@ import "@zklau/sunett-engine/styles.css";
 | `--sunett-color-accent`    | `colors.accent`     | `--sunett-color-fg`       |
 | `--sunett-font-note`       | `fonts.note`        | `ui-monospace, monospace` |
 | `--sunett-font-label`      | `fonts.label`       | `system-ui, sans-serif`   |
+| `--sunett-font-label-size` | `fonts.labelSize`   | `11px`                    |
 | `--sunett-string-opacity`  | `opacity.string`    | `0.68`                    |
 | `--sunett-barline-opacity` | `opacity.barline`   | `0.68`                    |
 
 Themes cover appearance only. Layout (spacing, widths, padding) stays in
 `TabRendererOptions`, and per-note styling belongs in the `render` / `onCreate`
 hooks on `TabNoteOptions`.
+
+### Note size
+
+Note text is **not** a theme variable, because the renderer measures it in
+TypeScript to size each note's background — a CSS-only font size would leave the
+background sized for the old value and the text would overflow it.
+
+By default the note font size scales with the tab: it is derived from the string
+spacing, which itself grows with the measure width, so notes keep their
+proportions instead of shrinking away on wide screens. It is clamped to a
+readable 8–15px. The background height follows the font size, so the two can
+never fall out of step.
+
+To pin a fixed size, set it explicitly — it then overrides the scaling and stays
+put at every width:
+
+```ts
+new TabsRenderer(song).generateMeasures(0, {
+  notes: { fontSize: 14 },
+  stringSpacing: 22,
+  maxStringSpacing: 28, // the default clamp of 24 would otherwise cap this
+});
+```

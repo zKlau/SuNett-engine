@@ -10,6 +10,7 @@ import {
   makeMeasureFromVoices,
   makeNote,
   makeNoteConfig,
+  makeNoteMetrics,
 } from "./fixtures";
 import type { TabNoteOptions } from "../src/types/UI/tabNoteOptions";
 
@@ -42,6 +43,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     const notes = parent.querySelectorAll("g.tab-note");
@@ -68,6 +70,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     expect(parent.querySelectorAll("g.tab-note")).toHaveLength(1);
@@ -87,6 +90,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     expect(parent.querySelectorAll("g.tab-note")).toHaveLength(1);
@@ -114,6 +118,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     const notes = parent.querySelectorAll("g.tab-note");
@@ -142,6 +147,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     const texts = parent.querySelectorAll(".tab-note-text");
@@ -186,6 +192,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     const note = parent.querySelector("g.tab-note");
@@ -225,6 +232,7 @@ describe("renderMeasureNotes", () => {
       bounds,
       stringCount: 6,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     const expectedY = bounds.y + constants.MEASURE_TOP_PADDING;
@@ -258,6 +266,7 @@ describe("renderMeasureNotes", () => {
       stringCount: 6,
       invertStrings: true,
       config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
     });
 
     // String 0 of 6 sits on the bottom row (index 5) when inverted.
@@ -287,6 +296,7 @@ describe("renderMeasureNotes", () => {
         bounds,
         stringCount: 6,
         config: makeNoteConfig(),
+        metrics: makeNoteMetrics(),
         ...overrides,
       });
       return parent.querySelector("g.tab-note")!;
@@ -317,6 +327,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig({ background: false }),
+      metrics: makeNoteMetrics({ background: false }),
     });
 
     expect(parent.querySelector(".tab-note-bg")).toBeNull();
@@ -342,6 +353,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig({ render }),
+      metrics: makeNoteMetrics({ render }),
     });
 
     expect(parent.querySelector("g.tab-note")).toBeNull();
@@ -362,6 +374,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig({ render: () => null }),
+      metrics: makeNoteMetrics({ render: () => null }),
     });
 
     expect(parent.querySelector("g.tab-note")).not.toBeNull();
@@ -382,6 +395,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig({ onCreate }),
+      metrics: makeNoteMetrics({ onCreate }),
     });
 
     expect(onCreate).toHaveBeenCalledTimes(1);
@@ -406,6 +420,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig({ onClick }),
+      metrics: makeNoteMetrics({ onClick }),
     });
 
     const note = parent.querySelector("g.tab-note")!;
@@ -434,6 +449,7 @@ describe("renderMeasureNotes", () => {
       bounds: makeBounds(),
       stringCount: 6,
       config: makeNoteConfig({ onPointerEnter, onPointerLeave }),
+      metrics: makeNoteMetrics({ onPointerEnter, onPointerLeave }),
     });
 
     const note = parent.querySelector("g.tab-note")!;
