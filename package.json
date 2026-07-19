@@ -14,7 +14,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./styles.css": "./dist/base.css",
+    "./themes/dark.css": "./dist/themes/dark.css",
+    "./themes/high-contrast.css": "./dist/themes/high-contrast.css"
   },
   "repository": {
     "type": "git",

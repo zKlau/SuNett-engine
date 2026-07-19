@@ -48,7 +48,3 @@ const ThemeVariableFallbacks: Record<ThemeVariable, string> = {
 export function themeVar(variable: ThemeVariable): string {
   return `var(${variable}, ${ThemeVariableFallbacks[variable]})`;
 }
-
-export function themeVariableFallback(variable: ThemeVariable): string {
-  return ThemeVariableFallbacks[variable];
-}
