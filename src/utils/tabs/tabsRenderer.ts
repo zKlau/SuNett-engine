@@ -14,6 +14,8 @@ import { renderMeasureNotes } from "./notesRenderer";
 import { buildNoteStyles } from "./notesStyles";
 import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
+import type { ThemeVariable } from "../../theme/variables";
+import { ThemeVariables, themeVar } from "../../theme/variables";
 
 type RepeatLine = {
   className: string;
@@ -245,6 +247,7 @@ export class TabsRenderer {
     const measureIndex = this.createSvgElement("text");
 
     measureIndex.setAttribute("class", "measure-index");
+    this.applyLabelDefaults(measureIndex);
     measureIndex.setAttribute("x", `${measureX}`);
     measureIndex.setAttribute(
       "y",
@@ -274,6 +277,7 @@ export class TabsRenderer {
         stringIndex * bounds.stringSpacing;
 
       tuningLabel.setAttribute("class", "tuning-label");
+      this.applyLabelDefaults(tuningLabel);
       tuningLabel.setAttribute("string-index", `${stringIndex}`);
       tuningLabel.setAttribute(
         "x",
@@ -306,6 +310,12 @@ export class TabsRenderer {
         "d",
         `M ${bounds.x} ${y} H ${bounds.x + bounds.width}`,
       );
+      this.applyLineDefaults(
+        stringPath,
+        ThemeVariables.COLOR_STRING,
+        ThemeVariables.STRING_OPACITY,
+      );
+      stringPath.setAttribute("stroke-width", `${constants.STRING_LINE_WIDTH}`);
 
       parent.append(stringPath);
     }
@@ -426,6 +436,11 @@ export class TabsRenderer {
     path.setAttribute("class", line.className);
     path.setAttribute("stroke-width", `${line.width}`);
     path.setAttribute("d", `M ${line.x} ${line.top} V ${line.bottom}`);
+    this.applyLineDefaults(
+      path,
+      ThemeVariables.COLOR_BARLINE,
+      ThemeVariables.BARLINE_OPACITY,
+    );
 
     parent.append(path);
   }
@@ -448,6 +463,8 @@ export class TabsRenderer {
       const dot = this.createSvgElement("path");
 
       dot.setAttribute("class", "repeat-dot");
+      dot.setAttribute("fill", themeVar(ThemeVariables.COLOR_BARLINE));
+      dot.setAttribute("stroke", "none");
       dot.setAttribute(
         "d",
         [
@@ -471,6 +488,7 @@ export class TabsRenderer {
     const repeatCountText = this.createSvgElement("text");
 
     repeatCountText.setAttribute("class", "repeat-count");
+    this.applyLabelDefaults(repeatCountText);
     repeatCountText.setAttribute(
       "x",
       `${measureEndX - constants.REPEAT_DOT_OFFSET - 4}`,
@@ -483,6 +501,30 @@ export class TabsRenderer {
     repeatCountText.textContent = `x${repeatCount}`;
 
     parent.append(repeatCountText);
+  }
+
+  /**
+   * Stroke appearance shared by string lines and barlines. Written as
+   * presentation attributes so any consumer CSS rule outranks them.
+   */
+  private applyLineDefaults(
+    path: SVGPathElement,
+    colorVariable: ThemeVariable,
+    opacityVariable: ThemeVariable,
+  ) {
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", themeVar(colorVariable));
+    path.setAttribute("opacity", themeVar(opacityVariable));
+    path.setAttribute("stroke-linecap", "butt");
+    path.setAttribute("vector-effect", "non-scaling-stroke");
+    path.setAttribute("shape-rendering", "crispEdges");
+  }
+
+  /** Text appearance shared by measure indices, repeat counts, and tuning labels. */
+  private applyLabelDefaults(text: SVGTextElement) {
+    text.setAttribute("fill", themeVar(ThemeVariables.COLOR_MUTED));
+    text.setAttribute("font-family", themeVar(ThemeVariables.FONT_LABEL));
+    text.setAttribute("font-size", `${constants.LABEL_FONT_SIZE}`);
   }
 
   private renderDefaultStyles(svg: SVGSVGElement, config: RendererConfig) {

@@ -7,6 +7,7 @@ import type { BeatLayout } from "../../types/UI/noteLayout";
 import type { NoteRenderContext } from "../../types/UI/noteRenderContext";
 import type { normalizeOptions } from "./tabsOptionsNormalizer";
 import { stringDisplayRow } from "./stringOrder";
+import { ThemeVariables, themeVar } from "../../theme/variables";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
 
@@ -162,6 +163,8 @@ function buildDefaultNote(
   if (config.background) {
     const bg = context.createElement("rect");
     bg.setAttribute("class", `${prefix}-bg`);
+    bg.setAttribute("fill", themeVar(ThemeVariables.COLOR_NOTE_BG));
+    bg.setAttribute("stroke", "none");
     bg.setAttribute("x", `${x - glyphWidth / 2}`);
     bg.setAttribute("y", `${y - config.backgroundHeight / 2}`);
     bg.setAttribute("width", `${glyphWidth}`);
@@ -171,6 +174,8 @@ function buildDefaultNote(
 
   const text = context.createElement("text");
   text.setAttribute("class", `${prefix}-text`);
+  text.setAttribute("fill", themeVar(ThemeVariables.COLOR_NOTE_FG));
+  text.setAttribute("font-family", themeVar(ThemeVariables.FONT_NOTE));
   text.setAttribute("x", `${x}`);
   text.setAttribute("y", `${y}`);
   text.setAttribute("text-anchor", "middle");
