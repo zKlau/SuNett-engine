@@ -1,9 +1,13 @@
 import type { TabNoteOptions } from "../../types/UI/tabNoteOptions";
 import type { TabRendererOptions } from "../../types/UI/rendererOptions";
+import type { Theme } from "../../theme/theme";
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
+import { isPresetTheme, resolvePreset } from "../../theme/presets";
 
 export function normalizeOptions(options: TabRendererOptions) {
   return {
+    theme: normalizeTheme(options.theme),
+
     trackIndex: options.trackIndex ?? 0,
     measuresPerRow:
       options.measuresPerRow !== undefined
@@ -36,6 +40,21 @@ export function normalizeOptions(options: TabRendererOptions) {
 
     notes: normalizeNoteOptions(options.notes ?? {}),
   };
+}
+
+/**
+ * Resolves the `theme` option to a {@link Theme}, or `undefined` when no theme
+ * was requested. An unknown preset name resolves to `undefined` rather than
+ * throwing, so a typo degrades to the unthemed fallbacks instead of a blank tab.
+ */
+function normalizeTheme(theme: TabRendererOptions["theme"]): Theme | undefined {
+  if (!theme) {
+    return undefined;
+  }
+  if (typeof theme === "string") {
+    return isPresetTheme(theme) ? resolvePreset(theme) : undefined;
+  }
+  return theme;
 }
 
 function normalizeNoteOptions(options: TabNoteOptions) {
