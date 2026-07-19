@@ -6,6 +6,7 @@ import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { BeatLayout } from "../../types/UI/noteLayout";
 import type { NoteRenderContext } from "../../types/UI/noteRenderContext";
 import type { normalizeOptions } from "./tabsOptionsNormalizer";
+import type { NoteMetrics } from "./noteMetrics";
 import { stringDisplayRow } from "./stringOrder";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 
@@ -23,6 +24,7 @@ type NotesRenderRequest = {
   invertStrings?: boolean;
   reverseStrings?: boolean;
   config: NoteConfig;
+  metrics: NoteMetrics;
 };
 
 type NoteRenderRequest = {
@@ -37,6 +39,7 @@ type NoteRenderRequest = {
   invertStrings: boolean;
   reverseStrings: boolean;
   config: NoteConfig;
+  metrics: NoteMetrics;
 };
 
 export function renderMeasureNotes(request: NotesRenderRequest) {
@@ -50,6 +53,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     invertStrings = false,
     reverseStrings = false,
     config,
+    metrics,
   } = request;
 
   for (const beatLayout of beatLayouts) {
@@ -71,6 +75,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
         invertStrings,
         reverseStrings,
         config,
+        metrics,
       });
     }
   }
@@ -89,6 +94,7 @@ function renderNote(request: NoteRenderRequest) {
     invertStrings,
     reverseStrings,
     config,
+    metrics,
   } = request;
 
   if (note.kind === "Rest") {
@@ -116,7 +122,7 @@ function renderNote(request: NoteRenderRequest) {
     beatIndex: beatLayout.beatIndex,
     x: beatLayout.x,
     y,
-    fontSize: config.fontSize,
+    fontSize: metrics.fontSize,
     createElement: createSvgElement,
   };
 
@@ -127,7 +133,7 @@ function renderNote(request: NoteRenderRequest) {
     return;
   }
 
-  const noteGroup = buildDefaultNote(context, config);
+  const noteGroup = buildDefaultNote(context, config, metrics);
   config.onCreate?.(noteGroup, context);
   attachInteractions(noteGroup, context, config);
   parent.append(noteGroup);
@@ -136,6 +142,7 @@ function renderNote(request: NoteRenderRequest) {
 function buildDefaultNote(
   context: NoteRenderContext,
   config: NoteConfig,
+  metrics: NoteMetrics,
 ): SVGGElement {
   const { note, x, y, fontSize } = context;
   const prefix = config.classPrefix;
@@ -156,8 +163,9 @@ function buildDefaultNote(
 
   const label = noteLabel(note);
   const glyphWidth = Math.max(
-    config.backgroundHeight,
-    label.length * fontSize * 0.62 + config.paddingX * 2,
+    metrics.backgroundHeight,
+    label.length * fontSize * constants.NOTE_GLYPH_WIDTH_RATIO +
+      config.paddingX * 2,
   );
 
   if (config.background) {
@@ -166,9 +174,9 @@ function buildDefaultNote(
     bg.setAttribute("fill", themeVar(ThemeVariables.COLOR_NOTE_BG));
     bg.setAttribute("stroke", "none");
     bg.setAttribute("x", `${x - glyphWidth / 2}`);
-    bg.setAttribute("y", `${y - config.backgroundHeight / 2}`);
+    bg.setAttribute("y", `${y - metrics.backgroundHeight / 2}`);
     bg.setAttribute("width", `${glyphWidth}`);
-    bg.setAttribute("height", `${config.backgroundHeight}`);
+    bg.setAttribute("height", `${metrics.backgroundHeight}`);
     group.append(bg);
   }
 

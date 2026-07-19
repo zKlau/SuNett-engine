@@ -14,6 +14,8 @@ export type ThemeColors = {
 export type ThemeFonts = {
   note?: string;
   label?: string;
+  /** A CSS length, or a number treated as `px`. */
+  labelSize?: string | number;
 };
 
 export type ThemeOpacity = {
@@ -49,6 +51,7 @@ const COLOR_VARIABLES: Record<keyof ThemeColors, ThemeVariable> = {
 const FONT_VARIABLES: Record<keyof ThemeFonts, ThemeVariable> = {
   note: ThemeVariables.FONT_NOTE,
   label: ThemeVariables.FONT_LABEL,
+  labelSize: ThemeVariables.FONT_LABEL_SIZE,
 };
 
 const OPACITY_VARIABLES: Record<keyof ThemeOpacity, ThemeVariable> = {
@@ -65,10 +68,18 @@ export function defineTheme(input: ThemeInput): Theme {
   const variables: Partial<Record<ThemeVariable, string>> = {};
 
   collectSection(variables, COLOR_VARIABLES, input.colors);
-  collectSection(variables, FONT_VARIABLES, input.fonts);
+  collectSection(variables, FONT_VARIABLES, normalizeFonts(input.fonts));
   collectSection(variables, OPACITY_VARIABLES, input.opacity);
 
   return { variables };
+}
+
+/** Lets `labelSize` be given as a bare number, since `font-size` needs a unit. */
+function normalizeFonts(fonts: ThemeFonts | undefined) {
+  if (!fonts || typeof fonts.labelSize !== "number") {
+    return fonts;
+  }
+  return { ...fonts, labelSize: `${fonts.labelSize}px` };
 }
 
 /**

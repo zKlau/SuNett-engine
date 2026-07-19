@@ -10,6 +10,8 @@ import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
 import { calculateBeatLayouts } from "./notesLayout";
+import type { NoteMetrics } from "./noteMetrics";
+import { resolveNoteMetrics } from "./noteMetrics";
 import { renderMeasureNotes } from "./notesRenderer";
 import { buildNoteStyles } from "./notesStyles";
 import { shouldReverseStrings } from "./stringOrder";
@@ -31,6 +33,7 @@ type RendererConfig = ReturnType<typeof normalizeOptions>;
 type RenderPass = {
   layout: TabLayout;
   config: RendererConfig;
+  metrics: NoteMetrics;
   totalMeasures: number;
   reverseStrings: boolean;
   tuningLabels: string[];
@@ -89,6 +92,7 @@ export class TabsRenderer {
       const pass: RenderPass = {
         layout,
         config,
+        metrics: resolveNoteMetrics(config.notes, layout.stringSpacing),
         totalMeasures: measures.length,
         reverseStrings,
         tuningLabels,
@@ -245,6 +249,7 @@ export class TabsRenderer {
       invertStrings: config.invertStrings,
       reverseStrings: pass.reverseStrings,
       config: config.notes,
+      metrics: pass.metrics,
     });
   }
 
@@ -534,7 +539,7 @@ export class TabsRenderer {
   private applyLabelDefaults(text: SVGTextElement) {
     text.setAttribute("fill", themeVar(ThemeVariables.COLOR_MUTED));
     text.setAttribute("font-family", themeVar(ThemeVariables.FONT_LABEL));
-    text.setAttribute("font-size", `${constants.LABEL_FONT_SIZE}`);
+    text.setAttribute("font-size", themeVar(ThemeVariables.FONT_LABEL_SIZE));
   }
 
   private renderDefaultStyles(svg: SVGSVGElement, config: RendererConfig) {

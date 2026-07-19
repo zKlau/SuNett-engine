@@ -58,17 +58,22 @@ describe("normalizeOptions", () => {
     it("falls back to constants when notes are omitted", () => {
       const { notes } = normalizeOptions({});
 
-      expect(notes.fontSize).toBe(constants.NOTE_FONT_SIZE);
       expect(notes.paddingX).toBe(constants.NOTE_PADDING_X);
-      expect(notes.backgroundHeight).toBe(constants.NOTE_BACKGROUND_HEIGHT);
       expect(notes.classPrefix).toBe(constants.NOTE_CLASS_PREFIX);
       expect(notes.background).toBe(true);
+    });
+
+    it("leaves sizes unset so they can be derived from the layout", () => {
+      const { notes } = normalizeOptions({});
+
+      expect(notes.fontSize).toBeUndefined();
+      expect(notes.backgroundHeight).toBeUndefined();
     });
 
     it("falls back to constants when notes are an empty object", () => {
       const { notes } = normalizeOptions({ notes: {} });
 
-      expect(notes.fontSize).toBe(constants.NOTE_FONT_SIZE);
+      expect(notes.fontSize).toBeUndefined();
       expect(notes.background).toBe(true);
     });
 
