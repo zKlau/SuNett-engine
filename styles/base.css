@@ -1,0 +1,28 @@
+/*
+ * Baseline variable declarations for @zklau/sunett-engine.
+ *
+ * Importing this file is OPTIONAL. The renderer writes the same values as SVG
+ * presentation attributes, so a tab renders correctly with no stylesheet at
+ * all. Import it when you want the variables visible on :root so you (or your
+ * devtools) can override them in one place.
+ *
+ * Only variables are declared here on purpose. Element rules would outrank the
+ * renderer's presentation attributes and turn overriding into a load-order
+ * question; keeping this file variable-only means your own CSS always wins.
+ */
+
+:root {
+  --sunett-color-fg: currentColor;
+  --sunett-color-muted: color-mix(in srgb, currentColor 55%, transparent);
+  --sunett-color-note-fg: var(--sunett-color-fg);
+  --sunett-color-note-bg: Canvas;
+  --sunett-color-string: var(--sunett-color-fg);
+  --sunett-color-barline: var(--sunett-color-fg);
+  --sunett-color-accent: var(--sunett-color-fg);
+
+  --sunett-font-note: ui-monospace, monospace;
+  --sunett-font-label: system-ui, sans-serif;
+
+  --sunett-string-opacity: 0.68;
+  --sunett-barline-opacity: 0.68;
+}
