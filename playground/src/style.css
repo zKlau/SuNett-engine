@@ -319,10 +319,6 @@ code {
   overflow: visible;
 }
 
-/* Tier 3 of the theming API: map the engine's variables onto the playground
-   palette. The renderer's own defaults are presentation attributes, so these
-   declarations win — and a JS theme, applied inline on the <svg>, wins over
-   these in turn. That is what makes the theme switcher visible. */
 :root {
   --sunett-color-fg: var(--text-h);
   --sunett-color-muted: var(--text);

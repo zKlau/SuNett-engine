@@ -2,7 +2,7 @@ import { defineTheme } from "../theme";
 
 /**
  * Explicit dark palette. Deliberately does not consult
- * `prefers-color-scheme` — a consumer opts in, so a page that intentionally
+ * `prefers-color-scheme`, a consumer opts in, so a page that intentionally
  * runs inverted is never overridden.
  */
 export const darkTheme = defineTheme({

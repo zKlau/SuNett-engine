@@ -11,7 +11,7 @@ npm install -D vite-plugin-wasm
 The renderer never hardcodes colours. Every visual property is written as an SVG
 presentation attribute pointing at a `--sunett-*` CSS variable with a built-in
 fallback. Presentation attributes sit below every CSS rule in the cascade, so
-**your stylesheet always wins — no `!important` required.**
+**your stylesheet always wins - no `!important` required.**
 
 There are three tiers. Pick the lowest one that does what you need.
 
@@ -27,7 +27,7 @@ new TabsRenderer(song).generateMeasures(0);
 
 ### 2. A preset
 
-Either route works — pick one, not both.
+Either route works - pick one, not both.
 
 ```ts
 // Scoped to this one tab.
@@ -45,13 +45,13 @@ import "@zklau/sunett-engine/themes/dark.css";
 | `dark`          | You want an explicit dark palette regardless of the host page.           |
 | `high-contrast` | Accessibility. Built on CSS system colours; follows forced-colours mode. |
 
-`dark` deliberately ignores `prefers-color-scheme` — importing it or passing it
+`dark` deliberately ignores `prefers-color-scheme` - importing it or passing it
 is an explicit choice, so a page that intentionally runs inverted is never
 overridden.
 
 ### 3. A custom theme
 
-`defineTheme` is sugar over the variables — everything it does, a stylesheet can
+`defineTheme` is sugar over the variables - everything it does, a stylesheet can
 do too. Every field is optional; whatever you omit keeps its fallback.
 
 ```ts
@@ -74,7 +74,7 @@ each fret number.
 `sizing` is the exception to "everything a stylesheet can do too": note font
 size and string spacing feed the renderer's layout math, which a CSS variable
 cannot reach, so they are numeric fields resolved before layout. That also means
-**`sizing` works from `defineTheme` only — never from a preset CSS file.**
+**`sizing` works from `defineTheme` only - never from a preset CSS file.**
 Explicit `TabRendererOptions` (`notes.fontSize`, `stringSpacing`) still outrank a
 theme's `sizing`.
 
@@ -99,7 +99,7 @@ Or skip the JS API entirely and set the variables in your own CSS:
 ```
 
 Import the baseline stylesheet if you want the variables declared on `:root`
-where devtools can see them. It is optional — it declares variables only, never
+where devtools can see them. It is optional - it declares variables only, never
 element rules, so it can never outrank your CSS.
 
 ```ts
@@ -109,7 +109,7 @@ import "@zklau/sunett-engine/styles.css";
 ### Updating a theme at runtime
 
 The renderer holds its theme as state. Pass an initial one at construction, then
-mutate it with `setTheme` — it merges the new values over the current theme and
+mutate it with `setTheme` - it merges the new values over the current theme and
 re-renders the last-drawn tab. `getTheme()` returns the active theme.
 
 ```ts
@@ -142,8 +142,8 @@ theme; `setTheme` **merges**. `setTheme` takes the same shapes as `defineTheme`
 | `--sunett-string-opacity`  | `opacity.string`    | `0.68`                    |
 | `--sunett-barline-opacity` | `opacity.barline`   | `0.68`                    |
 
-`defineTheme` additionally takes a `sizing` section — `noteFontSize`,
-`stringSpacing`, and `rowSpacing` — which has no CSS-variable equivalent; see
+`defineTheme` additionally takes a `sizing` section - `noteFontSize`,
+`stringSpacing`, and `rowSpacing` - which has no CSS-variable equivalent; see
 [Note size](#note-size).
 
 Themes cover appearance and size. Other layout (widths, padding) stays in
@@ -153,7 +153,7 @@ hooks on `TabNoteOptions`.
 ### Note size
 
 Note text is **not** a theme variable, because the renderer measures it in
-TypeScript to size each note's background — a CSS-only font size would leave the
+TypeScript to size each note's background - a CSS-only font size would leave the
 background sized for the old value and the text would overflow it.
 
 By default the note font size scales with the tab: it is derived from the string
@@ -162,7 +162,7 @@ proportions instead of shrinking away on wide screens. It is clamped to a
 readable 8–15px. The background height follows the font size, so the two can
 never fall out of step.
 
-To pin a fixed size, set it explicitly — it then overrides the scaling and stays
+To pin a fixed size, set it explicitly - it then overrides the scaling and stays
 put at every width. Either per call:
 
 ```ts
@@ -180,5 +180,5 @@ const roomy = defineTheme({ sizing: { noteFontSize: 14, stringSpacing: 22 } });
 new TabsRenderer(song).generateMeasures(0, { theme: roomy });
 ```
 
-Note `fonts.noteFamily` sets the note **typeface**, not its size — size lives in
+Note `fonts.noteFamily` sets the note **typeface**, not its size - size lives in
 `sizing.noteFontSize` for the reason above.
