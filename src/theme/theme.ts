@@ -6,6 +6,8 @@ export type ThemeColors = {
   muted?: string;
   noteFg?: string;
   noteBg?: string;
+  /** Fill for the whole tab canvas. Defaults to transparent (inherits page). */
+  background?: string;
   string?: string;
   barline?: string;
   accent?: string;
@@ -35,6 +37,7 @@ export type ThemeOpacity = {
 export type ThemeSizing = {
   noteFontSize?: number;
   stringSpacing?: number;
+  rowSpacing?: number;
 };
 
 /** The argument to {@link defineTheme}. Every field is optional. */
@@ -59,6 +62,7 @@ const COLOR_VARIABLES: Record<keyof ThemeColors, ThemeVariable> = {
   muted: ThemeVariables.COLOR_MUTED,
   noteFg: ThemeVariables.COLOR_NOTE_FG,
   noteBg: ThemeVariables.COLOR_NOTE_BG,
+  background: ThemeVariables.COLOR_BG,
   string: ThemeVariables.COLOR_STRING,
   barline: ThemeVariables.COLOR_BARLINE,
   accent: ThemeVariables.COLOR_ACCENT,
@@ -90,7 +94,6 @@ export function defineTheme(input: ThemeInput): Theme {
   return { variables, sizing: normalizeSizing(input.sizing) };
 }
 
-/** Drops undefined entries so `sizing` is absent rather than `{}` when unused. */
 function normalizeSizing(
   sizing: ThemeSizing | undefined,
 ): ThemeSizing | undefined {
@@ -105,11 +108,13 @@ function normalizeSizing(
   if (sizing.stringSpacing !== undefined) {
     resolved.stringSpacing = sizing.stringSpacing;
   }
+  if (sizing.rowSpacing !== undefined) {
+    resolved.rowSpacing = sizing.rowSpacing;
+  }
 
   return Object.keys(resolved).length > 0 ? resolved : undefined;
 }
 
-/** Lets `labelSize` be given as a bare number, since `font-size` needs a unit. */
 function normalizeFonts(fonts: ThemeFonts | undefined) {
   if (!fonts || typeof fonts.labelSize !== "number") {
     return fonts;
@@ -135,14 +140,12 @@ export function mergeThemes(...themes: Theme[]): Theme {
   return { variables, sizing };
 }
 
-/** Writes a theme's variables onto an element, scoping it to that subtree. */
 export function applyTheme(theme: Theme, element: SVGElement | HTMLElement) {
   for (const [variable, value] of Object.entries(theme.variables)) {
     element.style.setProperty(variable, value);
   }
 }
 
-/** Removes every variable a theme could have set, restoring the fallbacks. */
 export function clearTheme(element: SVGElement | HTMLElement) {
   for (const variable of Object.values(ThemeVariables)) {
     element.style.removeProperty(variable);

@@ -13,6 +13,7 @@ export const highContrastTheme = defineTheme({
     muted: "CanvasText",
     noteFg: "CanvasText",
     noteBg: "Canvas",
+    background: "Canvas",
     string: "CanvasText",
     barline: "CanvasText",
     accent: "LinkText",

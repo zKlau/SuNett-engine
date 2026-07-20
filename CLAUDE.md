@@ -71,10 +71,16 @@ playground/                      # separate Vite app for manual visual testing
   which sit below every CSS rule in the cascade, so consumer CSS always wins without
   `!important` and an unstyled tab still renders. Consumers override via a plain
   stylesheet, a shipped preset (`styles/` → `dist/`, exposed through the `exports` map),
-  or `defineTheme()` passed as `TabRendererOptions.theme` (applied as inline vars on the
-  target `<svg>`, scoping it to that tab). Themes cover **appearance plus a small `sizing`
-  section** (`noteFontSize`, `stringSpacing`) — other layout stays in
+  or `defineTheme()`. The renderer holds the theme as **state**: `new TabsRenderer(song,
+{ theme })` seeds it, `setTheme(themeLike)` merges + re-renders the last draw, `getTheme()`
+  reads it, and a `theme` on `generateMeasures` _replaces_ it. Any accepted shape (preset name,
+  `ThemeInput`, or built `Theme`) is normalised by `coerceTheme` (`src/theme/resolveTheme.ts`).
+  Vars are applied inline on the target `<svg>` each render (`clearTheme` then `applyTheme`),
+  scoping them to that tab. Themes cover **appearance plus a small `sizing` section**
+  (`noteFontSize`, `stringSpacing`, `rowSpacing`) — other layout stays in
   `TabRendererOptions`/`src/constants/`, per-note styling in the `render`/`onCreate` hooks.
+  The whole-canvas background is `--sunett-color-bg`/`colors.background` (default transparent),
+  distinct from `colors.noteBg` (the per-note pill).
   Each **appearance** preset exists twice (a JS object and a CSS file);
   `tests/themePresets.test.ts` asserts the two never drift by comparing only `theme.variables`
   (`sizing` lives outside the variable map, so it is naturally excluded — it has no CSS-file
@@ -84,9 +90,10 @@ playground/                      # separate Vite app for manual visual testing
 - **Sizes that layout math depends on are numeric, never CSS variables.** Note font size
   feeds the TS-computed background rect (`notesRenderer`), and string spacing feeds
   `measureHeight` and the SVG `viewBox` (`layoutCalculation`) — a CSS variable is opaque to
-  that math. So they are numeric: as `TabRendererOptions` (`notes.fontSize`, `stringSpacing`)
-  or a theme's `sizing` section, both resolved in `normalizeOptions` before layout, with the
-  explicit option outranking the theme. `resolveNoteMetrics` (`src/utils/tabs/noteMetrics.ts`)
+  that math. So they are numeric: as `TabRendererOptions` (`notes.fontSize`, `stringSpacing`,
+  `rowGap`) or a theme's `sizing` section (`noteFontSize`, `stringSpacing`, `rowSpacing`),
+  both resolved in `normalizeOptions(options, theme.sizing)` before layout, with the explicit
+  option outranking the theme. `resolveNoteMetrics` (`src/utils/tabs/noteMetrics.ts`)
   derives note font size from the layout's string spacing each render so notes scale with the
   tab, and derives background height from the font size so they cannot desync; an explicit
   size overrides and stays fixed. Only sizes nothing measures (label text, via
