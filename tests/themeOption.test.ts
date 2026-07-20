@@ -53,6 +53,26 @@ describe("normalizeOptions theme resolution", () => {
   it("falls back to unset for an unknown preset name", () => {
     expect(normalizeOptions({ theme: "nope" as "dark" }).theme).toBeUndefined();
   });
+
+  it("feeds theme sizing into the resolved layout options", () => {
+    const config = normalizeOptions({
+      theme: defineTheme({ sizing: { noteFontSize: 18, stringSpacing: 22 } }),
+    });
+
+    expect(config.notes.fontSize).toBe(18);
+    expect(config.stringSpacing).toBe(22);
+  });
+
+  it("lets explicit options outrank theme sizing", () => {
+    const config = normalizeOptions({
+      theme: defineTheme({ sizing: { noteFontSize: 18, stringSpacing: 22 } }),
+      stringSpacing: 30,
+      notes: { fontSize: 9 },
+    });
+
+    expect(config.notes.fontSize).toBe(9);
+    expect(config.stringSpacing).toBe(30);
+  });
 });
 
 describe("TabsRenderer theme option", () => {

@@ -59,12 +59,20 @@ import { TabsRenderer, defineTheme } from "@zklau/sunett-engine";
 
 const myTheme = defineTheme({
   colors: { fg: "#111", noteBg: "#fff", accent: "#c084fc" },
-  fonts: { note: "JetBrains Mono, ui-monospace, monospace" },
+  fonts: { noteFamily: "JetBrains Mono, ui-monospace, monospace" },
   opacity: { string: 0.7 },
+  sizing: { noteFontSize: 14, stringSpacing: 22 },
 });
 
 new TabsRenderer(song).generateMeasures(0, { theme: myTheme });
 ```
+
+`sizing` is the exception to "everything a stylesheet can do too": note font
+size and string spacing feed the renderer's layout math, which a CSS variable
+cannot reach, so they are numeric fields resolved before layout. That also means
+**`sizing` works from `defineTheme` only — never from a preset CSS file.**
+Explicit `TabRendererOptions` (`notes.fontSize`, `stringSpacing`) still outrank a
+theme's `sizing`.
 
 Start from a preset instead of restating it with `mergeThemes`:
 
@@ -105,13 +113,17 @@ import "@zklau/sunett-engine/styles.css";
 | `--sunett-color-string`    | `colors.string`     | `--sunett-color-fg`       |
 | `--sunett-color-barline`   | `colors.barline`    | `--sunett-color-fg`       |
 | `--sunett-color-accent`    | `colors.accent`     | `--sunett-color-fg`       |
-| `--sunett-font-note`       | `fonts.note`        | `ui-monospace, monospace` |
-| `--sunett-font-label`      | `fonts.label`       | `system-ui, sans-serif`   |
+| `--sunett-font-note`       | `fonts.noteFamily`  | `ui-monospace, monospace` |
+| `--sunett-font-label`      | `fonts.labelFamily` | `system-ui, sans-serif`   |
 | `--sunett-font-label-size` | `fonts.labelSize`   | `11px`                    |
 | `--sunett-string-opacity`  | `opacity.string`    | `0.68`                    |
 | `--sunett-barline-opacity` | `opacity.barline`   | `0.68`                    |
 
-Themes cover appearance only. Layout (spacing, widths, padding) stays in
+`defineTheme` additionally takes a `sizing` section — `noteFontSize` and
+`stringSpacing` — which has no CSS-variable equivalent; see
+[Note size](#note-size).
+
+Themes cover appearance and size. Other layout (widths, padding, gaps) stays in
 `TabRendererOptions`, and per-note styling belongs in the `render` / `onCreate`
 hooks on `TabNoteOptions`.
 
@@ -128,7 +140,7 @@ readable 8–15px. The background height follows the font size, so the two can
 never fall out of step.
 
 To pin a fixed size, set it explicitly — it then overrides the scaling and stays
-put at every width:
+put at every width. Either per call:
 
 ```ts
 new TabsRenderer(song).generateMeasures(0, {
@@ -137,3 +149,13 @@ new TabsRenderer(song).generateMeasures(0, {
   maxStringSpacing: 28, // the default clamp of 24 would otherwise cap this
 });
 ```
+
+…or bundled into a reusable theme via its `sizing` section:
+
+```ts
+const roomy = defineTheme({ sizing: { noteFontSize: 14, stringSpacing: 22 } });
+new TabsRenderer(song).generateMeasures(0, { theme: roomy });
+```
+
+Note `fonts.noteFamily` sets the note **typeface**, not its size — size lives in
+`sizing.noteFontSize` for the reason above.

@@ -20,7 +20,11 @@ describe("defineTheme", () => {
         barline: "#333",
         accent: "#c084fc",
       },
-      fonts: { note: "JetBrains Mono, monospace", label: "system-ui" },
+      fonts: {
+        noteFamily: "JetBrains Mono, monospace",
+        labelFamily: "system-ui",
+        labelSize: 13,
+      },
       opacity: { string: 0.7, barline: 0.9 },
     });
 
@@ -34,6 +38,7 @@ describe("defineTheme", () => {
       "--sunett-color-accent": "#c084fc",
       "--sunett-font-note": "JetBrains Mono, monospace",
       "--sunett-font-label": "system-ui",
+      "--sunett-font-label-size": "13px",
       "--sunett-string-opacity": "0.7",
       "--sunett-barline-opacity": "0.9",
     });
@@ -60,6 +65,38 @@ describe("defineTheme", () => {
 
     expect(theme.variables).toEqual({ "--sunett-string-opacity": "0" });
   });
+
+  it("treats a numeric labelSize as px and a string as a raw length", () => {
+    expect(defineTheme({ fonts: { labelSize: 14 } }).variables).toEqual({
+      "--sunett-font-label-size": "14px",
+    });
+    expect(defineTheme({ fonts: { labelSize: "1rem" } }).variables).toEqual({
+      "--sunett-font-label-size": "1rem",
+    });
+  });
+
+  it("keeps sizing off the variable map and on its own field", () => {
+    const theme = defineTheme({
+      sizing: { noteFontSize: 18, stringSpacing: 22 },
+    });
+
+    expect(theme.variables).toEqual({});
+    expect(theme.sizing).toEqual({ noteFontSize: 18, stringSpacing: 22 });
+  });
+
+  it("leaves sizing undefined when not provided or empty", () => {
+    expect(defineTheme({}).sizing).toBeUndefined();
+    expect(defineTheme({ sizing: {} }).sizing).toBeUndefined();
+    expect(
+      defineTheme({ sizing: { noteFontSize: undefined } }).sizing,
+    ).toBeUndefined();
+  });
+
+  it("keeps only the sizing keys that were set", () => {
+    expect(defineTheme({ sizing: { noteFontSize: 18 } }).sizing).toEqual({
+      noteFontSize: 18,
+    });
+  });
 });
 
 describe("mergeThemes", () => {
@@ -75,6 +112,24 @@ describe("mergeThemes", () => {
 
   it("returns an empty theme when given nothing", () => {
     expect(mergeThemes().variables).toEqual({});
+  });
+
+  it("merges sizing per key, later themes winning", () => {
+    const base = defineTheme({
+      sizing: { noteFontSize: 12, stringSpacing: 16 },
+    });
+    const override = defineTheme({ sizing: { noteFontSize: 20 } });
+
+    expect(mergeThemes(base, override).sizing).toEqual({
+      noteFontSize: 20,
+      stringSpacing: 16,
+    });
+  });
+
+  it("leaves merged sizing undefined when no theme sets it", () => {
+    expect(
+      mergeThemes(defineTheme({}), defineTheme({})).sizing,
+    ).toBeUndefined();
   });
 });
 

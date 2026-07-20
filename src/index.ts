@@ -11,6 +11,7 @@ export type {
   ThemeColors,
   ThemeFonts,
   ThemeOpacity,
+  ThemeSizing,
 } from "./theme/theme";
 export type { PresetTheme } from "./theme/presets";
 export type { ThemeVariable } from "./theme/variables";

@@ -72,20 +72,25 @@ playground/                      # separate Vite app for manual visual testing
   `!important` and an unstyled tab still renders. Consumers override via a plain
   stylesheet, a shipped preset (`styles/` → `dist/`, exposed through the `exports` map),
   or `defineTheme()` passed as `TabRendererOptions.theme` (applied as inline vars on the
-  target `<svg>`, scoping it to that tab). Themes cover **appearance only** — layout stays
-  in `TabRendererOptions`/`src/constants/`, per-note styling in the `render`/`onCreate`
-  hooks. Each preset exists twice (a JS object and a CSS file); `tests/themePresets.test.ts`
-  asserts the two never drift. The renderer still assigns classes (`string`, `barline` +
+  target `<svg>`, scoping it to that tab). Themes cover **appearance plus a small `sizing`
+  section** (`noteFontSize`, `stringSpacing`) — other layout stays in
+  `TabRendererOptions`/`src/constants/`, per-note styling in the `render`/`onCreate` hooks.
+  Each **appearance** preset exists twice (a JS object and a CSS file);
+  `tests/themePresets.test.ts` asserts the two never drift by comparing only `theme.variables`
+  (`sizing` lives outside the variable map, so it is naturally excluded — it has no CSS-file
+  equivalent and works from `defineTheme` only). The renderer still assigns classes (`string`, `barline` +
   `barline-start/-end/-inner/-repeat-open`, `repeat-dot`, `repeat-count`, `measure-index`, …)
   as override hooks (see `playground/src/style.css`).
-- **Sizes that layout math depends on are not themeable.** Note font size feeds the
-  TS-computed background rect (`notesRenderer`), and string spacing feeds `measureHeight`
-  and the SVG `viewBox` (`layoutCalculation`) — a CSS variable is opaque to that math, so
-  both stay numeric options. `resolveNoteMetrics` (`src/utils/tabs/noteMetrics.ts`) derives
-  note font size from the layout's string spacing each render so notes scale with the tab,
-  and derives background height from the font size so they cannot desync; an explicit
-  `notes.fontSize` overrides and stays fixed. Only sizes nothing measures (label text) are
-  theme variables.
+- **Sizes that layout math depends on are numeric, never CSS variables.** Note font size
+  feeds the TS-computed background rect (`notesRenderer`), and string spacing feeds
+  `measureHeight` and the SVG `viewBox` (`layoutCalculation`) — a CSS variable is opaque to
+  that math. So they are numeric: as `TabRendererOptions` (`notes.fontSize`, `stringSpacing`)
+  or a theme's `sizing` section, both resolved in `normalizeOptions` before layout, with the
+  explicit option outranking the theme. `resolveNoteMetrics` (`src/utils/tabs/noteMetrics.ts`)
+  derives note font size from the layout's string spacing each render so notes scale with the
+  tab, and derives background height from the font size so they cannot desync; an explicit
+  size overrides and stays fixed. Only sizes nothing measures (label text, via
+  `--sunett-font-label-size`) are theme variables.
 - **Playground** is its own package. It imports the renderer directly from `../../src`
   (source, not the built `dist`) and requires `vite-plugin-wasm` to load the parser.
   Run it with `npm run dev` from inside `playground/`.
