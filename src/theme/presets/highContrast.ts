@@ -17,6 +17,9 @@ export const highContrastTheme = defineTheme({
     barline: "CanvasText",
     accent: "LinkText",
   },
+  sizing: {
+    noteFontSize: 24,
+  },
   opacity: {
     string: 1,
     barline: 1,
