@@ -20,14 +20,20 @@ export function normalizeOptions(
 
     maxMeasureWidth: options.maxMeasureWidth ?? constants.MAX_MEASURE_WIDTH,
 
-    minStringSpacing: options.minStringSpacing ?? constants.MIN_STRING_SPACING,
+    minStringSpacing:
+      options.minStringSpacing ??
+      sizing?.minStringSpacing ??
+      constants.MIN_STRING_SPACING,
 
     stringSpacing:
       options.stringSpacing ??
       sizing?.stringSpacing ??
       constants.STRING_SPACING,
 
-    maxStringSpacing: options.maxStringSpacing ?? constants.MAX_STRING_SPACING,
+    maxStringSpacing:
+      options.maxStringSpacing ??
+      sizing?.maxStringSpacing ??
+      constants.MAX_STRING_SPACING,
 
     invertStrings: options.invertStrings ?? constants.INVERT_STRINGS,
 

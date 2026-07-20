@@ -27,6 +27,11 @@ export type ThemeOpacity = {
   barline?: number | string;
 };
 
+export type ThemeLines = {
+  /** Stroke width of the string lines. A CSS length, or a number in px. */
+  stringWidth?: number | string;
+};
+
 /**
  * Numeric sizes the renderer reads before it lays the tab out. Unlike the other
  * sections these are not CSS variables: note font size feeds the TS-measured
@@ -37,6 +42,8 @@ export type ThemeOpacity = {
 export type ThemeSizing = {
   noteFontSize?: number;
   stringSpacing?: number;
+  minStringSpacing?: number;
+  maxStringSpacing?: number;
   rowSpacing?: number;
 };
 
@@ -45,6 +52,7 @@ export type ThemeInput = {
   colors?: ThemeColors;
   fonts?: ThemeFonts;
   opacity?: ThemeOpacity;
+  lines?: ThemeLines;
   sizing?: ThemeSizing;
 };
 
@@ -79,6 +87,10 @@ const OPACITY_VARIABLES: Record<keyof ThemeOpacity, ThemeVariable> = {
   barline: ThemeVariables.BARLINE_OPACITY,
 };
 
+const LINE_VARIABLES: Record<keyof ThemeLines, ThemeVariable> = {
+  stringWidth: ThemeVariables.STRING_WIDTH,
+};
+
 /**
  * Turns a friendly theme description into the CSS variable map the renderer
  * applies. Omitted fields are left unset so the variable's built-in fallback
@@ -90,6 +102,7 @@ export function defineTheme(input: ThemeInput): Theme {
   collectSection(variables, COLOR_VARIABLES, input.colors);
   collectSection(variables, FONT_VARIABLES, normalizeFonts(input.fonts));
   collectSection(variables, OPACITY_VARIABLES, input.opacity);
+  collectSection(variables, LINE_VARIABLES, input.lines);
 
   return { variables, sizing: normalizeSizing(input.sizing) };
 }
@@ -107,6 +120,12 @@ function normalizeSizing(
   }
   if (sizing.stringSpacing !== undefined) {
     resolved.stringSpacing = sizing.stringSpacing;
+  }
+  if (sizing.minStringSpacing !== undefined) {
+    resolved.minStringSpacing = sizing.minStringSpacing;
+  }
+  if (sizing.maxStringSpacing !== undefined) {
+    resolved.maxStringSpacing = sizing.maxStringSpacing;
   }
   if (sizing.rowSpacing !== undefined) {
     resolved.rowSpacing = sizing.rowSpacing;

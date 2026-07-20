@@ -26,6 +26,7 @@ describe("defineTheme", () => {
         labelSize: 13,
       },
       opacity: { string: 0.7, barline: 0.9 },
+      lines: { stringWidth: 2 },
     });
 
     expect(theme.variables).toEqual({
@@ -41,6 +42,25 @@ describe("defineTheme", () => {
       "--sunett-font-label-size": "13px",
       "--sunett-string-opacity": "0.7",
       "--sunett-barline-opacity": "0.9",
+      "--sunett-string-width": "2",
+    });
+  });
+
+  it("accepts a string CSS length for stringWidth", () => {
+    expect(defineTheme({ lines: { stringWidth: "0.5px" } }).variables).toEqual({
+      "--sunett-string-width": "0.5px",
+    });
+  });
+
+  it("carries the string-spacing clamp bounds in sizing", () => {
+    const theme = defineTheme({
+      sizing: { stringSpacing: 40, minStringSpacing: 12, maxStringSpacing: 48 },
+    });
+
+    expect(theme.sizing).toEqual({
+      stringSpacing: 40,
+      minStringSpacing: 12,
+      maxStringSpacing: 48,
     });
   });
 

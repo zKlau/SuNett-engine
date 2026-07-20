@@ -380,7 +380,10 @@ export class TabsRenderer {
         ThemeVariables.COLOR_STRING,
         ThemeVariables.STRING_OPACITY,
       );
-      stringPath.setAttribute("stroke-width", `${constants.STRING_LINE_WIDTH}`);
+      stringPath.setAttribute(
+        "stroke-width",
+        themeVar(ThemeVariables.STRING_WIDTH),
+      );
 
       parent.append(stringPath);
     }
