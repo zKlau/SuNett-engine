@@ -70,6 +70,26 @@ describe("normalizeOptions sizing", () => {
     expect(config.rowGap).toBe(constants.ROW_GAP);
     expect(config.notes.fontSize).toBeUndefined();
   });
+
+  it("reads the string-spacing clamp bounds from theme sizing", () => {
+    const config = normalizeOptions(
+      {},
+      { stringSpacing: 40, minStringSpacing: 12, maxStringSpacing: 48 },
+    );
+
+    expect(config.stringSpacing).toBe(40);
+    expect(config.minStringSpacing).toBe(12);
+    expect(config.maxStringSpacing).toBe(48);
+  });
+
+  it("lets explicit clamp options outrank theme sizing", () => {
+    const config = normalizeOptions(
+      { maxStringSpacing: 30 },
+      { maxStringSpacing: 48 },
+    );
+
+    expect(config.maxStringSpacing).toBe(30);
+  });
 });
 
 describe("TabsRenderer theme option", () => {
@@ -208,5 +228,25 @@ describe("TabsRenderer theme option", () => {
     });
 
     expect(svg.style.getPropertyValue("--sunett-color-bg")).toBe("#16171d");
+  });
+
+  it("strokes string lines through the string-width variable", () => {
+    const svg = setupSvg();
+
+    new TabsRenderer(makeSong([makeTrackWithNotes()])).generateMeasures();
+
+    expect(svg.querySelector(".string")?.getAttribute("stroke-width")).toBe(
+      "var(--sunett-string-width, 1)",
+    );
+  });
+
+  it("sets the string-width variable from a theme", () => {
+    const svg = setupSvg();
+
+    new TabsRenderer(makeSong([makeTrackWithNotes()])).generateMeasures(0, {
+      theme: defineTheme({ lines: { stringWidth: 3 } }),
+    });
+
+    expect(svg.style.getPropertyValue("--sunett-string-width")).toBe("3");
   });
 });

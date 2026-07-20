@@ -12,6 +12,7 @@ export const ThemeVariables = {
   FONT_LABEL_SIZE: "--sunett-font-label-size",
   STRING_OPACITY: "--sunett-string-opacity",
   BARLINE_OPACITY: "--sunett-barline-opacity",
+  STRING_WIDTH: "--sunett-string-width",
 } as const;
 
 export type ThemeVariable =
@@ -32,6 +33,7 @@ const ThemeVariableFallbacks: Record<ThemeVariable, string> = {
   [ThemeVariables.FONT_LABEL_SIZE]: "11px",
   [ThemeVariables.STRING_OPACITY]: "0.68",
   [ThemeVariables.BARLINE_OPACITY]: "0.68",
+  [ThemeVariables.STRING_WIDTH]: "1",
 };
 
 export function themeVar(variable: ThemeVariable): string {

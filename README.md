@@ -61,7 +61,8 @@ const myTheme = defineTheme({
   colors: { fg: "#111", background: "#fff", accent: "#c084fc" },
   fonts: { noteFamily: "JetBrains Mono, ui-monospace, monospace" },
   opacity: { string: 0.7 },
-  sizing: { noteFontSize: 14, stringSpacing: 22 },
+  lines: { stringWidth: 2 },
+  sizing: { noteFontSize: 14, stringSpacing: 22, maxStringSpacing: 28 },
 });
 
 new TabsRenderer(song).generateMeasures(0, { theme: myTheme });
@@ -141,14 +142,36 @@ theme; `setTheme` **merges**. `setTheme` takes the same shapes as `defineTheme`
 | `--sunett-font-label-size` | `fonts.labelSize`   | `11px`                    |
 | `--sunett-string-opacity`  | `opacity.string`    | `0.68`                    |
 | `--sunett-barline-opacity` | `opacity.barline`   | `0.68`                    |
+| `--sunett-string-width`    | `lines.stringWidth` | `1`                       |
+
+`--sunett-string-width` is the stroke thickness of the string lines. It is a
+real CSS variable (stroke width does not feed layout math), so unlike `sizing`
+it also works from a stylesheet or preset, and a plain
+`.string { stroke-width: 2px }` rule still wins over it.
 
 `defineTheme` additionally takes a `sizing` section - `noteFontSize`,
-`stringSpacing`, and `rowSpacing` - which has no CSS-variable equivalent; see
+`stringSpacing`, `minStringSpacing`, `maxStringSpacing`, and `rowSpacing` - which
+has no CSS-variable equivalent; see [String spacing](#string-spacing) and
 [Note size](#note-size).
 
 Themes cover appearance and size. Other layout (widths, padding) stays in
 `TabRendererOptions`, and per-note styling belongs in the `render` / `onCreate`
 hooks on `TabNoteOptions`.
+
+### String spacing
+
+`sizing.stringSpacing` sets the vertical distance between string lines. It is
+clamped to `[minStringSpacing, maxStringSpacing]` (default `9`-`24`) and scaled
+with the measure width, so a value past the default ceiling is capped unless you
+raise it too:
+
+```ts
+defineTheme({ sizing: { stringSpacing: 40, maxStringSpacing: 40 } });
+```
+
+Like note font size, spacing feeds the SVG viewBox, so it is a numeric `sizing`
+field rather than a CSS variable (works from `defineTheme`, not a preset CSS
+file). An explicit `TabRendererOptions.stringSpacing` still outranks the theme.
 
 ### Note size
 

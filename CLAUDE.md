@@ -77,10 +77,13 @@ playground/                      # separate Vite app for manual visual testing
   `ThemeInput`, or built `Theme`) is normalised by `coerceTheme` (`src/theme/resolveTheme.ts`).
   Vars are applied inline on the target `<svg>` each render (`clearTheme` then `applyTheme`),
   scoping them to that tab. Themes cover **appearance plus a small `sizing` section**
-  (`noteFontSize`, `stringSpacing`, `rowSpacing`) - other layout stays in
-  `TabRendererOptions`/`src/constants/`, per-note styling in the `render`/`onCreate` hooks.
-  The whole-canvas background is `--sunett-color-bg`/`colors.background` (default transparent),
-  distinct from `colors.noteBg` (the per-note pill).
+  (`noteFontSize`, `stringSpacing`, `minStringSpacing`, `maxStringSpacing`, `rowSpacing`) -
+  other layout stays in `TabRendererOptions`/`src/constants/`, per-note styling in the
+  `render`/`onCreate` hooks. The whole-canvas background is `--sunett-color-bg`/`colors.background`
+  (default transparent), distinct from `colors.noteBg` (the per-note pill). String **line
+  thickness** is `--sunett-string-width`/`lines.stringWidth` (default `1`) - a real CSS variable,
+  because stroke width does not feed layout math, so it also works from CSS/presets (unlike
+  `sizing`, which is JS-only).
   Each **appearance** preset exists twice (a JS object and a CSS file);
   `tests/themePresets.test.ts` asserts the two never drift by comparing only `theme.variables`
   (`sizing` lives outside the variable map, so it is naturally excluded - it has no CSS-file

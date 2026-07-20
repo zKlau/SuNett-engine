@@ -12,6 +12,7 @@ export type {
   ThemeColors,
   ThemeFonts,
   ThemeOpacity,
+  ThemeLines,
   ThemeSizing,
 } from "./theme/theme";
 export type { ThemeLike } from "./theme/resolveTheme";
