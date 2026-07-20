@@ -1,18 +1,9 @@
-/*
- * High-contrast preset — the CSS equivalent of
- * `generateMeasures(0, { theme: "high-contrast" })`.
- *
- * Uses CSS system colours so the palette resolves to a maximum-contrast pair on
- * light and dark hosts alike, and follows forced-colours / OS high-contrast
- * modes. Opacity is pinned to full strength because dimming is what usually
- * breaks contrast ratios.
- */
-
 :root {
   --sunett-color-fg: CanvasText;
   --sunett-color-muted: CanvasText;
   --sunett-color-note-fg: CanvasText;
   --sunett-color-note-bg: Canvas;
+  --sunett-color-bg: Canvas;
   --sunett-color-string: CanvasText;
   --sunett-color-barline: CanvasText;
   --sunett-color-accent: LinkText;

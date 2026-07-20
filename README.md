@@ -58,7 +58,7 @@ do too. Every field is optional; whatever you omit keeps its fallback.
 import { TabsRenderer, defineTheme } from "@zklau/sunett-engine";
 
 const myTheme = defineTheme({
-  colors: { fg: "#111", noteBg: "#fff", accent: "#c084fc" },
+  colors: { fg: "#111", background: "#fff", accent: "#c084fc" },
   fonts: { noteFamily: "JetBrains Mono, ui-monospace, monospace" },
   opacity: { string: 0.7 },
   sizing: { noteFontSize: 14, stringSpacing: 22 },
@@ -66,6 +66,10 @@ const myTheme = defineTheme({
 
 new TabsRenderer(song).generateMeasures(0, { theme: myTheme });
 ```
+
+`colors.background` fills the whole tab canvas (defaults to transparent, so an
+unthemed tab shows the page behind it); `colors.noteBg` is only the pill behind
+each fret number.
 
 `sizing` is the exception to "everything a stylesheet can do too": note font
 size and string spacing feed the renderer's layout math, which a CSS variable
@@ -102,6 +106,24 @@ element rules, so it can never outrank your CSS.
 import "@zklau/sunett-engine/styles.css";
 ```
 
+### Updating a theme at runtime
+
+The renderer holds its theme as state. Pass an initial one at construction, then
+mutate it with `setTheme` — it merges the new values over the current theme and
+re-renders the last-drawn tab. `getTheme()` returns the active theme.
+
+```ts
+const renderer = new TabsRenderer(song, { theme: "dark" });
+renderer.generateMeasures(0);
+
+renderer.setTheme({ colors: { accent: "#f472b6" } }); // merges + re-renders
+renderer.getTheme(); // the resolved Theme
+```
+
+Precedence: a `theme` passed to `generateMeasures` **replaces** the current
+theme; `setTheme` **merges**. `setTheme` takes the same shapes as `defineTheme`
+(a preset name, a `ThemeInput`, or a built `Theme`).
+
 ### Variables
 
 | Variable                   | `defineTheme` field | Fallback                  |
@@ -110,6 +132,7 @@ import "@zklau/sunett-engine/styles.css";
 | `--sunett-color-muted`     | `colors.muted`      | `currentColor` at 55%     |
 | `--sunett-color-note-fg`   | `colors.noteFg`     | `--sunett-color-fg`       |
 | `--sunett-color-note-bg`   | `colors.noteBg`     | `Canvas`                  |
+| `--sunett-color-bg`        | `colors.background` | `transparent`             |
 | `--sunett-color-string`    | `colors.string`     | `--sunett-color-fg`       |
 | `--sunett-color-barline`   | `colors.barline`    | `--sunett-color-fg`       |
 | `--sunett-color-accent`    | `colors.accent`     | `--sunett-color-fg`       |
@@ -119,11 +142,11 @@ import "@zklau/sunett-engine/styles.css";
 | `--sunett-string-opacity`  | `opacity.string`    | `0.68`                    |
 | `--sunett-barline-opacity` | `opacity.barline`   | `0.68`                    |
 
-`defineTheme` additionally takes a `sizing` section — `noteFontSize` and
-`stringSpacing` — which has no CSS-variable equivalent; see
+`defineTheme` additionally takes a `sizing` section — `noteFontSize`,
+`stringSpacing`, and `rowSpacing` — which has no CSS-variable equivalent; see
 [Note size](#note-size).
 
-Themes cover appearance and size. Other layout (widths, padding, gaps) stays in
+Themes cover appearance and size. Other layout (widths, padding) stays in
 `TabRendererOptions`, and per-note styling belongs in the `render` / `onCreate`
 hooks on `TabNoteOptions`.
 

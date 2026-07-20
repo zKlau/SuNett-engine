@@ -11,6 +11,7 @@ export const darkTheme = defineTheme({
     muted: "#9ca3af",
     noteFg: "#f3f4f6",
     noteBg: "#16171d",
+    background: "#16171d",
     string: "#6b7280",
     barline: "#9ca3af",
     accent: "#c084fc",
