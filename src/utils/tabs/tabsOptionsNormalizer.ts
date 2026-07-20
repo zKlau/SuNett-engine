@@ -1,12 +1,15 @@
 import type { TabNoteOptions } from "../../types/UI/tabNoteOptions";
 import type { TabRendererOptions } from "../../types/UI/rendererOptions";
-import type { Theme } from "../../theme/theme";
+import type { Theme, ThemeSizing } from "../../theme/theme";
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import { isPresetTheme, resolvePreset } from "../../theme/presets";
 
 export function normalizeOptions(options: TabRendererOptions) {
+  const theme = normalizeTheme(options.theme);
+  const sizing = theme?.sizing;
+
   return {
-    theme: normalizeTheme(options.theme),
+    theme,
 
     trackIndex: options.trackIndex ?? 0,
     measuresPerRow:
@@ -22,7 +25,10 @@ export function normalizeOptions(options: TabRendererOptions) {
 
     minStringSpacing: options.minStringSpacing ?? constants.MIN_STRING_SPACING,
 
-    stringSpacing: options.stringSpacing ?? constants.STRING_SPACING,
+    stringSpacing:
+      options.stringSpacing ??
+      sizing?.stringSpacing ??
+      constants.STRING_SPACING,
 
     maxStringSpacing: options.maxStringSpacing ?? constants.MAX_STRING_SPACING,
 
@@ -38,7 +44,7 @@ export function normalizeOptions(options: TabRendererOptions) {
 
     paddingY: options.paddingY ?? constants.TAB_PADDING_Y,
 
-    notes: normalizeNoteOptions(options.notes ?? {}),
+    notes: normalizeNoteOptions(options.notes ?? {}, sizing),
   };
 }
 
@@ -58,13 +64,14 @@ function normalizeTheme(theme: TabRendererOptions["theme"]): Theme | undefined {
 }
 
 /**
- * `fontSize` and `backgroundHeight` stay optional here: when omitted they are
- * derived per render from the layout's string spacing by `resolveNoteMetrics`,
- * which needs a measured layout this early step does not have.
+ * `fontSize` and `backgroundHeight` stay optional here: when neither the caller
+ * nor the theme sets a font size, it is derived per render from the layout's
+ * string spacing by `resolveNoteMetrics`, which needs a measured layout this
+ * early step does not have. An explicit `notes.fontSize` outranks the theme.
  */
-function normalizeNoteOptions(options: TabNoteOptions) {
+function normalizeNoteOptions(options: TabNoteOptions, sizing?: ThemeSizing) {
   return {
-    fontSize: options.fontSize,
+    fontSize: options.fontSize ?? sizing?.noteFontSize,
     paddingX: options.paddingX ?? constants.NOTE_PADDING_X,
     backgroundHeight: options.backgroundHeight,
     background: options.background ?? true,

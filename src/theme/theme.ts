@@ -12,9 +12,11 @@ export type ThemeColors = {
 };
 
 export type ThemeFonts = {
-  note?: string;
-  label?: string;
-  /** A CSS length, or a number treated as `px`. */
+  /** `font-family` for note text. */
+  noteFamily?: string;
+  /** `font-family` for labels (measure indices, repeat counts, tuning). */
+  labelFamily?: string;
+  /** Label `font-size` as a CSS length, or a number treated as `px`. */
   labelSize?: string | number;
 };
 
@@ -23,19 +25,33 @@ export type ThemeOpacity = {
   barline?: number | string;
 };
 
+/**
+ * Numeric sizes the renderer reads before it lays the tab out. Unlike the other
+ * sections these are not CSS variables: note font size feeds the TS-measured
+ * note background, and string spacing feeds the SVG viewBox, so both must be
+ * known to the layout math a stylesheet cannot reach. Consequently sizing works
+ * from `defineTheme` only, never from a preset CSS file.
+ */
+export type ThemeSizing = {
+  noteFontSize?: number;
+  stringSpacing?: number;
+};
+
 /** The argument to {@link defineTheme}. Every field is optional. */
 export type ThemeInput = {
   colors?: ThemeColors;
   fonts?: ThemeFonts;
   opacity?: ThemeOpacity;
+  sizing?: ThemeSizing;
 };
 
 /**
  * A resolved theme. Treat it as opaque — build one with {@link defineTheme}
- * rather than constructing the variable map by hand.
+ * rather than constructing it by hand.
  */
 export type Theme = {
   readonly variables: Readonly<Partial<Record<ThemeVariable, string>>>;
+  readonly sizing?: Readonly<ThemeSizing>;
 };
 
 const COLOR_VARIABLES: Record<keyof ThemeColors, ThemeVariable> = {
@@ -49,8 +65,8 @@ const COLOR_VARIABLES: Record<keyof ThemeColors, ThemeVariable> = {
 };
 
 const FONT_VARIABLES: Record<keyof ThemeFonts, ThemeVariable> = {
-  note: ThemeVariables.FONT_NOTE,
-  label: ThemeVariables.FONT_LABEL,
+  noteFamily: ThemeVariables.FONT_NOTE,
+  labelFamily: ThemeVariables.FONT_LABEL,
   labelSize: ThemeVariables.FONT_LABEL_SIZE,
 };
 
@@ -71,7 +87,26 @@ export function defineTheme(input: ThemeInput): Theme {
   collectSection(variables, FONT_VARIABLES, normalizeFonts(input.fonts));
   collectSection(variables, OPACITY_VARIABLES, input.opacity);
 
-  return { variables };
+  return { variables, sizing: normalizeSizing(input.sizing) };
+}
+
+/** Drops undefined entries so `sizing` is absent rather than `{}` when unused. */
+function normalizeSizing(
+  sizing: ThemeSizing | undefined,
+): ThemeSizing | undefined {
+  if (!sizing) {
+    return undefined;
+  }
+
+  const resolved: ThemeSizing = {};
+  if (sizing.noteFontSize !== undefined) {
+    resolved.noteFontSize = sizing.noteFontSize;
+  }
+  if (sizing.stringSpacing !== undefined) {
+    resolved.stringSpacing = sizing.stringSpacing;
+  }
+
+  return Object.keys(resolved).length > 0 ? resolved : undefined;
 }
 
 /** Lets `labelSize` be given as a bare number, since `font-size` needs a unit. */
@@ -88,12 +123,16 @@ function normalizeFonts(fonts: ThemeFonts | undefined) {
  */
 export function mergeThemes(...themes: Theme[]): Theme {
   const variables: Partial<Record<ThemeVariable, string>> = {};
+  let sizing: ThemeSizing | undefined;
 
   for (const theme of themes) {
     Object.assign(variables, theme.variables);
+    if (theme.sizing) {
+      sizing = { ...sizing, ...theme.sizing };
+    }
   }
 
-  return { variables };
+  return { variables, sizing };
 }
 
 /** Writes a theme's variables onto an element, scoping it to that subtree. */
