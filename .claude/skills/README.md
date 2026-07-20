@@ -9,7 +9,7 @@ Drop Claude Code skills for this repo here. Each skill is its own folder contain
 ```
 .claude/skills/
   <skill-name>/
-    SKILL.md            # required — frontmatter + instructions
+    SKILL.md            # required - frontmatter + instructions
     <supporting files>  # optional scripts, templates, references the skill points to
 ```
 
@@ -19,7 +19,7 @@ Drop Claude Code skills for this repo here. Each skill is its own folder contain
 ---
 name: my-skill
 description:
-  One line that tells Claude WHEN to use this skill. Be specific — this is
+  One line that tells Claude WHEN to use this skill. Be specific - this is
   what Claude matches against, e.g. "Use when adding a new note effect type under
   src/types/notes/effects".
 ---

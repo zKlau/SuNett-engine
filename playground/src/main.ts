@@ -27,7 +27,6 @@ async function main(filePath: string) {
   }
 }
 
-/** Visual smoke test: flips the tab between every shipped preset. */
 function setupThemePicker(renderer: TabsRenderer) {
   const select = document.getElementById("themeSelect");
   if (!(select instanceof HTMLSelectElement)) {

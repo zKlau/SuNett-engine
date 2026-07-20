@@ -135,7 +135,7 @@ describe("LayoutCalculation", () => {
 
       it("renders a fixed percussion staff regardless of tuning length", () => {
         // Drum tracks come back from the parser with a 6-string fallback tuning,
-        // so the percussion_track flag — not strings.length — must drive the count.
+        // so the percussion_track flag - not strings.length - must drive the count.
         const drums = makeTrack(6, [makeMeasure(2)], "Drums", true);
 
         expect(stringCountFor(drums)).toBe(constants.PERCUSSION_LINE_COUNT);

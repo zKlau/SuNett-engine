@@ -1,8 +1,3 @@
-/**
- * The complete set of CSS custom properties the renderer reads. This is the
- * single source of truth: presentation attributes, `defineTheme`, and the
- * shipped stylesheets all derive their names from here.
- */
 export const ThemeVariables = {
   COLOR_FG: "--sunett-color-fg",
   COLOR_MUTED: "--sunett-color-muted",

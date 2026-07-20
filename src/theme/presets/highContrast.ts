@@ -4,7 +4,7 @@ import { defineTheme } from "../theme";
  * Accessibility-first preset. Built on the CSS system colours (`CanvasText`,
  * `Canvas`, `LinkText`) so it resolves to a maximum-contrast pair on light and
  * dark hosts alike, and honours forced-colours / OS high-contrast modes. Muted
- * text and line opacity are pinned to full strength — dimming is what usually
+ * text and line opacity are pinned to full strength - dimming is what usually
  * breaks contrast ratios.
  */
 export const highContrastTheme = defineTheme({

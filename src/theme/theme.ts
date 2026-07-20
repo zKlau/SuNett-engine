@@ -49,7 +49,7 @@ export type ThemeInput = {
 };
 
 /**
- * A resolved theme. Treat it as opaque — build one with {@link defineTheme}
+ * A resolved theme. Treat it as opaque - build one with {@link defineTheme}
  * rather than constructing it by hand.
  */
 export type Theme = {
