@@ -77,7 +77,7 @@ playground/                      # separate Vite app for manual visual testing
   `ThemeInput`, or built `Theme`) is normalised by `coerceTheme` (`src/theme/resolveTheme.ts`).
   Vars are applied inline on the target `<svg>` each render (`clearTheme` then `applyTheme`),
   scoping them to that tab. Themes cover **appearance plus a small `sizing` section**
-  (`noteFontSize`, `stringSpacing`, `minStringSpacing`, `maxStringSpacing`, `rowSpacing`) -
+  (`noteFontSize`, `maxNoteFontSize`, `stringSpacing`, `minStringSpacing`, `maxStringSpacing`, `rowSpacing`) -
   other layout stays in `TabRendererOptions`/`src/constants/`, per-note styling in the
   `render`/`onCreate` hooks. The whole-canvas background is `--sunett-color-bg`/`colors.background`
   (default transparent), distinct from `colors.noteBg` (the per-note pill). String **line

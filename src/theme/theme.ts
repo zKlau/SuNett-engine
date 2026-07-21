@@ -40,7 +40,20 @@ export type ThemeLines = {
  * from `defineTheme` only, never from a preset CSS file.
  */
 export type ThemeSizing = {
+  /**
+   * Base note font size, in px. When unset, the size scales with the string
+   * spacing and is clamped to at most
+   * {@link TabsRendererConstants.MAX_NOTE_FONT_SIZE}; raise `maxNoteFontSize`
+   * to lift that ceiling. An explicit value is fixed and skips the scaling.
+   */
   noteFontSize?: number;
+  maxNoteFontSize?: number;
+  /**
+   * Base vertical distance between string lines, in px. The layout scales it
+   * with the measure width and clamps it to at most
+   * {@link TabsRendererConstants.MAX_STRING_SPACING}; raise `maxStringSpacing`
+   * to lift that ceiling.
+   */
   stringSpacing?: number;
   minStringSpacing?: number;
   maxStringSpacing?: number;
@@ -117,6 +130,9 @@ function normalizeSizing(
   const resolved: ThemeSizing = {};
   if (sizing.noteFontSize !== undefined) {
     resolved.noteFontSize = sizing.noteFontSize;
+  }
+  if (sizing.maxNoteFontSize !== undefined) {
+    resolved.maxNoteFontSize = sizing.maxNoteFontSize;
   }
   if (sizing.stringSpacing !== undefined) {
     resolved.stringSpacing = sizing.stringSpacing;

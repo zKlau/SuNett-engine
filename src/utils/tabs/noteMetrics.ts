@@ -8,6 +8,7 @@ export type NoteMetrics = {
 
 type NoteSizeOptions = {
   fontSize?: number;
+  maxFontSize?: number;
   backgroundHeight?: number;
 };
 
@@ -30,7 +31,7 @@ export function resolveNoteMetrics(
     clamp(
       stringSpacing * constants.NOTE_FONT_SIZE_RATIO,
       constants.MIN_NOTE_FONT_SIZE,
-      constants.MAX_NOTE_FONT_SIZE,
+      options.maxFontSize ?? constants.MAX_NOTE_FONT_SIZE,
     );
 
   return {

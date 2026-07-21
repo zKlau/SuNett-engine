@@ -54,6 +54,7 @@ export function normalizeOptions(
 function normalizeNoteOptions(options: TabNoteOptions, sizing?: ThemeSizing) {
   return {
     fontSize: options.fontSize ?? sizing?.noteFontSize,
+    maxFontSize: options.maxFontSize ?? sizing?.maxNoteFontSize,
     paddingX: options.paddingX ?? constants.NOTE_PADDING_X,
     backgroundHeight: options.backgroundHeight,
     background: options.background ?? true,

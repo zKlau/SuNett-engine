@@ -64,6 +64,14 @@ describe("defineTheme", () => {
     });
   });
 
+  it("carries the note font-size ceiling in sizing", () => {
+    const theme = defineTheme({
+      sizing: { noteFontSize: 12, maxNoteFontSize: 30 },
+    });
+
+    expect(theme.sizing).toEqual({ noteFontSize: 12, maxNoteFontSize: 30 });
+  });
+
   it("omits fields that were not provided", () => {
     const theme = defineTheme({ colors: { fg: "#111" } });
 

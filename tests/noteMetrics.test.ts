@@ -22,6 +22,10 @@ describe("resolveNoteMetrics", () => {
     );
   });
 
+  it("lets maxFontSize lift the upper clamp on the derived size", () => {
+    expect(resolveNoteMetrics({ maxFontSize: 30 }, 1000).fontSize).toBe(30);
+  });
+
   it("derives the background height from the resolved font size", () => {
     const metrics = resolveNoteMetrics({}, constants.STRING_SPACING);
 

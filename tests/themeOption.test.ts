@@ -90,6 +90,21 @@ describe("normalizeOptions sizing", () => {
 
     expect(config.maxStringSpacing).toBe(30);
   });
+
+  it("reads the note font-size ceiling from theme sizing", () => {
+    const config = normalizeOptions({}, { maxNoteFontSize: 30 });
+
+    expect(config.notes.maxFontSize).toBe(30);
+  });
+
+  it("lets an explicit notes.maxFontSize outrank theme sizing", () => {
+    const config = normalizeOptions(
+      { notes: { maxFontSize: 20 } },
+      { maxNoteFontSize: 30 },
+    );
+
+    expect(config.notes.maxFontSize).toBe(20);
+  });
 });
 
 describe("TabsRenderer theme option", () => {

@@ -150,9 +150,9 @@ it also works from a stylesheet or preset, and a plain
 `.string { stroke-width: 2px }` rule still wins over it.
 
 `defineTheme` additionally takes a `sizing` section - `noteFontSize`,
-`stringSpacing`, `minStringSpacing`, `maxStringSpacing`, and `rowSpacing` - which
-has no CSS-variable equivalent; see [String spacing](#string-spacing) and
-[Note size](#note-size).
+`maxNoteFontSize`, `stringSpacing`, `minStringSpacing`, `maxStringSpacing`, and
+`rowSpacing` - which has no CSS-variable equivalent; see
+[String spacing](#string-spacing) and [Note size](#note-size).
 
 Themes cover appearance and size. Other layout (widths, padding) stays in
 `TabRendererOptions`, and per-note styling belongs in the `render` / `onCreate`
@@ -182,8 +182,9 @@ background sized for the old value and the text would overflow it.
 By default the note font size scales with the tab: it is derived from the string
 spacing, which itself grows with the measure width, so notes keep their
 proportions instead of shrinking away on wide screens. It is clamped to a
-readable 8–15px. The background height follows the font size, so the two can
-never fall out of step.
+readable 8–15px; raise `sizing.maxNoteFontSize` (or `notes.maxFontSize`) to let
+the auto-scaled size grow past the upper bound. The background height follows the
+font size, so the two can never fall out of step.
 
 To pin a fixed size, set it explicitly - it then overrides the scaling and stays
 put at every width. Either per call:

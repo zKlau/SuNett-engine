@@ -7,6 +7,7 @@ export type TabNoteOptions = {
   onPointerEnter?: (context: NoteRenderContext, event: PointerEvent) => void;
   onPointerLeave?: (context: NoteRenderContext, event: PointerEvent) => void;
   fontSize?: number;
+  maxFontSize?: number;
   paddingX?: number;
   backgroundHeight?: number;
   background?: boolean;
