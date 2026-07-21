@@ -5,10 +5,10 @@ import { TabsRendererConstants as constants } from "../../constants/tabRendererC
 export function normalizeOptions(options: TabRendererOptions) {
   return {
     trackIndex: options.trackIndex ?? 0,
-    measuresPerRow: Math.max(
-      1,
-      options.measuresPerRow ?? constants.DEFAULT_MEASURES_PER_ROW,
-    ),
+    measuresPerRow:
+      options.measuresPerRow !== undefined
+        ? Math.max(1, options.measuresPerRow)
+        : undefined,
     minMeasureWidth: options.minMeasureWidth ?? constants.MIN_MEASURE_WIDTH,
 
     defaultMeasureWidth:

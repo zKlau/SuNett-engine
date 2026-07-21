@@ -6,7 +6,7 @@ describe("normalizeOptions", () => {
     const config = normalizeOptions({});
 
     expect(config.trackIndex).toBe(0);
-    expect(config.measuresPerRow).toBe(constants.DEFAULT_MEASURES_PER_ROW);
+    expect(config.measuresPerRow).toBeUndefined();
     expect(config.minMeasureWidth).toBe(constants.MIN_MEASURE_WIDTH);
     expect(config.defaultMeasureWidth).toBe(constants.DEFAULT_MEASURE_WIDTH);
     expect(config.maxMeasureWidth).toBe(constants.MAX_MEASURE_WIDTH);

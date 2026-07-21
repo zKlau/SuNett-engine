@@ -138,14 +138,15 @@ export class LayoutCalculation {
     );
 
     const measureWidth: number = clamp(
-      Math.floor(availableWidth / this.config.measuresPerRow),
+      this.config.measuresPerRow !== undefined
+        ? Math.floor(availableWidth / this.config.measuresPerRow)
+        : this.config.defaultMeasureWidth,
       this.config.minMeasureWidth,
       this.config.maxMeasureWidth,
     );
 
     const stringSpacing: number = clamp(
-      (measureWidth / this.config.defaultMeasureWidth) *
-        this.config.stringSpacing,
+      this.config.stringSpacing,
       this.config.minStringSpacing,
       this.config.maxStringSpacing,
     );
