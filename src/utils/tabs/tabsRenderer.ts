@@ -3,17 +3,28 @@ import type { Song } from "../../types/song";
 import type { Track } from "../../types/track";
 import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
-import type { TabRendererOptions } from "../../types/UI/rendererOptions";
+import type {
+  TabRendererOptions,
+  TabsRendererConfig,
+} from "../../types/UI/rendererOptions";
 import type { TabLayout } from "../../types/UI/tabLayout";
 
 import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
 import { calculateBeatLayouts } from "./notesLayout";
+import type { NoteMetrics } from "./noteMetrics";
+import { resolveNoteMetrics } from "./noteMetrics";
 import { renderMeasureNotes } from "./notesRenderer";
 import { buildNoteStyles } from "./notesStyles";
 import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
+import type { ThemeVariable } from "../../theme/variables";
+import { ThemeVariables, themeVar } from "../../theme/variables";
+import type { Theme } from "../../theme/theme";
+import { applyTheme, clearTheme, mergeThemes } from "../../theme/theme";
+import type { ThemeLike } from "../../theme/resolveTheme";
+import { coerceTheme } from "../../theme/resolveTheme";
 
 type RepeatLine = {
   className: string;
@@ -28,6 +39,7 @@ type RendererConfig = ReturnType<typeof normalizeOptions>;
 type RenderPass = {
   layout: TabLayout;
   config: RendererConfig;
+  metrics: NoteMetrics;
   totalMeasures: number;
   reverseStrings: boolean;
   tuningLabels: string[];
@@ -37,14 +49,40 @@ export class TabsRenderer {
   private static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
 
   private song: Song;
+  private currentTheme: Theme;
+  private lastRequest?: { trackIndex: number; options: TabRendererOptions };
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
 
-  constructor(song: Song) {
+  constructor(song: Song, config: TabsRendererConfig = {}) {
     this.song = song;
+    this.currentTheme = coerceTheme(config.theme);
   }
 
   getTracks(): Track[] {
     return this.song.tracks;
+  }
+
+  /** The renderer's current resolved theme. */
+  getTheme(): Theme {
+    return this.currentTheme;
+  }
+
+  /**
+   * Merges `theme` into the current theme and re-renders the last drawn tab.
+   * Accepts a preset name, a `ThemeInput`, or a `Theme`. Returns the merged
+   * theme. No-ops on the render if nothing has been drawn yet.
+   */
+  setTheme(theme: ThemeLike): Theme {
+    this.currentTheme = mergeThemes(this.currentTheme, coerceTheme(theme));
+
+    if (this.lastRequest) {
+      this.generateMeasures(this.lastRequest.trackIndex, {
+        ...this.lastRequest.options,
+        theme: undefined,
+      });
+    }
+
+    return this.currentTheme;
   }
 
   generateMeasures(trackIndex = 0, options: TabRendererOptions = {}) {
@@ -56,7 +94,12 @@ export class TabsRenderer {
 
     this.rendererCleanups.get(svg)?.();
 
-    const config = normalizeOptions(options);
+    if (options.theme !== undefined) {
+      this.currentTheme = coerceTheme(options.theme);
+    }
+    this.lastRequest = { trackIndex, options };
+
+    const config = normalizeOptions(options, this.currentTheme.sizing);
     const resolvedTrackIndex = options.trackIndex ?? trackIndex;
     const track = this.song.tracks[resolvedTrackIndex] ?? this.song.tracks[0];
 
@@ -70,18 +113,29 @@ export class TabsRenderer {
     if (reverseStrings) {
       tuningLabels.reverse();
     }
+
     const layoutCalculation = new LayoutCalculation(track, config);
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
       const svgWidth = parentWidth || config.defaultMeasureWidth;
       const layout = layoutCalculation.calculateLayout(svgWidth, measures);
 
+      const rowCount = layout.rowCount;
+      const width = layout.contentWidth + config.paddingX * 2;
+      const height =
+        rowCount * layout.measureHeight +
+        (rowCount - 1) * config.rowGap +
+        config.paddingY * 2;
+
       this.clearSvg(svg);
+      this.applyThemeVariables(svg);
+      this.renderBackground(svg, width, height);
       this.renderDefaultStyles(svg, config);
 
       const pass: RenderPass = {
         layout,
         config,
+        metrics: resolveNoteMetrics(config.notes, layout.stringSpacing),
         totalMeasures: measures.length,
         reverseStrings,
         tuningLabels,
@@ -90,13 +144,6 @@ export class TabsRenderer {
       measures.forEach((measureContext, index) => {
         this.renderMeasure(svg, measureContext, index, pass);
       });
-
-      const rowCount = layout.rowCount;
-      const width = layout.contentWidth + config.paddingX * 2;
-      const height =
-        rowCount * layout.measureHeight +
-        (rowCount - 1) * config.rowGap +
-        config.paddingY * 2;
 
       svg.setAttribute("width", `${width}`);
       svg.setAttribute("height", `${height}`);
@@ -109,10 +156,29 @@ export class TabsRenderer {
     const resizeObserver = new ResizeObserver(render);
     resizeObserver.observe(svg.parentElement ?? svg);
 
-    const cleanup = () => resizeObserver.disconnect();
+    const cleanup = () => {
+      resizeObserver.disconnect();
+      clearTheme(svg);
+    };
     this.rendererCleanups.set(svg, cleanup);
 
     return cleanup;
+  }
+
+  private applyThemeVariables(svg: SVGSVGElement) {
+    clearTheme(svg);
+    applyTheme(this.currentTheme, svg);
+  }
+
+  private renderBackground(svg: SVGSVGElement, width: number, height: number) {
+    const rect = this.createSvgElement("rect");
+    rect.setAttribute("class", "tab-background");
+    rect.setAttribute("x", "0");
+    rect.setAttribute("y", "0");
+    rect.setAttribute("width", `${width}`);
+    rect.setAttribute("height", `${height}`);
+    rect.setAttribute("fill", themeVar(ThemeVariables.COLOR_BG));
+    svg.append(rect);
   }
 
   private findSvgElement(target: string | SVGSVGElement) {
@@ -233,6 +299,7 @@ export class TabsRenderer {
       invertStrings: config.invertStrings,
       reverseStrings: pass.reverseStrings,
       config: config.notes,
+      metrics: pass.metrics,
     });
   }
 
@@ -245,6 +312,7 @@ export class TabsRenderer {
     const measureIndex = this.createSvgElement("text");
 
     measureIndex.setAttribute("class", "measure-index");
+    this.applyLabelDefaults(measureIndex);
     measureIndex.setAttribute("x", `${measureX}`);
     measureIndex.setAttribute(
       "y",
@@ -274,6 +342,7 @@ export class TabsRenderer {
         stringIndex * bounds.stringSpacing;
 
       tuningLabel.setAttribute("class", "tuning-label");
+      this.applyLabelDefaults(tuningLabel);
       tuningLabel.setAttribute("string-index", `${stringIndex}`);
       tuningLabel.setAttribute(
         "x",
@@ -305,6 +374,15 @@ export class TabsRenderer {
       stringPath.setAttribute(
         "d",
         `M ${bounds.x} ${y} H ${bounds.x + bounds.width}`,
+      );
+      this.applyLineDefaults(
+        stringPath,
+        ThemeVariables.COLOR_STRING,
+        ThemeVariables.STRING_OPACITY,
+      );
+      stringPath.setAttribute(
+        "stroke-width",
+        themeVar(ThemeVariables.STRING_WIDTH),
       );
 
       parent.append(stringPath);
@@ -426,6 +504,11 @@ export class TabsRenderer {
     path.setAttribute("class", line.className);
     path.setAttribute("stroke-width", `${line.width}`);
     path.setAttribute("d", `M ${line.x} ${line.top} V ${line.bottom}`);
+    this.applyLineDefaults(
+      path,
+      ThemeVariables.COLOR_BARLINE,
+      ThemeVariables.BARLINE_OPACITY,
+    );
 
     parent.append(path);
   }
@@ -448,6 +531,8 @@ export class TabsRenderer {
       const dot = this.createSvgElement("path");
 
       dot.setAttribute("class", "repeat-dot");
+      dot.setAttribute("fill", themeVar(ThemeVariables.COLOR_BARLINE));
+      dot.setAttribute("stroke", "none");
       dot.setAttribute(
         "d",
         [
@@ -471,6 +556,7 @@ export class TabsRenderer {
     const repeatCountText = this.createSvgElement("text");
 
     repeatCountText.setAttribute("class", "repeat-count");
+    this.applyLabelDefaults(repeatCountText);
     repeatCountText.setAttribute(
       "x",
       `${measureEndX - constants.REPEAT_DOT_OFFSET - 4}`,
@@ -483,6 +569,25 @@ export class TabsRenderer {
     repeatCountText.textContent = `x${repeatCount}`;
 
     parent.append(repeatCountText);
+  }
+
+  private applyLineDefaults(
+    path: SVGPathElement,
+    colorVariable: ThemeVariable,
+    opacityVariable: ThemeVariable,
+  ) {
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", themeVar(colorVariable));
+    path.setAttribute("opacity", themeVar(opacityVariable));
+    path.setAttribute("stroke-linecap", "butt");
+    path.setAttribute("vector-effect", "non-scaling-stroke");
+    path.setAttribute("shape-rendering", "crispEdges");
+  }
+
+  private applyLabelDefaults(text: SVGTextElement) {
+    text.setAttribute("fill", themeVar(ThemeVariables.COLOR_MUTED));
+    text.setAttribute("font-family", themeVar(ThemeVariables.FONT_LABEL));
+    text.setAttribute("font-size", themeVar(ThemeVariables.FONT_LABEL_SIZE));
   }
 
   private renderDefaultStyles(svg: SVGSVGElement, config: RendererConfig) {

@@ -295,61 +295,40 @@ code {
   }
 }
 
+#themePicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 15px;
+
+  select {
+    font: inherit;
+    font-size: 14px;
+    color: var(--text-h);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+  }
+}
+
 #tabs {
   display: block;
   width: 100%;
   overflow: visible;
 }
 
-.string {
-  stroke: var(--text-h);
-  opacity: 0.68;
-  stroke-linecap: butt;
-  stroke-width: 1px;
-  fill: none;
-  vector-effect: non-scaling-stroke;
-  shape-rendering: crispedges;
-}
-
-/* Line thickness comes from the renderer (TabsRendererConstants) via the
-   stroke-width attribute, so it is intentionally not set here. */
-.barline {
-  stroke: var(--text-h);
-  opacity: 0.68;
-  stroke-linecap: butt;
-  fill: none;
-  vector-effect: non-scaling-stroke;
-  shape-rendering: crispedges;
-}
-
-.repeat-dot {
-  fill: var(--text-h);
-  stroke: none;
-}
-
-.measure-index,
-.repeat-count {
-  fill: var(--text-h);
-  font-family: var(--mono);
-  font-size: 11px;
-  opacity: 0.45;
-}
-
-.tuning-label {
-  fill: var(--text-h);
-  font-family: var(--mono);
-  font-size: 11px;
-  opacity: 0.6;
-}
-
-.tab-note-bg {
-  fill: var(--bg);
-  stroke: none;
+:root {
+  --sunett-color-fg: var(--text-h);
+  --sunett-color-muted: var(--text);
+  --sunett-color-note-bg: var(--bg);
+  --sunett-color-accent: var(--accent);
+  --sunett-font-note: var(--mono);
+  --sunett-font-label: var(--mono);
 }
 
 .tab-note-text {
-  fill: var(--text-h);
-  font-family: var(--mono);
   font-weight: 500;
 }
 

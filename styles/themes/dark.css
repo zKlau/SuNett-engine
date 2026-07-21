@@ -1,0 +1,13 @@
+:root {
+  --sunett-color-fg: #e5e7eb;
+  --sunett-color-muted: #9ca3af;
+  --sunett-color-note-fg: #f3f4f6;
+  --sunett-color-note-bg: #16171d;
+  --sunett-color-bg: #16171d;
+  --sunett-color-string: #6b7280;
+  --sunett-color-barline: #9ca3af;
+  --sunett-color-accent: #c084fc;
+
+  --sunett-string-opacity: 0.85;
+  --sunett-barline-opacity: 0.85;
+}

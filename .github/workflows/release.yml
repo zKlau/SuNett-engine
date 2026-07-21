@@ -27,10 +27,12 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@zklau"
 
+      - name: Pin npm
+        run: npm install -g npm@11
+
       - name: Install dependencies
         run: npm ci
 
-      # Re-run the full gate so a release can never ship a broken build.
       - name: Lint
         run: npm run lint
 

@@ -1,0 +1,19 @@
+:root {
+  --sunett-color-fg: currentColor;
+  --sunett-color-muted: color-mix(in srgb, currentColor 55%, transparent);
+  --sunett-color-note-fg: var(--sunett-color-fg);
+  --sunett-color-note-bg: Canvas;
+  --sunett-color-bg: transparent;
+  --sunett-color-string: var(--sunett-color-fg);
+  --sunett-color-barline: var(--sunett-color-fg);
+  --sunett-color-accent: var(--sunett-color-fg);
+
+  --sunett-font-note: ui-monospace, monospace;
+  --sunett-font-label: system-ui, sans-serif;
+  --sunett-font-label-size: 11px;
+
+  --sunett-string-opacity: 0.68;
+  --sunett-barline-opacity: 0.68;
+
+  --sunett-string-width: 1;
+}
