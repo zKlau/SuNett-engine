@@ -61,6 +61,7 @@ export class LayoutCalculation {
     measureWidths: number[],
     availableWidth: number,
     measureHeight: number,
+    tuningGutter: number,
   ): MeasureLayout[] {
     const measureRows: number[][] = [];
     let currentRow: number[] = [];
@@ -105,7 +106,7 @@ export class LayoutCalculation {
           Math.max(0, availableWidth - rowWidth) / measureRow.length;
       }
 
-      let x = this.config.paddingX;
+      let x = this.config.paddingX + tuningGutter;
       const y =
         this.config.paddingY + row * (measureHeight + this.config.rowGap);
 
@@ -126,9 +127,14 @@ export class LayoutCalculation {
   }
 
   public calculateLayout(svgWidth: number, measures: MeasureContext[]) {
+    const hasTuning =
+      !this.track.percussion_track && this.track.strings.length > 0;
+    const tuningGutter: number =
+      this.config.showTuning && hasTuning ? constants.TUNING_GUTTER : 0;
+
     const availableWidth: number = Math.max(
       0,
-      svgWidth - this.config.paddingX * 2,
+      svgWidth - this.config.paddingX * 2 - tuningGutter,
     );
 
     const measureWidth: number = clamp(
@@ -161,6 +167,7 @@ export class LayoutCalculation {
       totalMeasureWidths,
       availableWidth,
       measureHeight,
+      tuningGutter,
     );
 
     const contentWidth: number = measureLayouts.reduce(
@@ -188,6 +195,7 @@ export class LayoutCalculation {
       paddingY: this.config.paddingY,
       rowCount,
       stringCount,
+      tuningGutter,
     };
   }
 }

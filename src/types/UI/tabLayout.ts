@@ -16,4 +16,5 @@ export type TabLayout = {
   paddingX: number;
   paddingY: number;
   rowCount: number;
+  tuningGutter: number;
 };

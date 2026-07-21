@@ -93,7 +93,7 @@ function renderNote(request: NoteRenderRequest) {
   if (note.kind === "Rest") {
     return;
   }
-  if (note.string < 1 || note.string > stringCount) {
+  if (note.string < 0 || note.string >= stringCount) {
     return;
   }
 
