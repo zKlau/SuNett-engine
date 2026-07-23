@@ -39,6 +39,9 @@ export function normalizeOptions(
 
     showTuning: options.showTuning ?? constants.SHOW_TUNING,
 
+    hideEmptyMeasures:
+      options.hideEmptyMeasures ?? constants.HIDE_EMPTY_MEASURES,
+
     measureGap: options.measureGap ?? constants.MEASURE_GAP,
 
     rowGap: options.rowGap ?? sizing?.rowSpacing ?? constants.ROW_GAP,

@@ -54,6 +54,18 @@ describe("normalizeOptions", () => {
     expect(normalizeOptions({ showTuning: true }).showTuning).toBe(true);
   });
 
+  it("defaults hideEmptyMeasures to the constant and respects an explicit value", () => {
+    expect(normalizeOptions({}).hideEmptyMeasures).toBe(
+      constants.HIDE_EMPTY_MEASURES,
+    );
+    expect(
+      normalizeOptions({ hideEmptyMeasures: true }).hideEmptyMeasures,
+    ).toBe(true);
+    expect(
+      normalizeOptions({ hideEmptyMeasures: false }).hideEmptyMeasures,
+    ).toBe(false);
+  });
+
   describe("notes", () => {
     it("falls back to constants when notes are omitted", () => {
       const { notes } = normalizeOptions({});
