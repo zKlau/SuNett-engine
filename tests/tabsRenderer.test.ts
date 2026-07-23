@@ -82,10 +82,13 @@ describe("LayoutCalculation", () => {
     it("clamps widths to the configured min and max", () => {
       const measures = [
         makeMeasureContext(makeMeasure(1), 0),
-        makeMeasureContext(makeMeasure(100), 1),
+        makeMeasureContext(makeMeasure(1000), 1),
       ];
 
-      const widths = internals(layout).calculateMeasureWidths(measures, 200);
+      const widths = internals(layout).calculateMeasureWidths(
+        measures,
+        constants.MAX_MEASURE_WIDTH * 2,
+      );
 
       expect(widths[0]).toBe(constants.MIN_MEASURE_WIDTH);
       expect(widths[1]).toBe(constants.MAX_MEASURE_WIDTH);

@@ -17,6 +17,7 @@ import type { NoteMetrics } from "./noteMetrics";
 import { resolveNoteMetrics } from "./noteMetrics";
 import { renderMeasureNotes } from "./notesRenderer";
 import { buildNoteStyles } from "./notesStyles";
+import { visibleMeasureRange } from "./measureVisibility";
 import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
 import type { ThemeVariable } from "../../theme/variables";
@@ -107,7 +108,10 @@ export class TabsRenderer {
       return;
     }
 
-    const measures = this.getMeasureContexts(track);
+    const allMeasures = this.getMeasureContexts(track);
+    const measures = config.hideEmptyMeasures
+      ? visibleMeasureRange(allMeasures)
+      : allMeasures;
     const reverseStrings = shouldReverseStrings(track);
     const tuningLabels = config.showTuning ? stringTuningLabels(track) : [];
     if (reverseStrings) {
@@ -217,6 +221,7 @@ export class TabsRenderer {
     const previousLayout = layout.measureLayouts[index - 1];
     const isRowStart =
       !previousLayout || previousLayout.row !== measureLayout.row;
+    const isFirstMeasure = index === 0;
     const isLastMeasure = index === totalMeasures - 1;
 
     const { x, y, width } = measureLayout;
@@ -251,7 +256,7 @@ export class TabsRenderer {
 
     this.renderMeasureIndex(labelsGroup, measureContext, x, y);
     this.renderStringLines(stringsGroup, bounds, layout.stringCount);
-    if (measureContext.index === 0) {
+    if (isFirstMeasure) {
       this.renderTuningLabels(
         labelsGroup,
         bounds,
@@ -259,7 +264,13 @@ export class TabsRenderer {
         layout.stringCount,
       );
     }
-    this.renderRepeatLines(barlinesGroup, measureContext, bounds, isRowStart);
+    this.renderRepeatLines(
+      barlinesGroup,
+      measureContext,
+      bounds,
+      isRowStart,
+      isFirstMeasure,
+    );
     this.renderNotes(notesGroup, measureContext, bounds, pass);
 
     measureGroup.append(stringsGroup, barlinesGroup, notesGroup, labelsGroup);
@@ -394,6 +405,7 @@ export class TabsRenderer {
     measureContext: MeasureContext,
     bounds: MeasureBounds,
     isRowStart: boolean,
+    isFirstMeasure: boolean,
   ) {
     const top = bounds.y + constants.MEASURE_TOP_PADDING;
     const bottom = bounds.y + bounds.height - constants.MEASURE_BOTTOM_PADDING;
@@ -409,7 +421,7 @@ export class TabsRenderer {
     );
     const finalBar = bounds.isLastMeasure && !closeRepeat;
 
-    if (isRowStart && measureContext.index !== 0) {
+    if (isRowStart && !isFirstMeasure) {
       this.appendRepeatLine(
         parent,
         this.measureBar("barline-start", leftX, top, bottom),
