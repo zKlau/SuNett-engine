@@ -9,6 +9,8 @@ export type ThemeColors = {
   /** Fill for the whole tab canvas. Defaults to transparent (inherits page). */
   background?: string;
   string?: string;
+  /** Per displayed string-row colors. `0` is the top string line. */
+  stringByIndex?: Readonly<Record<number, string>>;
   barline?: string;
   accent?: string;
 };
@@ -76,9 +78,12 @@ export type ThemeInput = {
 export type Theme = {
   readonly variables: Readonly<Partial<Record<ThemeVariable, string>>>;
   readonly sizing?: Readonly<ThemeSizing>;
+  readonly stringByIndex?: Readonly<Record<number, string>>;
 };
 
-const COLOR_VARIABLES: Record<keyof ThemeColors, ThemeVariable> = {
+type ThemeVariableColors = Omit<ThemeColors, "stringByIndex">;
+
+const COLOR_VARIABLES: Record<keyof ThemeVariableColors, ThemeVariable> = {
   fg: ThemeVariables.COLOR_FG,
   muted: ThemeVariables.COLOR_MUTED,
   noteFg: ThemeVariables.COLOR_NOTE_FG,
@@ -111,13 +116,27 @@ const LINE_VARIABLES: Record<keyof ThemeLines, ThemeVariable> = {
  */
 export function defineTheme(input: ThemeInput): Theme {
   const variables: Partial<Record<ThemeVariable, string>> = {};
+  const { stringByIndex, ...colors } = input.colors ?? {};
 
-  collectSection(variables, COLOR_VARIABLES, input.colors);
+  collectSection(variables, COLOR_VARIABLES, colors);
   collectSection(variables, FONT_VARIABLES, normalizeFonts(input.fonts));
   collectSection(variables, OPACITY_VARIABLES, input.opacity);
   collectSection(variables, LINE_VARIABLES, input.lines);
 
-  return { variables, sizing: normalizeSizing(input.sizing) };
+  return {
+    variables,
+    sizing: normalizeSizing(input.sizing),
+    stringByIndex: normalizeStringColors(stringByIndex),
+  };
+}
+
+function normalizeStringColors(
+  stringByIndex: ThemeColors["stringByIndex"],
+): Readonly<Record<number, string>> | undefined {
+  if (!stringByIndex || Object.keys(stringByIndex).length === 0) {
+    return undefined;
+  }
+  return { ...stringByIndex };
 }
 
 function normalizeSizing(
@@ -164,15 +183,19 @@ function normalizeFonts(fonts: ThemeFonts | undefined) {
 export function mergeThemes(...themes: Theme[]): Theme {
   const variables: Partial<Record<ThemeVariable, string>> = {};
   let sizing: ThemeSizing | undefined;
+  let stringByIndex: Record<number, string> | undefined;
 
   for (const theme of themes) {
     Object.assign(variables, theme.variables);
     if (theme.sizing) {
       sizing = { ...sizing, ...theme.sizing };
     }
+    if (theme.stringByIndex) {
+      stringByIndex = { ...stringByIndex, ...theme.stringByIndex };
+    }
   }
 
-  return { variables, sizing };
+  return { variables, sizing, stringByIndex };
 }
 
 export function applyTheme(theme: Theme, element: SVGElement | HTMLElement) {

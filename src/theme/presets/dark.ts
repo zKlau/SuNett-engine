@@ -15,6 +15,14 @@ export const darkTheme = defineTheme({
     string: "#6b7280",
     barline: "#9ca3af",
     accent: "#c084fc",
+    stringByIndex: {
+      0: "#9000ff",
+      1: "#99ff00",
+      2: "#1613cf8a",
+      3: "#00fc4c8a",
+      4: "#e5ff00",
+      5: "#ff0000",
+    },
   },
   opacity: {
     string: 0.85,

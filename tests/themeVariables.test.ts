@@ -3,6 +3,7 @@
  */
 import { TabsRenderer } from "../src/utils/tabs/tabsRenderer";
 import { ThemeVariables, themeVar } from "../src/theme/variables";
+import type { ThemeLike } from "../src/theme/resolveTheme";
 import {
   makeBeat,
   makeMeasureFromVoices,
@@ -28,10 +29,12 @@ function makeTrackWithNotes(): Track {
   } as unknown as Track;
 }
 
-function renderTab(): SVGSVGElement {
+function renderTab(theme?: ThemeLike): SVGSVGElement {
   document.body.innerHTML = '<div><svg id="tabs"></svg></div>';
   const svg = document.querySelector("#tabs") as SVGSVGElement;
-  new TabsRenderer(makeSong([makeTrackWithNotes()])).generateMeasures();
+  new TabsRenderer(makeSong([makeTrackWithNotes()]), {
+    theme,
+  }).generateMeasures();
   return svg;
 }
 
@@ -65,6 +68,25 @@ describe("renderer theme variable defaults", () => {
       themeVar(ThemeVariables.STRING_OPACITY),
     );
     expect(string?.getAttribute("fill")).toBe("none");
+  });
+
+  it("uses per-index string colors ahead of the shared string color", () => {
+    const svg = renderTab({
+      colors: {
+        string: "#64748b",
+        stringByIndex: { 0: "#ef4444", 5: "#3b82f6" },
+      },
+    });
+
+    expect(
+      svg.querySelector('.string[string-index="0"]')?.getAttribute("stroke"),
+    ).toBe("#ef4444");
+    expect(
+      svg.querySelector('.string[string-index="1"]')?.getAttribute("stroke"),
+    ).toBe(themeVar(ThemeVariables.COLOR_STRING));
+    expect(
+      svg.querySelector('.string[string-index="5"]')?.getAttribute("stroke"),
+    ).toBe("#3b82f6");
   });
 
   it("strokes barlines through the barline colour variable", () => {

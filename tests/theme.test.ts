@@ -78,6 +78,15 @@ describe("defineTheme", () => {
     expect(theme.variables).toEqual({ "--sunett-color-fg": "#111" });
   });
 
+  it("keeps individual string colors outside the CSS variable map", () => {
+    const theme = defineTheme({
+      colors: { stringByIndex: { 0: "#f00", 5: "#00f" } },
+    });
+
+    expect(theme.variables).toEqual({});
+    expect(theme.stringByIndex).toEqual({ 0: "#f00", 5: "#00f" });
+  });
+
   it("produces an empty map for an empty input", () => {
     expect(defineTheme({}).variables).toEqual({});
   });
@@ -151,6 +160,20 @@ describe("mergeThemes", () => {
     expect(mergeThemes(base, override).sizing).toEqual({
       noteFontSize: 20,
       stringSpacing: 16,
+    });
+  });
+
+  it("merges individual string colors per index, later themes winning", () => {
+    const base = defineTheme({
+      colors: { stringByIndex: { 0: "#f00", 5: "#00f" } },
+    });
+    const override = defineTheme({
+      colors: { stringByIndex: { 5: "#0f0" } },
+    });
+
+    expect(mergeThemes(base, override).stringByIndex).toEqual({
+      0: "#f00",
+      5: "#0f0",
     });
   });
 
