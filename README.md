@@ -72,6 +72,18 @@ new TabsRenderer(song).generateMeasures(0, { theme: myTheme });
 unthemed tab shows the page behind it); `colors.noteBg` is only the pill behind
 each fret number.
 
+Use `colors.stringByIndex` to override individual displayed string rows while
+keeping `colors.string` as the fallback. Index `0` is the top row.
+
+```ts
+defineTheme({
+  colors: {
+    string: "#64748b",
+    stringByIndex: { 0: "#ef4444", 5: "#3b82f6" },
+  },
+});
+```
+
 `sizing` is the exception to "everything a stylesheet can do too": note font
 size and string spacing feed the renderer's layout math, which a CSS variable
 cannot reach, so they are numeric fields resolved before layout. That also means

@@ -391,6 +391,10 @@ export class TabsRenderer {
         ThemeVariables.COLOR_STRING,
         ThemeVariables.STRING_OPACITY,
       );
+      const color = this.currentTheme.stringByIndex?.[stringIndex];
+      if (color !== undefined) {
+        stringPath.setAttribute("stroke", color);
+      }
       stringPath.setAttribute(
         "stroke-width",
         themeVar(ThemeVariables.STRING_WIDTH),
