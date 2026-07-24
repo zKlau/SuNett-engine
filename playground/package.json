@@ -14,6 +14,6 @@
     "vite-plugin-wasm": "3.6.0"
   },
   "dependencies": {
-    "sunett-parser": "0.0.5"
+    "sunett-parser": "0.0.6"
   }
 }
