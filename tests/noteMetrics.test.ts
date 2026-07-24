@@ -9,14 +9,14 @@ describe("resolveNoteMetrics", () => {
     expect(roomy.fontSize).toBeGreaterThan(tight.fontSize);
   });
 
-  it("keeps the historical size at the default string spacing", () => {
-    expect(resolveNoteMetrics({}, constants.STRING_SPACING).fontSize).toBe(10);
+  it("derives the default size from string spacing", () => {
+    expect(resolveNoteMetrics({}, constants.STRING_SPACING).fontSize).toBe(
+      constants.STRING_SPACING * constants.NOTE_FONT_SIZE_RATIO,
+    );
   });
 
-  it("clamps the derived font size at both ends", () => {
-    expect(resolveNoteMetrics({}, 1).fontSize).toBe(
-      constants.MIN_NOTE_FONT_SIZE,
-    );
+  it("caps the derived font size at the string spacing", () => {
+    expect(resolveNoteMetrics({}, 1).fontSize).toBe(1);
     expect(resolveNoteMetrics({}, 1000).fontSize).toBe(
       constants.MAX_NOTE_FONT_SIZE,
     );
@@ -34,16 +34,16 @@ describe("resolveNoteMetrics", () => {
     );
   });
 
-  it("keeps the background in step with an explicit font size", () => {
+  it("keeps the background in step with a clamped explicit font size", () => {
     const metrics = resolveNoteMetrics({ fontSize: 20 }, 16);
 
     expect(metrics.backgroundHeight).toBeCloseTo(
-      20 * constants.NOTE_BACKGROUND_RATIO,
+      metrics.fontSize * constants.NOTE_BACKGROUND_RATIO,
     );
   });
 
   it("lets an explicit font size win and ignore the spacing", () => {
-    expect(resolveNoteMetrics({ fontSize: 14 }, 9).fontSize).toBe(14);
+    expect(resolveNoteMetrics({ fontSize: 14 }, 9).fontSize).toBe(9);
     expect(resolveNoteMetrics({ fontSize: 14 }, 24).fontSize).toBe(14);
   });
 

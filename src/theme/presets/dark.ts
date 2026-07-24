@@ -20,4 +20,7 @@ export const darkTheme = defineTheme({
     string: 0.85,
     barline: 0.85,
   },
+  sizing: {
+    noteFontSize: 24,
+  },
 });

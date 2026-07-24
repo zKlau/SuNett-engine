@@ -26,13 +26,15 @@ export function resolveNoteMetrics(
   options: NoteSizeOptions,
   stringSpacing: number,
 ): NoteMetrics {
-  const fontSize =
-    options.fontSize ??
-    clamp(
-      stringSpacing * constants.NOTE_FONT_SIZE_RATIO,
-      constants.MIN_NOTE_FONT_SIZE,
-      options.maxFontSize ?? constants.MAX_NOTE_FONT_SIZE,
-    );
+  const maxFontSize = Math.min(
+    options.maxFontSize ?? constants.MAX_NOTE_FONT_SIZE,
+    stringSpacing,
+  );
+  const fontSize = clamp(
+    options.fontSize ?? stringSpacing * constants.NOTE_FONT_SIZE_RATIO,
+    Math.min(constants.MIN_NOTE_FONT_SIZE, maxFontSize),
+    maxFontSize,
+  );
 
   return {
     fontSize,
