@@ -205,6 +205,28 @@ export class TabsRenderer {
     }));
   }
 
+  private renderTempo(parent: SVGGElement, bounds: MeasureBounds) {
+    if (this.song.hide_tempo || !Number.isFinite(this.song.tempo)) {
+      return;
+    }
+
+    const tempo = this.createSvgElement("text");
+
+    tempo.setAttribute("class", "tempo");
+    this.applyLabelDefaults(tempo);
+    tempo.setAttribute(
+      "x",
+      `${bounds.x + constants.MEASURE_CONTENT_PADDING_START * 2}`,
+    );
+    tempo.setAttribute(
+      "y",
+      `${bounds.y + constants.MEASURE_TOP_PADDING - constants.MEASURE_INDEX_OFFSET}`,
+    );
+    tempo.textContent = `${this.song.tempo} BPM`;
+
+    parent.append(tempo);
+  }
+
   private renderMeasure(
     svg: SVGSVGElement,
     measureContext: MeasureContext,
@@ -257,6 +279,7 @@ export class TabsRenderer {
     this.renderMeasureIndex(labelsGroup, measureContext, x, y);
     this.renderStringLines(stringsGroup, bounds, layout.stringCount);
     if (isFirstMeasure) {
+      this.renderTempo(labelsGroup, bounds);
       this.renderTuningLabels(
         labelsGroup,
         bounds,
