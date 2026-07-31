@@ -1,16 +1,6 @@
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
+import type { NoteMetrics, NoteSizeOptions } from "../../types/UI/noteMetrics";
 import { clamp } from "../functions/clamp";
-
-export type NoteMetrics = {
-  fontSize: number;
-  backgroundHeight: number;
-};
-
-type NoteSizeOptions = {
-  fontSize?: number;
-  maxFontSize?: number;
-  backgroundHeight?: number;
-};
 
 /**
  * Resolves note text and background sizes for one render pass.
