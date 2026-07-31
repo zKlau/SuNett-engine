@@ -18,6 +18,7 @@ describe("defineTheme", () => {
         noteBg: "#fff",
         string: "#222",
         barline: "#333",
+        rest: "#555",
         accent: "#c084fc",
       },
       fonts: {
@@ -36,6 +37,7 @@ describe("defineTheme", () => {
       "--sunett-color-note-bg": "#fff",
       "--sunett-color-string": "#222",
       "--sunett-color-barline": "#333",
+      "--sunett-color-rest": "#555",
       "--sunett-color-accent": "#c084fc",
       "--sunett-font-note": "JetBrains Mono, monospace",
       "--sunett-font-label": "system-ui",

@@ -6,6 +6,7 @@ export const ThemeVariables = {
   COLOR_BG: "--sunett-color-bg",
   COLOR_STRING: "--sunett-color-string",
   COLOR_BARLINE: "--sunett-color-barline",
+  COLOR_REST: "--sunett-color-rest",
   COLOR_ACCENT: "--sunett-color-accent",
   FONT_NOTE: "--sunett-font-note",
   FONT_LABEL: "--sunett-font-label",
@@ -27,6 +28,8 @@ const ThemeVariableFallbacks: Record<ThemeVariable, string> = {
   [ThemeVariables.COLOR_BG]: "transparent",
   [ThemeVariables.COLOR_STRING]: "var(--sunett-color-fg, currentColor)",
   [ThemeVariables.COLOR_BARLINE]: "var(--sunett-color-fg, currentColor)",
+  [ThemeVariables.COLOR_REST]:
+    "var(--sunett-color-muted, color-mix(in srgb, currentColor 55%, transparent))",
   [ThemeVariables.COLOR_ACCENT]: "var(--sunett-color-fg, currentColor)",
   [ThemeVariables.FONT_NOTE]: "ui-monospace, monospace",
   [ThemeVariables.FONT_LABEL]: "system-ui, sans-serif",

@@ -3,6 +3,9 @@ import type { Song } from "../../types/song";
 import type { Track } from "../../types/track";
 import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
+import type { LyricsByMeasure } from "../../types/UI/measureNotationRender";
+import type { BeatLayout } from "../../types/UI/noteLayout";
+import type { PositionedNote } from "../../types/UI/noteEffectsRender";
 import type {
   TabRendererOptions,
   TabsRendererConfig,
@@ -13,9 +16,12 @@ import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
 import { calculateBeatLayouts } from "./notesLayout";
+import { buildLyricsByMeasure } from "./lyricsLayout";
+import { renderMeasureNotation } from "./measureNotationRenderer";
 import type { NoteMetrics } from "./noteMetrics";
 import { resolveNoteMetrics } from "./noteMetrics";
 import { renderMeasureNotes } from "./notesRenderer";
+import { renderRhythm } from "./rhythmRenderer";
 import { buildNoteStyles } from "./notesStyles";
 import { visibleMeasureRange } from "./measureVisibility";
 import { shouldReverseStrings } from "./stringOrder";
@@ -44,6 +50,10 @@ type RenderPass = {
   totalMeasures: number;
   reverseStrings: boolean;
   tuningLabels: string[];
+  lyricsByMeasure: LyricsByMeasure;
+  previousMeasureIndex?: number;
+  previousMeasureRow?: number;
+  previousNotes: PositionedNote[];
 };
 
 export class TabsRenderer {
@@ -143,6 +153,12 @@ export class TabsRenderer {
         totalMeasures: measures.length,
         reverseStrings,
         tuningLabels,
+        lyricsByMeasure: buildLyricsByMeasure(
+          this.song,
+          track,
+          resolvedTrackIndex,
+        ),
+        previousNotes: [],
       };
 
       measures.forEach((measureContext, index) => {
@@ -229,6 +245,8 @@ export class TabsRenderer {
     const stringsGroup = this.createSvgElement("g");
     const barlinesGroup = this.createSvgElement("g");
     const notesGroup = this.createSvgElement("g");
+    const rhythmGroup = this.createSvgElement("g");
+    const notationGroup = this.createSvgElement("g");
     const labelsGroup = this.createSvgElement("g");
 
     measureGroup.setAttribute("class", "measure");
@@ -243,6 +261,8 @@ export class TabsRenderer {
     stringsGroup.setAttribute("class", "measure-strings");
     barlinesGroup.setAttribute("class", "measure-barlines");
     notesGroup.setAttribute("class", "measure-notes");
+    rhythmGroup.setAttribute("class", "measure-rhythm");
+    notationGroup.setAttribute("class", "measure-notation");
     labelsGroup.setAttribute("class", "measure-labels");
 
     const bounds: MeasureBounds = {
@@ -253,6 +273,15 @@ export class TabsRenderer {
       stringSpacing: layout.stringSpacing,
       isLastMeasure,
     };
+    const showTimeSignature = this.shouldRenderTimeSignature(
+      measureContext,
+      isFirstMeasure,
+    );
+    const beatLayouts = this.calculateMeasureBeatLayouts(
+      measureContext,
+      bounds,
+      showTimeSignature,
+    );
 
     this.renderMeasureIndex(labelsGroup, measureContext, x, y);
     this.renderStringLines(stringsGroup, bounds, layout.stringCount);
@@ -271,36 +300,54 @@ export class TabsRenderer {
       isRowStart,
       isFirstMeasure,
     );
-    this.renderNotes(notesGroup, measureContext, bounds, pass);
+    const previousNotes =
+      pass.previousMeasureIndex === measureContext.index - 1 &&
+      pass.previousMeasureRow === measureLayout.row
+        ? pass.previousNotes
+        : [];
+    pass.previousNotes = previousNotes;
+    const positionedNotes = this.renderNotes(
+      notesGroup,
+      measureContext,
+      beatLayouts,
+      bounds,
+      pass,
+    );
+    this.renderRhythm(rhythmGroup, measureContext, beatLayouts, bounds, pass);
+    renderMeasureNotation({
+      parent: notationGroup,
+      measureContext,
+      beatLayouts,
+      bounds,
+      stringCount: layout.stringCount,
+      showTimeSignature,
+      lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
+    });
 
-    measureGroup.append(stringsGroup, barlinesGroup, notesGroup, labelsGroup);
+    measureGroup.append(
+      stringsGroup,
+      barlinesGroup,
+      notesGroup,
+      rhythmGroup,
+      notationGroup,
+      labelsGroup,
+    );
     svg.append(measureGroup);
+
+    pass.previousMeasureIndex = measureContext.index;
+    pass.previousMeasureRow = measureLayout.row;
+    pass.previousNotes = positionedNotes;
   }
 
   private renderNotes(
     parent: SVGGElement,
     measureContext: MeasureContext,
+    beatLayouts: BeatLayout[],
     bounds: MeasureBounds,
     pass: RenderPass,
   ) {
     const { layout, config } = pass;
-    const startPadding = Math.min(
-      constants.MEASURE_CONTENT_PADDING_START,
-      bounds.width / 3,
-    );
-    const endPadding = Math.min(
-      constants.MEASURE_CONTENT_PADDING_END,
-      bounds.width / 3,
-    );
-    const contentWidth = Math.max(0, bounds.width - startPadding - endPadding);
-
-    const beatLayouts = calculateBeatLayouts(
-      measureContext.measure,
-      bounds.x + startPadding,
-      contentWidth,
-    );
-
-    renderMeasureNotes({
+    return renderMeasureNotes({
       parent,
       measure: measureContext.measure,
       measureIndex: measureContext.index,
@@ -311,7 +358,77 @@ export class TabsRenderer {
       reverseStrings: pass.reverseStrings,
       config: config.notes,
       metrics: pass.metrics,
+      previousNotes: pass.previousNotes,
     });
+  }
+
+  private calculateMeasureBeatLayouts(
+    measureContext: MeasureContext,
+    bounds: MeasureBounds,
+    showTimeSignature: boolean,
+  ): BeatLayout[] {
+    const startPadding = Math.min(
+      constants.MEASURE_CONTENT_PADDING_START +
+        (showTimeSignature ? constants.TIME_SIGNATURE_GUTTER : 0),
+      bounds.width / 3,
+    );
+    const endPadding = Math.min(
+      constants.MEASURE_CONTENT_PADDING_END,
+      bounds.width / 3,
+    );
+    const contentWidth = Math.max(0, bounds.width - startPadding - endPadding);
+
+    return calculateBeatLayouts(
+      measureContext.measure,
+      bounds.x + startPadding,
+      contentWidth,
+    );
+  }
+
+  private renderRhythm(
+    parent: SVGGElement,
+    measureContext: MeasureContext,
+    beatLayouts: BeatLayout[],
+    bounds: MeasureBounds,
+    pass: RenderPass,
+  ) {
+    const staffTop = bounds.y + constants.MEASURE_TOP_PADDING;
+    const staffBottom =
+      bounds.y +
+      constants.MEASURE_TOP_PADDING +
+      (pass.layout.stringCount - 1) * bounds.stringSpacing;
+    renderRhythm({
+      measure: measureContext.measure,
+      beatLayouts,
+      staffTop,
+      staffBottom,
+      parent,
+    });
+  }
+
+  private shouldRenderTimeSignature(
+    measureContext: MeasureContext,
+    isFirstMeasure: boolean,
+  ): boolean {
+    if (measureContext.header?.free_time) {
+      return false;
+    }
+    if (isFirstMeasure) {
+      return true;
+    }
+
+    const current =
+      measureContext.header?.time_signature ??
+      measureContext.measure.time_signature;
+    const previousHeader = this.song.measure_headers[measureContext.index - 1];
+    const previous = previousHeader?.time_signature;
+    if (!current || !previous) {
+      return false;
+    }
+    return (
+      current.numerator !== previous.numerator ||
+      current.denominator.value !== previous.denominator.value
+    );
   }
 
   private renderMeasureIndex(

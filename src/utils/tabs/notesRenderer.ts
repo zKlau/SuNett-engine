@@ -5,8 +5,10 @@ import type { Note } from "../../types/note";
 import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { BeatLayout } from "../../types/UI/noteLayout";
 import type { NoteRenderContext } from "../../types/UI/noteRenderContext";
+import type { PositionedNote } from "../../types/UI/noteEffectsRender";
 import type { normalizeOptions } from "./tabsOptionsNormalizer";
 import type { NoteMetrics } from "./noteMetrics";
+import { renderNoteEffects } from "./noteEffectsRenderer";
 import { stringDisplayRow } from "./stringOrder";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 
@@ -25,6 +27,7 @@ type NotesRenderRequest = {
   reverseStrings?: boolean;
   config: NoteConfig;
   metrics: NoteMetrics;
+  previousNotes?: PositionedNote[];
 };
 
 type NoteRenderRequest = {
@@ -54,8 +57,10 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     reverseStrings = false,
     config,
     metrics,
+    previousNotes = [],
   } = request;
 
+  const notes: NoteRenderRequest[] = [];
   for (const beatLayout of beatLayouts) {
     const voice = measure.voices[beatLayout.voiceIndex];
     const beat = voice?.beats[beatLayout.beatIndex];
@@ -63,7 +68,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
       continue;
     }
     for (const note of beat.notes) {
-      renderNote({
+      const noteRequest = {
         parent,
         measure,
         measureIndex,
@@ -76,14 +81,66 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
         reverseStrings,
         config,
         metrics,
-      });
+      };
+      if (isRenderableNote(noteRequest)) {
+        notes.push(noteRequest);
+      }
     }
   }
+
+  const positionedNotes = notes.map(positionNote);
+  positionedNotes.forEach(({ request: noteRequest, context }, index) => {
+    if (!isInternalTie(positionedNotes, index)) {
+      renderNote(noteRequest, context);
+    }
+  });
+  renderNoteEffects({
+    parent,
+    notes: positionedNotes.map(({ context, width, glyphWidth }) => ({
+      context,
+      width,
+      glyphWidth,
+    })),
+    classPrefix: config.classPrefix,
+    spanY:
+      bounds.y +
+      constants.MEASURE_TOP_PADDING -
+      constants.NOTE_EFFECT_SPAN_OFFSET,
+    staffTop: bounds.y + constants.MEASURE_TOP_PADDING,
+    previousNotes,
+  });
+
+  return positionedNotes.map(({ context, width, glyphWidth }) => ({
+    context,
+    width,
+    glyphWidth,
+  }));
 }
 
-function renderNote(request: NoteRenderRequest) {
+function isInternalTie(
+  notes: ReturnType<typeof positionNote>[],
+  currentIndex: number,
+): boolean {
+  const current = notes[currentIndex].context;
+  if (current.note.kind !== "Tie") {
+    return false;
+  }
+  return notes.slice(0, currentIndex).some(({ context }) => {
+    return (
+      context.voiceIndex === current.voiceIndex &&
+      context.beatIndex === current.beatIndex - 1 &&
+      context.note.string === current.note.string
+    );
+  });
+}
+
+function isRenderableNote(request: NoteRenderRequest): boolean {
+  const { note, stringCount } = request;
+  return note.kind !== "Rest" && note.string >= 0 && note.string < stringCount;
+}
+
+function positionNote(request: NoteRenderRequest) {
   const {
-    parent,
     measure,
     measureIndex,
     beat,
@@ -96,13 +153,6 @@ function renderNote(request: NoteRenderRequest) {
     config,
     metrics,
   } = request;
-
-  if (note.kind === "Rest") {
-    return;
-  }
-  if (note.string < 0 || note.string >= stringCount) {
-    return;
-  }
 
   const stringRow = stringDisplayRow(
     note.string,
@@ -125,7 +175,18 @@ function renderNote(request: NoteRenderRequest) {
     fontSize: metrics.fontSize,
     createElement: createSvgElement,
   };
+  const glyphWidth = resolveGlyphWidth(
+    noteLabel(note),
+    context.fontSize,
+    config,
+    metrics,
+  );
 
+  return { request, context, width: beatLayout.width, glyphWidth };
+}
+
+function renderNote(request: NoteRenderRequest, context: NoteRenderContext) {
+  const { parent, config, metrics } = request;
   const customElement = config.render?.(context);
   if (customElement) {
     attachInteractions(customElement, context, config);
@@ -162,11 +223,7 @@ function buildDefaultNote(
   group.setAttribute("data-voice-index", `${context.voiceIndex}`);
 
   const label = noteLabel(note);
-  const glyphWidth = Math.max(
-    metrics.backgroundHeight,
-    label.length * fontSize * constants.NOTE_GLYPH_WIDTH_RATIO +
-      config.paddingX * 2,
-  );
+  const glyphWidth = resolveGlyphWidth(label, fontSize, config, metrics);
 
   if (config.background) {
     const bg = context.createElement("rect");
@@ -195,11 +252,22 @@ function buildDefaultNote(
   return group;
 }
 
+function resolveGlyphWidth(
+  label: string,
+  fontSize: number,
+  config: NoteConfig,
+  metrics: NoteMetrics,
+): number {
+  return Math.max(
+    metrics.backgroundHeight,
+    label.length * fontSize * constants.NOTE_GLYPH_WIDTH_RATIO +
+      config.paddingX * 2,
+  );
+}
+
 function noteLabel(note: Note): string {
-  if (note.kind === "Dead") {
-    return "x";
-  }
-  return `${note.value}`;
+  const value = note.kind === "Dead" ? "x" : `${note.value}`;
+  return note.effect?.ghost_note || note.kind === "Tie" ? `(${value})` : value;
 }
 
 function modifierClasses(note: Note, prefix: string): string {
@@ -221,6 +289,27 @@ function modifierClasses(note: Note, prefix: string): string {
   }
   if (note.effect?.let_ring) {
     modifiers.push(`${prefix}--let-ring`);
+  }
+  if (note.effect?.bend && note.effect.bend.kind !== "None") {
+    modifiers.push(`${prefix}--bend`);
+  }
+  if (note.effect?.vibrato) {
+    modifiers.push(`${prefix}--vibrato`);
+  }
+  if (note.effect?.staccato) {
+    modifiers.push(`${prefix}--staccato`);
+  }
+  if (note.effect?.accentuated_note || note.effect?.heavy_accentuated_note) {
+    modifiers.push(`${prefix}--accent`);
+  }
+  if (note.effect?.trill) {
+    modifiers.push(`${prefix}--trill`);
+  }
+  if (note.effect?.harmonic) {
+    modifiers.push(`${prefix}--harmonic`);
+  }
+  if (note.effect?.slides.some((slide) => slide !== "None")) {
+    modifiers.push(`${prefix}--slide`);
   }
   return modifiers.join(" ");
 }
