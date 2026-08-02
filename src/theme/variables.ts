@@ -8,11 +8,13 @@ export const ThemeVariables = {
   COLOR_BARLINE: "--sunett-color-barline",
   COLOR_REST: "--sunett-color-rest",
   COLOR_ACCENT: "--sunett-color-accent",
+  COLOR_SELECTION: "--sunett-color-selection",
   FONT_NOTE: "--sunett-font-note",
   FONT_LABEL: "--sunett-font-label",
   FONT_LABEL_SIZE: "--sunett-font-label-size",
   STRING_OPACITY: "--sunett-string-opacity",
   BARLINE_OPACITY: "--sunett-barline-opacity",
+  SELECTION_OPACITY: "--sunett-selection-opacity",
   STRING_WIDTH: "--sunett-string-width",
 } as const;
 
@@ -31,11 +33,13 @@ const ThemeVariableFallbacks: Record<ThemeVariable, string> = {
   [ThemeVariables.COLOR_REST]:
     "var(--sunett-color-muted, color-mix(in srgb, currentColor 55%, transparent))",
   [ThemeVariables.COLOR_ACCENT]: "var(--sunett-color-fg, currentColor)",
+  [ThemeVariables.COLOR_SELECTION]: "#3b82f6",
   [ThemeVariables.FONT_NOTE]: "ui-monospace, monospace",
   [ThemeVariables.FONT_LABEL]: "system-ui, sans-serif",
   [ThemeVariables.FONT_LABEL_SIZE]: "11px",
   [ThemeVariables.STRING_OPACITY]: "0.68",
   [ThemeVariables.BARLINE_OPACITY]: "0.68",
+  [ThemeVariables.SELECTION_OPACITY]: "0.25",
   [ThemeVariables.STRING_WIDTH]: "1",
 };
 

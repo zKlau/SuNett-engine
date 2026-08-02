@@ -14,6 +14,8 @@ export type ThemeColors = {
   barline?: string;
   rest?: string;
   accent?: string;
+  /** Fill for selection overlay regions. Falls back to a built-in highlight. */
+  selection?: string;
 };
 
 export type ThemeFonts = {
@@ -28,6 +30,8 @@ export type ThemeFonts = {
 export type ThemeOpacity = {
   string?: number | string;
   barline?: number | string;
+  /** Fill opacity of selection overlays, kept translucent so overlaps blend. */
+  selection?: number | string;
 };
 
 export type ThemeLines = {
@@ -94,6 +98,7 @@ const COLOR_VARIABLES: Record<keyof ThemeVariableColors, ThemeVariable> = {
   barline: ThemeVariables.COLOR_BARLINE,
   rest: ThemeVariables.COLOR_REST,
   accent: ThemeVariables.COLOR_ACCENT,
+  selection: ThemeVariables.COLOR_SELECTION,
 };
 
 const FONT_VARIABLES: Record<keyof ThemeFonts, ThemeVariable> = {
@@ -105,6 +110,7 @@ const FONT_VARIABLES: Record<keyof ThemeFonts, ThemeVariable> = {
 const OPACITY_VARIABLES: Record<keyof ThemeOpacity, ThemeVariable> = {
   string: ThemeVariables.STRING_OPACITY,
   barline: ThemeVariables.BARLINE_OPACITY,
+  selection: ThemeVariables.SELECTION_OPACITY,
 };
 
 const LINE_VARIABLES: Record<keyof ThemeLines, ThemeVariable> = {
