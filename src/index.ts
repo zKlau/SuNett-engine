@@ -1,6 +1,18 @@
 export { TabsRenderer } from "./utils/tabs/tabsRenderer";
 export { SongHelper } from "./utils/songHelper";
 
+export { Engine } from "./engine/engine";
+export type { EngineConfig } from "./engine/engine";
+export { computeSongHash } from "./utils/song/songHash";
+export type {
+  Selection,
+  SelectionInput,
+  SelectionUpdate,
+  SelectionStore,
+  SelectionEventMap,
+  SelectionSource,
+} from "./types/selection";
+
 export { defineTheme, mergeThemes } from "./theme/theme";
 export { coerceTheme } from "./theme/resolveTheme";
 export { ThemePresets } from "./theme/presets";
