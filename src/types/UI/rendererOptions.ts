@@ -1,5 +1,6 @@
 import type { TabNoteOptions } from "./tabNoteOptions";
 import type { ThemeLike } from "../../theme/resolveTheme";
+import type { SelectionSource } from "../selection";
 
 /**
  * Construction-time configuration for `TabsRenderer`. The `theme` here is the
@@ -8,6 +9,8 @@ import type { ThemeLike } from "../../theme/resolveTheme";
  */
 export type TabsRendererConfig = {
   theme?: ThemeLike;
+  /** Supplies the selections drawn as overlay regions on each render. */
+  selections?: SelectionSource;
 };
 
 export type TabRendererOptions = {

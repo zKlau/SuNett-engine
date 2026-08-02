@@ -13,6 +13,12 @@ import type {
 import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
+import type { SelectionSource } from "../../types/selection";
+import type { SongTimeline } from "../timing/measureTimeline";
+import { buildSongTimeline } from "../timing/measureTimeline";
+import type { SelectionMeasure } from "../../selection/selectionRegions";
+import { computeSelectionRegions } from "../../selection/selectionRegions";
+import { renderSelections } from "./selectionRenderer";
 import { buildLyricsByMeasure } from "./lyricsLayout";
 import {
   renderMeasureContent,
@@ -36,11 +42,14 @@ export class TabsRenderer {
   private song: Song;
   private currentTheme: Theme;
   private lastRequest?: { trackIndex: number; options: TabRendererOptions };
+  private currentRender?: () => void;
+  private readonly selectionSource?: SelectionSource;
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
 
   constructor(song: Song, config: TabsRendererConfig = {}) {
     this.song = song;
     this.currentTheme = coerceTheme(config.theme);
+    this.selectionSource = config.selections;
   }
 
   getTracks(): Track[] {
@@ -103,6 +112,7 @@ export class TabsRenderer {
     }
 
     const layoutCalculation = new LayoutCalculation(track, config);
+    const timeline = buildSongTimeline(this.song, track);
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
       const svgWidth = parentWidth || config.defaultMeasureWidth;
@@ -139,12 +149,15 @@ export class TabsRenderer {
         this.renderMeasure(svg, measureContext, index, pass);
       });
 
+      this.renderSelectionOverlay(svg, layout, measures, timeline);
+
       svg.setAttribute("width", `${width}`);
       svg.setAttribute("height", `${height}`);
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       svg.setAttribute("role", "img");
     };
 
+    this.currentRender = render;
     render();
 
     const resizeObserver = new ResizeObserver(render);
@@ -157,6 +170,48 @@ export class TabsRenderer {
     this.rendererCleanups.set(svg, cleanup);
 
     return cleanup;
+  }
+
+  /** Redraws the last rendered tab, e.g. after its selections change. */
+  rerender(): void {
+    this.currentRender?.();
+  }
+
+  private renderSelectionOverlay(
+    svg: SVGSVGElement,
+    layout: RenderPass["layout"],
+    measures: MeasureContext[],
+    timeline: SongTimeline,
+  ) {
+    if (!this.selectionSource) {
+      return;
+    }
+
+    const selectionMeasures: SelectionMeasure[] = [];
+    measures.forEach((measureContext, index) => {
+      const measureLayout = layout.measureLayouts[index];
+      if (measureLayout) {
+        selectionMeasures.push({
+          index: measureContext.index,
+          layout: measureLayout,
+        });
+      }
+    });
+
+    const regions = computeSelectionRegions(
+      this.selectionSource.getSelections(),
+      {
+        timeline,
+        measures: selectionMeasures,
+        measureHeight: layout.measureHeight,
+        topPadding: constants.MEASURE_TOP_PADDING,
+        bottomPadding: constants.MEASURE_BOTTOM_PADDING,
+        labelOffset: constants.SELECTION_LABEL_OFFSET,
+        minWidth: constants.SELECTION_MIN_WIDTH,
+      },
+    );
+
+    renderSelections(svg, regions);
   }
 
   private applyThemeVariables(svg: SVGSVGElement) {
