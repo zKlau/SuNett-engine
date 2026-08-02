@@ -186,6 +186,11 @@ export class TabsRenderer {
     this.currentRender?.();
   }
 
+  /** The `<svg>` of the last render, or `undefined` before the first render. */
+  getElement(): SVGSVGElement | undefined {
+    return this.lastSvg;
+  }
+
   /**
    * Tears down the last render: disconnects its `ResizeObserver` and clears the
    * theme variables scoped to the target `<svg>`.

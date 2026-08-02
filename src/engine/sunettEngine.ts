@@ -11,6 +11,8 @@ import type {
 import type { TabRendererOptions } from "../types/UI/rendererOptions";
 import type { ThemeLike } from "../theme/resolveTheme";
 import type { Theme } from "../theme/theme";
+import type { SelectionInputOptions } from "./selectionInput";
+import { attachSelectionInput } from "./selectionInput";
 import { SelectionManager } from "../selection/selectionManager";
 import { TabsRenderer } from "../utils/tabs/tabsRenderer";
 import { computeSongHash } from "../utils/song/songHash";
@@ -35,6 +37,7 @@ export class SunettEngine {
   private readonly unsubscribe: () => void;
   private song?: Song;
   private renderer?: TabsRenderer;
+  private detachInput?: () => void;
   private loadGeneration = 0;
   private loading = false;
 
@@ -268,11 +271,32 @@ export class SunettEngine {
   }
 
   /**
-   * Releases the engine's resources: tears down the renderer's
-   * `ResizeObserver` and stops listening for selection changes. Call this when
-   * the engine is no longer needed.
+   * Attaches the built-in pointer interaction to the rendered tab: drag to
+   * create a selection, right-click to delete the one under the pointer, and
+   * double-click to edit it. Call after `render`. Any previous attachment is
+   * replaced, and it is torn down on `dispose`.
+   * @param options Interaction configuration (buttons, commit/edit hooks).
+   * @returns A function that detaches the interaction.
+   */
+  enableSelectionInput(options: SelectionInputOptions = {}): () => void {
+    this.detachInput?.();
+    const svg = this.renderer?.getElement();
+    if (!svg) {
+      this.detachInput = undefined;
+      return () => {};
+    }
+    this.detachInput = attachSelectionInput(svg, this, options);
+    return this.detachInput;
+  }
+
+  /**
+   * Releases the engine's resources: detaches any pointer interaction, tears
+   * down the renderer's `ResizeObserver`, and stops listening for selection
+   * changes. Call this when the engine is no longer needed.
    */
   dispose(): void {
+    this.detachInput?.();
+    this.detachInput = undefined;
     this.renderer?.dispose();
     this.renderer = undefined;
     this.unsubscribe();

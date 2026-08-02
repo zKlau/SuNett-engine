@@ -3,6 +3,10 @@ export { SongHelper } from "./utils/songHelper";
 
 export { SunettEngine } from "./engine/sunettEngine";
 export type { SunettEngineConfig } from "./engine/sunettEngine";
+export type {
+  SelectionInputOptions,
+  SelectionRange,
+} from "./engine/selectionInput";
 export { computeSongHash } from "./utils/song/songHash";
 export type {
   Selection,

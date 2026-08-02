@@ -28,66 +28,23 @@ async function main(filePath: string) {
     addDemoSelections(engine);
     displayTitle(song.name);
     setupThemePicker(engine);
-    setupInteractiveSelection(engine);
-    console.log("Drag on the tab to create a selection; click one to remove it.");
+
+    engine.enableSelectionInput({
+      onCreate: () => ({
+        label: prompt("Selection label:") ?? "practice",
+        color: "#22c55e",
+      }),
+      onEdit: (selection) => {
+        const label = prompt("New label:", selection.label ?? "");
+        return label === null ? undefined : { label };
+      },
+    });
+    console.log(
+      "Drag to create a selection, right-click to delete, double-click to rename.",
+    );
   } catch (e) {
     console.error("Parsing failed:", e);
   }
-}
-
-function setupInteractiveSelection(engine: SunettEngine) {
-  const svg = document.getElementById("tabs");
-  if (!(svg instanceof SVGSVGElement)) {
-    return;
-  }
-  svg.style.touchAction = "none";
-
-  let anchorMs: number | null = null;
-
-  svg.addEventListener("pointerdown", (event) => {
-    const existing = engine.selectionAt(event.clientX, event.clientY);
-    if (existing) {
-      engine.removeSelection(existing.id);
-      return;
-    }
-
-    const time = engine.timeAtPoint(event.clientX, event.clientY);
-    if (time == null) {
-      return;
-    }
-    anchorMs = time;
-    engine.beginDraftSelection(time);
-    svg.setPointerCapture(event.pointerId);
-  });
-
-  svg.addEventListener("pointermove", (event) => {
-    if (anchorMs == null) {
-      return;
-    }
-    const time = engine.timeAtPoint(event.clientX, event.clientY);
-    if (time != null) {
-      engine.updateDraftSelection({ endMs: time });
-    }
-  });
-
-  svg.addEventListener("pointerup", (event) => {
-    if (anchorMs == null) {
-      return;
-    }
-    const time = engine.timeAtPoint(event.clientX, event.clientY) ?? anchorMs;
-    const dragged = Math.abs(time - anchorMs) > 50;
-    anchorMs = null;
-    if (dragged) {
-      engine.commitDraftSelection({ label: "practice", color: "#22c55e" });
-    } else {
-      engine.cancelDraftSelection();
-    }
-  });
-
-  svg.addEventListener("pointercancel", () => {
-    anchorMs = null;
-    engine.cancelDraftSelection();
-  });
 }
 
 function addDemoSelections(engine: SunettEngine) {

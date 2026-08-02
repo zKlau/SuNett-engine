@@ -88,6 +88,19 @@ describe("SunettEngine selections", () => {
     it("has no theme before a song is loaded", () => {
       expect(new SunettEngine().getTheme()).toBeUndefined();
     });
+
+    it("enableSelectionInput returns a disposer and is safe to dispose", async () => {
+      const engine = new SunettEngine();
+      await engine.loadSong(song("A"));
+
+      const detach = engine.enableSelectionInput();
+
+      expect(typeof detach).toBe("function");
+      expect(() => {
+        detach();
+        engine.dispose();
+      }).not.toThrow();
+    });
   });
 
   describe("draft selection", () => {
