@@ -128,7 +128,7 @@ export function attachSelectionInput(
       : {};
     engine.commitDraftSelection({
       ...scoped,
-      ...(options.onCreate?.(range) ?? {}),
+      ...options.onCreate?.(range),
     });
   };
 
