@@ -1,4 +1,5 @@
 import type { Song } from "../types/song";
+import type { Track } from "../types/track";
 import type {
   Selection,
   SelectionEventMap,
@@ -13,7 +14,7 @@ import { SelectionManager } from "../selection/selectionManager";
 import { TabsRenderer } from "../utils/tabs/tabsRenderer";
 import { computeSongHash } from "../utils/song/songHash";
 
-export type EngineConfig = {
+export type SunettEngineConfig = {
   /** Initial theme: a preset name, a `ThemeInput`, or a built `Theme`. */
   theme?: ThemeLike;
   /** Adapter used to persist and restore selections across sessions. */
@@ -21,20 +22,22 @@ export type EngineConfig = {
 };
 
 /**
- * The public entry point for rendering a song and managing its selections.
- * Selections are held in memory, scoped to the loaded song, and drawn as
- * overlay regions on the tab.
+ * The primary entry point of the package: load a song, render it as a tab, and
+ * manage the selections drawn over it. Prefer this over `TabsRenderer` — it
+ * covers the same rendering surface and adds song lifecycle, selection state,
+ * events, and optional persistence.
  */
-export class Engine {
+export class SunettEngine {
   private readonly selections = new SelectionManager();
   private readonly store?: SelectionStore;
   private readonly theme?: ThemeLike;
   private readonly unsubscribe: () => void;
+  private song?: Song;
   private renderer?: TabsRenderer;
   private loadGeneration = 0;
   private loading = false;
 
-  constructor(config: EngineConfig = {}) {
+  constructor(config: SunettEngineConfig = {}) {
     this.theme = config.theme;
     this.store = config.selectionStore;
     this.unsubscribe = this.selections.on("selectionsChanged", (selections) =>
@@ -47,11 +50,12 @@ export class Engine {
    * when a `selectionStore` is configured, restores persisted selections. A
    * later `loadSong` supersedes an in-flight one, so its restored selections
    * are discarded.
-   * @param song The parsed song to render selections against.
+   * @param song The parsed song to render and manage selections for.
    */
   async loadSong(song: Song): Promise<void> {
     const generation = ++this.loadGeneration;
     this.renderer?.dispose();
+    this.song = song;
     this.renderer = new TabsRenderer(song, {
       theme: this.theme,
       selections: this.selections,
@@ -86,6 +90,40 @@ export class Engine {
    */
   render(trackIndex = 0, options: TabRendererOptions = {}): void {
     this.renderer?.generateMeasures(trackIndex, options);
+  }
+
+  /** Redraws the current tab without recomputing the song setup. */
+  rerender(): void {
+    this.renderer?.rerender();
+  }
+
+  /** The currently loaded song, or `undefined` before the first `loadSong`. */
+  getSong(): Song | undefined {
+    return this.song;
+  }
+
+  /** The tracks of the loaded song, or an empty array if none is loaded. */
+  getTracks(): Track[] {
+    return this.renderer?.getTracks() ?? [];
+  }
+
+  /** The id (hash) of the loaded song, or an empty string if none. */
+  getSongId(): string {
+    return this.selections.getSongId();
+  }
+
+  /**
+   * Merges a theme into the renderer and redraws.
+   * @param theme A preset name, `ThemeInput`, or built `Theme`.
+   * @returns The merged theme, or `undefined` if no song is loaded.
+   */
+  setTheme(theme: ThemeLike): Theme | undefined {
+    return this.renderer?.setTheme(theme);
+  }
+
+  /** The renderer's current resolved theme, or `undefined` if none is loaded. */
+  getTheme(): Theme | undefined {
+    return this.renderer?.getTheme();
   }
 
   /**
@@ -157,18 +195,12 @@ export class Engine {
     this.selections.off(event, listener);
   }
 
-  /** The id of the currently loaded song, or an empty string if none. */
-  getSongId(): string {
-    return this.selections.getSongId();
-  }
-
   /**
-   * Merges a theme into the renderer and redraws.
-   * @param theme A preset name, `ThemeInput`, or built `Theme`.
-   * @returns The merged theme, or `undefined` if no song is loaded.
+   * The underlying `TabsRenderer`, for advanced rendering not surfaced here.
+   * @returns The renderer, or `undefined` before the first `loadSong`.
    */
-  setTheme(theme: ThemeLike): Theme | undefined {
-    return this.renderer?.setTheme(theme);
+  getRenderer(): TabsRenderer | undefined {
+    return this.renderer;
   }
 
   /**

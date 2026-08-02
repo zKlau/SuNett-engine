@@ -1,8 +1,8 @@
 export { TabsRenderer } from "./utils/tabs/tabsRenderer";
 export { SongHelper } from "./utils/songHelper";
 
-export { Engine } from "./engine/engine";
-export type { EngineConfig } from "./engine/engine";
+export { SunettEngine } from "./engine/sunettEngine";
+export type { SunettEngineConfig } from "./engine/sunettEngine";
 export { computeSongHash } from "./utils/song/songHash";
 export type {
   Selection,

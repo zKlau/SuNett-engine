@@ -3,7 +3,7 @@ import "./style.css";
 
 import { parse_guitar_pro } from "sunett-parser";
 import type { Song } from "../../src/types/song.ts";
-import { TabsRenderer } from "../../src/utils/tabs/tabsRenderer.ts";
+import { SunettEngine } from "../../src/engine/sunettEngine.ts";
 import { ThemePresets } from "../../src/theme/presets/index.ts";
 import type { PresetTheme } from "../../src/theme/presets/index.ts";
 
@@ -16,18 +16,34 @@ async function main(filePath: string) {
   try {
     const song: Song = parse_guitar_pro(bytes, filePath);
 
-    const t = new TabsRenderer(song);
-    t.generateMeasures(TRACK_INDEX);
-    console.log(song.tracks);
+    const engine = new SunettEngine();
+    engine.on("selectionsChanged", (selections) =>
+      console.log("selections changed:", selections),
+    );
 
+    await engine.loadSong(song);
+    engine.render(TRACK_INDEX);
+    console.log("tracks:", engine.getTracks());
+
+    addDemoSelections(engine);
     displayTitle(song.name);
-    setupThemePicker(t);
+    setupThemePicker(engine);
   } catch (e) {
     console.error("Parsing failed:", e);
   }
 }
 
-function setupThemePicker(renderer: TabsRenderer) {
+function addDemoSelections(engine: SunettEngine) {
+  engine.addSelection({ startMs: 0, endMs: 6000, label: "intro" });
+  engine.addSelection({
+    startMs: 4000,
+    endMs: 12000,
+    label: "hard part",
+    color: "#f97316",
+  });
+}
+
+function setupThemePicker(engine: SunettEngine) {
   const select = document.getElementById("themeSelect");
   if (!(select instanceof HTMLSelectElement)) {
     return;
@@ -41,11 +57,10 @@ function setupThemePicker(renderer: TabsRenderer) {
   }
 
   select.addEventListener("change", () => {
-    renderer.generateMeasures(TRACK_INDEX, {
-      theme: select.value as PresetTheme,
-    });
+    engine.setTheme(select.value as PresetTheme);
   });
 }
+
 function displayTitle(name: string) {
   const element = document.getElementById("songTitle");
   if (element) {
@@ -55,5 +70,4 @@ function displayTitle(name: string) {
 
 // main("/tabs/7string.gp");
 // main("/tabs/hpb.gp5");
-main("/tabs/mop.gp")
-
+main("/tabs/hpb.gp5");

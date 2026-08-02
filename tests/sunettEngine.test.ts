@@ -1,4 +1,4 @@
-import { Engine } from "../src/engine/engine";
+import { SunettEngine } from "../src/engine/sunettEngine";
 import type { Selection, SelectionStore } from "../src/types/selection";
 import { makeMeasure, makeSong, makeTrack } from "./fixtures";
 
@@ -6,9 +6,9 @@ function song(name: string) {
   return makeSong([makeTrack(6, [makeMeasure(1)])], name);
 }
 
-describe("Engine selections", () => {
+describe("SunettEngine selections", () => {
   it("fills in id and songId when adding a selection", async () => {
-    const engine = new Engine();
+    const engine = new SunettEngine();
     await engine.loadSong(song("A"));
 
     const selection = engine.addSelection({ startMs: 0, endMs: 1000 });
@@ -19,7 +19,7 @@ describe("Engine selections", () => {
   });
 
   it("fires the lifecycle events for each operation", async () => {
-    const engine = new Engine();
+    const engine = new SunettEngine();
     await engine.loadSong(song("A"));
     const added = jest.fn();
     const updated = jest.fn();
@@ -41,7 +41,7 @@ describe("Engine selections", () => {
   });
 
   it("clears selections when a new song is loaded", async () => {
-    const engine = new Engine();
+    const engine = new SunettEngine();
     await engine.loadSong(song("A"));
     engine.addSelection({ startMs: 0, endMs: 1000 });
 
@@ -51,12 +51,43 @@ describe("Engine selections", () => {
   });
 
   it("assigns a different song id per song", async () => {
-    const engine = new Engine();
+    const engine = new SunettEngine();
     await engine.loadSong(song("A"));
     const first = engine.getSongId();
     await engine.loadSong(song("B"));
 
     expect(engine.getSongId()).not.toBe(first);
+  });
+
+  describe("rendering facade", () => {
+    it("exposes the loaded song and its tracks", async () => {
+      const loaded = song("A");
+      const engine = new SunettEngine();
+      await engine.loadSong(loaded);
+
+      expect(engine.getSong()).toBe(loaded);
+      expect(engine.getTracks()).toBe(loaded.tracks);
+    });
+
+    it("returns empty tracks and no song before a song is loaded", () => {
+      const engine = new SunettEngine();
+
+      expect(engine.getSong()).toBeUndefined();
+      expect(engine.getTracks()).toEqual([]);
+      expect(engine.getRenderer()).toBeUndefined();
+    });
+
+    it("resolves a theme once a song is loaded", async () => {
+      const engine = new SunettEngine({ theme: "dark" });
+      await engine.loadSong(song("A"));
+
+      expect(engine.getTheme()).toBeDefined();
+      expect(engine.getRenderer()).toBeDefined();
+    });
+
+    it("has no theme before a song is loaded", () => {
+      expect(new SunettEngine().getTheme()).toBeUndefined();
+    });
   });
 
   describe("with a selection store", () => {
@@ -76,7 +107,7 @@ describe("Engine selections", () => {
         { id: "a", songId: "old", startMs: 0, endMs: 500 },
       ];
       const { store } = makeStore(restored);
-      const engine = new Engine({ selectionStore: store });
+      const engine = new SunettEngine({ selectionStore: store });
 
       await engine.loadSong(song("A"));
 
@@ -88,7 +119,7 @@ describe("Engine selections", () => {
 
     it("does not save while loading", async () => {
       const { store } = makeStore();
-      const engine = new Engine({ selectionStore: store });
+      const engine = new SunettEngine({ selectionStore: store });
 
       await engine.loadSong(song("A"));
 
@@ -97,7 +128,7 @@ describe("Engine selections", () => {
 
     it("saves whenever selections change after loading", async () => {
       const { store } = makeStore();
-      const engine = new Engine({ selectionStore: store });
+      const engine = new SunettEngine({ selectionStore: store });
       await engine.loadSong(song("A"));
 
       const selection = engine.addSelection({ startMs: 0, endMs: 1000 });
@@ -112,7 +143,7 @@ describe("Engine selections", () => {
         }),
         save: jest.fn(async () => {}),
       };
-      const engine = new Engine({ selectionStore: store });
+      const engine = new SunettEngine({ selectionStore: store });
 
       await expect(engine.loadSong(song("A"))).rejects.toThrow("load failed");
       const selection = engine.addSelection({ startMs: 0, endMs: 100 });
@@ -128,7 +159,7 @@ describe("Engine selections", () => {
         ),
         save: jest.fn(async () => {}),
       };
-      const engine = new Engine({ selectionStore: store });
+      const engine = new SunettEngine({ selectionStore: store });
 
       const first = engine.loadSong(song("A"));
       const second = engine.loadSong(song("B"));
@@ -146,7 +177,7 @@ describe("Engine selections", () => {
 
     it("stops saving after dispose", async () => {
       const { store } = makeStore();
-      const engine = new Engine({ selectionStore: store });
+      const engine = new SunettEngine({ selectionStore: store });
       await engine.loadSong(song("A"));
 
       engine.dispose();
