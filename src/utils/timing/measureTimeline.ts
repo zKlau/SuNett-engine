@@ -25,7 +25,9 @@ export function buildSongTimeline(song: Song, track: Track): SongTimeline {
   let cursorMs = 0;
 
   track.measures.forEach((measure, index) => {
-    const tempo = resolveTempo(song, index);
+    const header =
+      song.measure_headers[index] ?? song.measure_headers[measure.header_index];
+    const tempo = resolveTempo(header?.tempo, song.tempo);
     const durationMs = measureDurationMs(measure, tempo);
     const startMs = cursorMs;
     const endMs = startMs + durationMs;
@@ -37,12 +39,14 @@ export function buildSongTimeline(song: Song, track: Track): SongTimeline {
   return { measures, durationMs: cursorMs };
 }
 
-function resolveTempo(song: Song, index: number): number {
-  const headerTempo = song.measure_headers[index]?.tempo;
+function resolveTempo(
+  headerTempo: number | undefined,
+  songTempo: number,
+): number {
   if (isPositive(headerTempo)) {
     return headerTempo;
   }
-  return isPositive(song.tempo) ? song.tempo : DEFAULT_TEMPO;
+  return isPositive(songTempo) ? songTempo : DEFAULT_TEMPO;
 }
 
 function measureDurationMs(measure: Measure, tempo: number): number {

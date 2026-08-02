@@ -72,4 +72,19 @@ describe("buildSongTimeline", () => {
 
     expect(buildSongTimeline(song, track).measures[0].durationMs).toBe(2000);
   });
+
+  it("resolves the header via header_index when the position is unset", () => {
+    const second = makeMeasure(4, 4);
+    (second as unknown as { header_index: number }).header_index = 0;
+    const track = makeTrack([makeMeasure(4, 4), second]);
+    const song = makeSong({
+      tempo: 120,
+      measure_headers: [{ tempo: 60 }],
+    } as unknown as Partial<Song>);
+
+    const timeline = buildSongTimeline(song, track);
+
+    expect(timeline.measures[0].durationMs).toBe(4000);
+    expect(timeline.measures[1].durationMs).toBe(4000);
+  });
 });
