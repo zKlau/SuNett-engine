@@ -141,3 +141,69 @@ describe("TabsRenderer selection overlay", () => {
     ).toBe("4 3");
   });
 });
+
+describe("TabsRenderer track-scoped selections", () => {
+  beforeAll(() => {
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      ResizeObserverStub;
+  });
+
+  function makeMultiTrackSong(): Song {
+    const measure = makeMeasureFromVoices([
+      [makeBeat({ notes: [makeNote({ string: 1, value: 3 })] })],
+    ]);
+    (measure as unknown as { time_signature: unknown }).time_signature = {
+      numerator: 4,
+      denominator: { value: 4 },
+    };
+    const track = (name: string) =>
+      ({
+        name,
+        strings: Array.from({ length: 6 }, (_, index) => [index, 0]),
+        measures: [measure],
+      }) as unknown as Track;
+
+    return {
+      name: "Song",
+      tempo: 120,
+      measure_headers: [],
+      tracks: [track("A"), track("B")],
+    } as unknown as Song;
+  }
+
+  function renderTrack(
+    trackIndex: number,
+    selections: Selection[],
+  ): SVGSVGElement {
+    document.body.innerHTML = '<div><svg id="tabs"></svg></div>';
+    const svg = document.querySelector("#tabs") as SVGSVGElement;
+    new TabsRenderer(makeMultiTrackSong(), {
+      selections: { getSelections: () => selections },
+    }).generateMeasures(trackIndex);
+    return svg;
+  }
+
+  it("hides a selection scoped to another track", () => {
+    const svg = renderTrack(1, [
+      { id: "a", songId: "song", startMs: 0, endMs: 1000, trackIndex: 0 },
+    ]);
+
+    expect(svg.querySelector(".selection-region")).toBeNull();
+  });
+
+  it("shows a selection scoped to the active track", () => {
+    const svg = renderTrack(1, [
+      { id: "a", songId: "song", startMs: 0, endMs: 1000, trackIndex: 1 },
+    ]);
+
+    expect(svg.querySelector(".selection-region")).not.toBeNull();
+  });
+
+  it("shows a null-scoped selection on any track", () => {
+    const svg = renderTrack(1, [
+      { id: "a", songId: "song", startMs: 0, endMs: 1000, trackIndex: null },
+    ]);
+
+    expect(svg.querySelector(".selection-region")).not.toBeNull();
+  });
+});

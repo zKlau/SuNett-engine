@@ -116,6 +116,11 @@ export class SunettEngine {
     return this.selections.getSongId();
   }
 
+  /** Index of the track currently rendered; `0` before the first `render`. */
+  getActiveTrackIndex(): number {
+    return this.renderer?.getActiveTrackIndex() ?? 0;
+  }
+
   /**
    * Merges a theme into the renderer and redraws.
    * @param theme A preset name, `ThemeInput`, or built `Theme`.

@@ -18,6 +18,21 @@ describe("SunettEngine selections", () => {
     expect(engine.getSelections()).toEqual([selection]);
   });
 
+  it("keeps a track-scoped selection and reports it across tracks", async () => {
+    const engine = new SunettEngine();
+    await engine.loadSong(song("A"));
+
+    const scoped = engine.addSelection({
+      startMs: 0,
+      endMs: 1000,
+      trackIndex: 2,
+    });
+
+    expect(scoped.trackIndex).toBe(2);
+    expect(engine.getSelections()).toEqual([scoped]);
+    expect(engine.getActiveTrackIndex()).toBe(0);
+  });
+
   it("fires the lifecycle events for each operation", async () => {
     const engine = new SunettEngine();
     await engine.loadSong(song("A"));

@@ -8,6 +8,8 @@ export type Selection = {
   startMs: number;
   /** Range end, in milliseconds from the song's beginning. */
   endMs: number;
+  /** Track this selection is scoped to; `null` or omitted means all tracks. */
+  trackIndex?: number | null;
   /** Optional plain-text label drawn above the region. */
   label?: string;
   /** Optional CSS color; falls back to the theme selection color. */

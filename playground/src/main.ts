@@ -28,11 +28,14 @@ async function main(filePath: string) {
     addDemoSelections(engine);
     displayTitle(song.name);
     setupThemePicker(engine);
+    setupTrackPicker(engine);
+    const scopeToggle = createScopeToggle();
 
     engine.enableSelectionInput({
       onCreate: () => ({
         label: prompt("Selection label:") ?? "practice",
         color: "#22c55e",
+        trackIndex: scopeToggle.checked ? engine.getActiveTrackIndex() : null,
       }),
       onEdit: (selection) => {
         const label = prompt("New label:", selection.label ?? "");
@@ -40,7 +43,7 @@ async function main(filePath: string) {
       },
     });
     console.log(
-      "Drag to create a selection, right-click to delete, double-click to rename.",
+      "Drag to create, right-click to delete, double-click to rename. Toggle the checkbox to scope new selections to the active track or all tracks.",
     );
   } catch (e) {
     console.error("Parsing failed:", e);
@@ -48,13 +51,52 @@ async function main(filePath: string) {
 }
 
 function addDemoSelections(engine: SunettEngine) {
-  engine.addSelection({ startMs: 0, endMs: 6000, label: "intro" });
+  engine.addSelection({
+    startMs: 0,
+    endMs: 6000,
+    label: "intro (all tracks)",
+    trackIndex: null,
+  });
   engine.addSelection({
     startMs: 4000,
     endMs: 12000,
     label: "hard part",
     color: "#f97316",
+    trackIndex: TRACK_INDEX,
   });
+}
+
+function createScopeToggle(): HTMLInputElement {
+  const label = document.createElement("label");
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = true;
+  label.append(
+    checkbox,
+    document.createTextNode(" Scope new selections to active track"),
+  );
+
+  const picker = document.getElementById("themePicker");
+  picker?.after(label);
+  return checkbox;
+}
+
+function setupTrackPicker(engine: SunettEngine) {
+  const select = document.createElement("select");
+  engine.getTracks().forEach((track, index) => {
+    const option = document.createElement("option");
+    option.value = `${index}`;
+    option.textContent = track.name || `Track ${index + 1}`;
+    option.selected = index === TRACK_INDEX;
+    select.append(option);
+  });
+
+  select.addEventListener("change", () => {
+    engine.render(Number(select.value));
+  });
+
+  const picker = document.getElementById("themePicker");
+  picker?.after(select);
 }
 
 function setupThemePicker(engine: SunettEngine) {

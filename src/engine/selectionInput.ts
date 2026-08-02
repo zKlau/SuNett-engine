@@ -7,6 +7,7 @@ import type {
 type SelectionInputEngine = {
   timeAtPoint(clientX: number, clientY: number): number | undefined;
   selectionAt(clientX: number, clientY: number): Selection | undefined;
+  getActiveTrackIndex(): number;
   beginDraftSelection(startMs: number, endMs?: number): void;
   updateDraftSelection(updates: SelectionDraftUpdate): void;
   commitDraftSelection(extras?: SelectionDraftUpdate): Selection | undefined;
@@ -27,6 +28,12 @@ export type SelectionInputOptions = {
   createButton?: number;
   /** Minimum dragged span, in ms, before a create commits. Default `40`. */
   minDurationMs?: number;
+  /**
+   * When `true`, a created selection is scoped to the active track, so it only
+   * shows on that track. Default `false` (created selections apply to all
+   * tracks). `onCreate` can still override the `trackIndex`.
+   */
+  trackScoped?: boolean;
   /**
    * Supplies label/color as a drag commits into a selection.
    * @param range The dragged time range.
@@ -103,7 +110,10 @@ export function attachSelectionInput(
       engine.cancelDraftSelection();
       return;
     }
-    engine.commitDraftSelection(options.onCreate?.(range) ?? {});
+    const scoped = options.trackScoped
+      ? { trackIndex: engine.getActiveTrackIndex() }
+      : {};
+    engine.commitDraftSelection({ ...scoped, ...(options.onCreate?.(range) ?? {}) });
   };
 
   const onPointerCancel = () => {

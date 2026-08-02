@@ -10,6 +10,7 @@ function makeEngine() {
     selectionAt: jest.fn(
       (_x: number, _y: number): Selection | undefined => undefined,
     ),
+    getActiveTrackIndex: jest.fn((): number => 0),
     beginDraftSelection: jest.fn(),
     updateDraftSelection: jest.fn(),
     commitDraftSelection: jest.fn(
@@ -77,6 +78,20 @@ describe("attachSelectionInput", () => {
 
     expect(engine.commitDraftSelection).toHaveBeenCalledWith({ label: "loop" });
     expect(engine.cancelDraftSelection).not.toHaveBeenCalled();
+  });
+
+  it("scopes a created selection to the active track when trackScoped", () => {
+    const times = [0, 2000];
+    const engine = makeEngine();
+    engine.timeAtPoint = jest.fn((_x: number, _y: number) => times.shift() ?? 2000);
+    engine.getActiveTrackIndex = jest.fn(() => 3);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { trackScoped: true });
+
+    svg.dispatchEvent(pointer("pointerdown"));
+    svg.dispatchEvent(pointer("pointerup"));
+
+    expect(engine.commitDraftSelection).toHaveBeenCalledWith({ trackIndex: 3 });
   });
 
   it("cancels a too-short drag instead of committing", () => {

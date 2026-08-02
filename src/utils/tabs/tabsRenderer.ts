@@ -25,6 +25,7 @@ import {
   selectionAtPoint,
   timeAtPoint,
 } from "../../selection/selectionHitTest";
+import { visibleSelections } from "../../selection/selectionVisibility";
 import { renderSelections } from "./selectionRenderer";
 import { createSvgElement } from "./svg";
 import { buildLyricsByMeasure } from "./lyricsLayout";
@@ -50,6 +51,7 @@ export class TabsRenderer {
   private lastRequest?: { trackIndex: number; options: TabRendererOptions };
   private currentRender?: () => void;
   private lastSvg?: SVGSVGElement;
+  private lastTrackIndex = 0;
   private lastSelectionContext?: SelectionLayoutContext;
   private readonly selectionSource?: SelectionSource;
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
@@ -109,6 +111,10 @@ export class TabsRenderer {
     if (!track) {
       return;
     }
+
+    this.lastTrackIndex = this.song.tracks[resolvedTrackIndex]
+      ? resolvedTrackIndex
+      : 0;
 
     const allMeasures = this.getMeasureContexts(track);
     const measures = config.hideEmptyMeasures
@@ -191,6 +197,11 @@ export class TabsRenderer {
     return this.lastSvg;
   }
 
+  /** Index of the track drawn by the last render. */
+  getActiveTrackIndex(): number {
+    return this.lastTrackIndex;
+  }
+
   /**
    * Tears down the last render: disconnects its `ResizeObserver` and clears the
    * theme variables scoped to the target `<svg>`.
@@ -230,7 +241,10 @@ export class TabsRenderer {
     }
     return selectionAtPoint(
       point,
-      this.selectionSource?.getSelections() ?? [],
+      visibleSelections(
+        this.selectionSource?.getSelections() ?? [],
+        this.lastTrackIndex,
+      ),
       this.lastSelectionContext,
     );
   }
@@ -268,7 +282,10 @@ export class TabsRenderer {
     }
 
     const regions = computeSelectionRegions(
-      this.selectionSource.getSelections(),
+      visibleSelections(
+        this.selectionSource.getSelections(),
+        this.lastTrackIndex,
+      ),
       context,
     );
     const draft = this.selectionSource.getDraftSelection?.();
