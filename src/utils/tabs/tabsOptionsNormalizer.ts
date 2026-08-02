@@ -1,4 +1,5 @@
 import type { TabNoteOptions } from "../../types/UI/tabNoteOptions";
+import type { NormalizedRendererOptions } from "../../types/UI/normalizedRendererOptions";
 import type { TabRendererOptions } from "../../types/UI/rendererOptions";
 import type { ThemeSizing } from "../../theme/theme";
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
@@ -6,7 +7,7 @@ import { TabsRendererConstants as constants } from "../../constants/tabRendererC
 export function normalizeOptions(
   options: TabRendererOptions,
   sizing?: ThemeSizing,
-) {
+): NormalizedRendererOptions {
   return {
     trackIndex: options.trackIndex ?? 0,
     measuresPerRow:

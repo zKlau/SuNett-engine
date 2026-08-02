@@ -6,6 +6,7 @@
   --sunett-color-bg: transparent;
   --sunett-color-string: var(--sunett-color-fg);
   --sunett-color-barline: var(--sunett-color-fg);
+  --sunett-color-rest: var(--sunett-color-muted);
   --sunett-color-accent: var(--sunett-color-fg);
 
   --sunett-font-note: ui-monospace, monospace;

@@ -16,6 +16,7 @@ export const highContrastTheme = defineTheme({
     background: "Canvas",
     string: "CanvasText",
     barline: "CanvasText",
+    rest: "CanvasText",
     accent: "LinkText",
   },
   sizing: {

@@ -1,46 +1,18 @@
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
-import type { Beat } from "../../types/beats/beat";
-import type { Measure } from "../../types/measure";
-import type { Note } from "../../types/note";
-import type { MeasureBounds } from "../../types/UI/measureBounds";
-import type { BeatLayout } from "../../types/UI/noteLayout";
 import type { NoteRenderContext } from "../../types/UI/noteRenderContext";
-import type { normalizeOptions } from "./tabsOptionsNormalizer";
-import type { NoteMetrics } from "./noteMetrics";
+import type {
+  NoteRenderRequest,
+  NotesRenderRequest,
+  PositionedNoteRender,
+} from "../../types/UI/notesRender";
+import { renderNoteEffects } from "./noteEffectsRenderer";
+import {
+  noteLabel,
+  renderNoteElement,
+  resolveGlyphWidth,
+} from "./noteRendering/noteElementRenderer";
+import { createNoteSvgElement } from "./noteRendering/noteSvg";
 import { stringDisplayRow } from "./stringOrder";
-import { ThemeVariables, themeVar } from "../../theme/variables";
-
-const SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
-
-type NoteConfig = ReturnType<typeof normalizeOptions>["notes"];
-
-type NotesRenderRequest = {
-  parent: SVGGElement;
-  measure: Measure;
-  measureIndex: number;
-  beatLayouts: BeatLayout[];
-  bounds: MeasureBounds;
-  stringCount: number;
-  invertStrings?: boolean;
-  reverseStrings?: boolean;
-  config: NoteConfig;
-  metrics: NoteMetrics;
-};
-
-type NoteRenderRequest = {
-  parent: SVGGElement;
-  measure: Measure;
-  measureIndex: number;
-  beat: Beat;
-  beatLayout: BeatLayout;
-  note: Note;
-  bounds: MeasureBounds;
-  stringCount: number;
-  invertStrings: boolean;
-  reverseStrings: boolean;
-  config: NoteConfig;
-  metrics: NoteMetrics;
-};
 
 export function renderMeasureNotes(request: NotesRenderRequest) {
   const {
@@ -54,16 +26,19 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     reverseStrings = false,
     config,
     metrics,
+    previousNotes = [],
   } = request;
+  const notes: NoteRenderRequest[] = [];
 
-  for (const beatLayout of beatLayouts) {
-    const voice = measure.voices[beatLayout.voiceIndex];
-    const beat = voice?.beats[beatLayout.beatIndex];
+  beatLayouts.forEach((beatLayout) => {
+    const beat =
+      measure.voices[beatLayout.voiceIndex]?.beats[beatLayout.beatIndex];
     if (!beat || beat.status === "Rest") {
-      continue;
+      return;
     }
-    for (const note of beat.notes) {
-      renderNote({
+
+    beat.notes.forEach((note) => {
+      const noteRequest: NoteRenderRequest = {
         parent,
         measure,
         measureIndex,
@@ -76,14 +51,44 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
         reverseStrings,
         config,
         metrics,
-      });
+      };
+      if (isRenderableNote(noteRequest)) {
+        notes.push(noteRequest);
+      }
+    });
+  });
+
+  const positionedNotes = notes.map(positionNote);
+  positionedNotes.forEach(({ request: noteRequest, context }, index) => {
+    if (!isInternalTie(positionedNotes, index)) {
+      renderNoteElement(noteRequest, context);
     }
-  }
+  });
+  renderNoteEffects({
+    parent,
+    notes: positionedNotes.map(({ context, width, glyphWidth }) => ({
+      context,
+      width,
+      glyphWidth,
+    })),
+    classPrefix: config.classPrefix,
+    spanY:
+      bounds.y +
+      constants.MEASURE_TOP_PADDING -
+      constants.NOTE_EFFECT_SPAN_OFFSET,
+    staffTop: bounds.y + constants.MEASURE_TOP_PADDING,
+    previousNotes,
+  });
+
+  return positionedNotes.map(({ context, width, glyphWidth }) => ({
+    context,
+    width,
+    glyphWidth,
+  }));
 }
 
-function renderNote(request: NoteRenderRequest) {
+function positionNote(request: NoteRenderRequest): PositionedNoteRender {
   const {
-    parent,
     measure,
     measureIndex,
     beat,
@@ -96,14 +101,6 @@ function renderNote(request: NoteRenderRequest) {
     config,
     metrics,
   } = request;
-
-  if (note.kind === "Rest") {
-    return;
-  }
-  if (note.string < 0 || note.string >= stringCount) {
-    return;
-  }
-
   const stringRow = stringDisplayRow(
     note.string,
     stringCount,
@@ -112,7 +109,6 @@ function renderNote(request: NoteRenderRequest) {
   );
   const y =
     bounds.y + constants.MEASURE_TOP_PADDING + stringRow * bounds.stringSpacing;
-
   const context: NoteRenderContext = {
     note,
     beat,
@@ -123,131 +119,36 @@ function renderNote(request: NoteRenderRequest) {
     x: beatLayout.x,
     y,
     fontSize: metrics.fontSize,
-    createElement: createSvgElement,
+    createElement: createNoteSvgElement,
   };
-
-  const customElement = config.render?.(context);
-  if (customElement) {
-    attachInteractions(customElement, context, config);
-    parent.append(customElement);
-    return;
-  }
-
-  const noteGroup = buildDefaultNote(context, config, metrics);
-  config.onCreate?.(noteGroup, context);
-  attachInteractions(noteGroup, context, config);
-  parent.append(noteGroup);
-}
-
-function buildDefaultNote(
-  context: NoteRenderContext,
-  config: NoteConfig,
-  metrics: NoteMetrics,
-): SVGGElement {
-  const { note, x, y, fontSize } = context;
-  const prefix = config.classPrefix;
-  const group = context.createElement("g");
-
-  const modifiers = modifierClasses(note, prefix);
-  const className = modifiers ? `${prefix} ${modifiers}` : prefix;
-
-  group.setAttribute("class", className);
-  group.setAttribute("x", `${x}`);
-  group.setAttribute("y", `${y}`);
-  group.setAttribute("data-fret", `${note.value}`);
-  group.setAttribute("data-string", `${note.string}`);
-  group.setAttribute("data-kind", note.kind);
-  group.setAttribute("data-beat-index", `${context.beatIndex}`);
-  group.setAttribute("data-measure-index", `${context.measureIndex}`);
-  group.setAttribute("data-voice-index", `${context.voiceIndex}`);
-
-  const label = noteLabel(note);
-  const glyphWidth = Math.max(
-    metrics.backgroundHeight,
-    label.length * fontSize * constants.NOTE_GLYPH_WIDTH_RATIO +
-      config.paddingX * 2,
+  const glyphWidth = resolveGlyphWidth(
+    noteLabel(note),
+    context.fontSize,
+    config,
+    metrics,
   );
 
-  if (config.background) {
-    const bg = context.createElement("rect");
-    bg.setAttribute("class", `${prefix}-bg`);
-    bg.setAttribute("fill", themeVar(ThemeVariables.COLOR_NOTE_BG));
-    bg.setAttribute("stroke", "none");
-    bg.setAttribute("x", `${x - glyphWidth / 2}`);
-    bg.setAttribute("y", `${y - metrics.backgroundHeight / 2}`);
-    bg.setAttribute("width", `${glyphWidth}`);
-    bg.setAttribute("height", `${metrics.backgroundHeight}`);
-    group.append(bg);
-  }
-
-  const text = context.createElement("text");
-  text.setAttribute("class", `${prefix}-text`);
-  text.setAttribute("fill", themeVar(ThemeVariables.COLOR_NOTE_FG));
-  text.setAttribute("font-family", themeVar(ThemeVariables.FONT_NOTE));
-  text.setAttribute("x", `${x}`);
-  text.setAttribute("y", `${y}`);
-  text.setAttribute("text-anchor", "middle");
-  text.setAttribute("dominant-baseline", "central");
-  text.setAttribute("font-size", `${fontSize}`);
-  text.textContent = label;
-  group.append(text);
-
-  return group;
+  return { request, context, width: beatLayout.width, glyphWidth };
 }
 
-function noteLabel(note: Note): string {
-  if (note.kind === "Dead") {
-    return "x";
+function isInternalTie(
+  notes: PositionedNoteRender[],
+  currentIndex: number,
+): boolean {
+  const current = notes[currentIndex].context;
+  if (current.note.kind !== "Tie") {
+    return false;
   }
-  return `${note.value}`;
-}
-
-function modifierClasses(note: Note, prefix: string): string {
-  const modifiers: string[] = [];
-  if (note.kind === "Dead") {
-    modifiers.push(`${prefix}--dead`);
-  }
-  if (note.kind === "Tie") {
-    modifiers.push(`${prefix}--tie`);
-  }
-  if (note.effect?.ghost_note) {
-    modifiers.push(`${prefix}--ghost`);
-  }
-  if (note.effect?.hammer) {
-    modifiers.push(`${prefix}--hammer`);
-  }
-  if (note.effect?.palm_mute) {
-    modifiers.push(`${prefix}--palm-mute`);
-  }
-  if (note.effect?.let_ring) {
-    modifiers.push(`${prefix}--let-ring`);
-  }
-  return modifiers.join(" ");
-}
-
-function attachInteractions(
-  element: SVGElement,
-  context: NoteRenderContext,
-  config: NoteConfig,
-) {
-  const { onClick, onPointerEnter, onPointerLeave } = config;
-
-  if (onClick) {
-    element.addEventListener("click", (event) => onClick(context, event));
-    element.setAttribute("cursor", "pointer");
-  }
-  if (onPointerEnter) {
-    element.addEventListener("pointerenter", (event) =>
-      onPointerEnter(context, event),
+  return notes.slice(0, currentIndex).some(({ context }) => {
+    return (
+      context.voiceIndex === current.voiceIndex &&
+      context.beatIndex === current.beatIndex - 1 &&
+      context.note.string === current.note.string
     );
-  }
-  if (onPointerLeave) {
-    element.addEventListener("pointerleave", (event) =>
-      onPointerLeave(context, event),
-    );
-  }
+  });
 }
 
-function createSvgElement<K extends keyof SVGElementTagNameMap>(tag: K) {
-  return document.createElementNS(SVG_NAMESPACE, tag);
+function isRenderableNote(request: NoteRenderRequest): boolean {
+  const { note, stringCount } = request;
+  return note.kind !== "Rest" && note.string >= 0 && note.string < stringCount;
 }

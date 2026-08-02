@@ -3,19 +3,22 @@ import type { Song } from "../../types/song";
 import type { Track } from "../../types/track";
 import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
+import type { RenderPass } from "../../types/UI/renderPass";
+import type { RepeatLine } from "../../types/UI/repeatLine";
 import type {
   TabRendererOptions,
   TabsRendererConfig,
 } from "../../types/UI/rendererOptions";
-import type { TabLayout } from "../../types/UI/tabLayout";
 
 import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
-import { calculateBeatLayouts } from "./notesLayout";
-import type { NoteMetrics } from "./noteMetrics";
+import { buildLyricsByMeasure } from "./lyricsLayout";
+import {
+  renderMeasureContent,
+  shouldRenderTimeSignature,
+} from "./measureContentRenderer";
 import { resolveNoteMetrics } from "./noteMetrics";
-import { renderMeasureNotes } from "./notesRenderer";
 import { buildNoteStyles } from "./notesStyles";
 import { visibleMeasureRange } from "./measureVisibility";
 import { shouldReverseStrings } from "./stringOrder";
@@ -26,25 +29,6 @@ import type { Theme } from "../../theme/theme";
 import { applyTheme, clearTheme, mergeThemes } from "../../theme/theme";
 import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
-
-type RepeatLine = {
-  className: string;
-  x: number;
-  top: number;
-  bottom: number;
-  width: number;
-};
-
-type RendererConfig = ReturnType<typeof normalizeOptions>;
-
-type RenderPass = {
-  layout: TabLayout;
-  config: RendererConfig;
-  metrics: NoteMetrics;
-  totalMeasures: number;
-  reverseStrings: boolean;
-  tuningLabels: string[];
-};
 
 export class TabsRenderer {
   private static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
@@ -143,6 +127,12 @@ export class TabsRenderer {
         totalMeasures: measures.length,
         reverseStrings,
         tuningLabels,
+        lyricsByMeasure: buildLyricsByMeasure(
+          this.song,
+          track,
+          resolvedTrackIndex,
+        ),
+        previousNotes: [],
       };
 
       measures.forEach((measureContext, index) => {
@@ -251,6 +241,8 @@ export class TabsRenderer {
     const stringsGroup = this.createSvgElement("g");
     const barlinesGroup = this.createSvgElement("g");
     const notesGroup = this.createSvgElement("g");
+    const rhythmGroup = this.createSvgElement("g");
+    const notationGroup = this.createSvgElement("g");
     const labelsGroup = this.createSvgElement("g");
 
     measureGroup.setAttribute("class", "measure");
@@ -265,6 +257,8 @@ export class TabsRenderer {
     stringsGroup.setAttribute("class", "measure-strings");
     barlinesGroup.setAttribute("class", "measure-barlines");
     notesGroup.setAttribute("class", "measure-notes");
+    rhythmGroup.setAttribute("class", "measure-rhythm");
+    notationGroup.setAttribute("class", "measure-notation");
     labelsGroup.setAttribute("class", "measure-labels");
 
     const bounds: MeasureBounds = {
@@ -275,6 +269,11 @@ export class TabsRenderer {
       stringSpacing: layout.stringSpacing,
       isLastMeasure,
     };
+    const showTimeSignature = shouldRenderTimeSignature(
+      measureContext,
+      isFirstMeasure,
+      this.song.measure_headers[measureContext.index - 1],
+    );
 
     this.renderMeasureIndex(labelsGroup, measureContext, x, y);
     this.renderStringLines(stringsGroup, bounds, layout.stringCount);
@@ -294,47 +293,41 @@ export class TabsRenderer {
       isRowStart,
       isFirstMeasure,
     );
-    this.renderNotes(notesGroup, measureContext, bounds, pass);
-
-    measureGroup.append(stringsGroup, barlinesGroup, notesGroup, labelsGroup);
-    svg.append(measureGroup);
-  }
-
-  private renderNotes(
-    parent: SVGGElement,
-    measureContext: MeasureContext,
-    bounds: MeasureBounds,
-    pass: RenderPass,
-  ) {
-    const { layout, config } = pass;
-    const startPadding = Math.min(
-      constants.MEASURE_CONTENT_PADDING_START,
-      bounds.width / 3,
-    );
-    const endPadding = Math.min(
-      constants.MEASURE_CONTENT_PADDING_END,
-      bounds.width / 3,
-    );
-    const contentWidth = Math.max(0, bounds.width - startPadding - endPadding);
-
-    const beatLayouts = calculateBeatLayouts(
-      measureContext.measure,
-      bounds.x + startPadding,
-      contentWidth,
-    );
-
-    renderMeasureNotes({
-      parent,
-      measure: measureContext.measure,
-      measureIndex: measureContext.index,
-      beatLayouts,
+    const previousNotes =
+      pass.previousMeasureIndex === measureContext.index - 1 &&
+      pass.previousMeasureRow === measureLayout.row
+        ? pass.previousNotes
+        : [];
+    pass.previousNotes = previousNotes;
+    const positionedNotes = renderMeasureContent({
+      notesParent: notesGroup,
+      rhythmParent: rhythmGroup,
+      notationParent: notationGroup,
+      measureContext,
       bounds,
       stringCount: layout.stringCount,
-      invertStrings: config.invertStrings,
+      invertStrings: pass.config.invertStrings,
       reverseStrings: pass.reverseStrings,
-      config: config.notes,
-      metrics: pass.metrics,
+      noteConfig: pass.config.notes,
+      noteMetrics: pass.metrics,
+      previousNotes: pass.previousNotes,
+      showTimeSignature,
+      lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
     });
+
+    measureGroup.append(
+      stringsGroup,
+      barlinesGroup,
+      notesGroup,
+      rhythmGroup,
+      notationGroup,
+      labelsGroup,
+    );
+    svg.append(measureGroup);
+
+    pass.previousMeasureIndex = measureContext.index;
+    pass.previousMeasureRow = measureLayout.row;
+    pass.previousNotes = positionedNotes;
   }
 
   private renderMeasureIndex(
@@ -629,7 +622,10 @@ export class TabsRenderer {
     text.setAttribute("font-size", themeVar(ThemeVariables.FONT_LABEL_SIZE));
   }
 
-  private renderDefaultStyles(svg: SVGSVGElement, config: RendererConfig) {
+  private renderDefaultStyles(
+    svg: SVGSVGElement,
+    config: RenderPass["config"],
+  ) {
     if (!config.notes.defaultStyles) {
       return;
     }

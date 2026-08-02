@@ -12,6 +12,7 @@ export type ThemeColors = {
   /** Per displayed string-row colors. `0` is the top string line. */
   stringByIndex?: Readonly<Record<number, string>>;
   barline?: string;
+  rest?: string;
   accent?: string;
 };
 
@@ -91,6 +92,7 @@ const COLOR_VARIABLES: Record<keyof ThemeVariableColors, ThemeVariable> = {
   background: ThemeVariables.COLOR_BG,
   string: ThemeVariables.COLOR_STRING,
   barline: ThemeVariables.COLOR_BARLINE,
+  rest: ThemeVariables.COLOR_REST,
   accent: ThemeVariables.COLOR_ACCENT,
 };
 
