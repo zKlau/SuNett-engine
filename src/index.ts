@@ -1,6 +1,24 @@
 export { TabsRenderer } from "./utils/tabs/tabsRenderer";
 export { SongHelper } from "./utils/songHelper";
 
+export { SunettEngine } from "./engine/sunettEngine";
+export type { SunettEngineConfig } from "./engine/sunettEngine";
+export type {
+  SelectionInputOptions,
+  SelectionRange,
+} from "./engine/selectionInput";
+export { SnapMode } from "./utils/timing/snapTime";
+export { computeSongHash } from "./utils/song/songHash";
+export type {
+  Selection,
+  SelectionInput,
+  SelectionUpdate,
+  SelectionDraftUpdate,
+  SelectionStore,
+  SelectionEventMap,
+  SelectionSource,
+} from "./types/selection";
+
 export { defineTheme, mergeThemes } from "./theme/theme";
 export { coerceTheme } from "./theme/resolveTheme";
 export { ThemePresets } from "./theme/presets";

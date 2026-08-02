@@ -1,29 +1,27 @@
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import type { Song } from "../../types/song";
 import type { Track } from "../../types/track";
-import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
 import type { RenderPass } from "../../types/UI/renderPass";
-import type { RepeatLine } from "../../types/UI/repeatLine";
 import type {
   TabRendererOptions,
   TabsRendererConfig,
 } from "../../types/UI/rendererOptions";
+import type { Selection } from "../../types/selection";
 
-import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
+import { buildSongTimeline } from "../timing/measureTimeline";
+import type { SnapMode } from "../timing/snapTime";
+import { TabInteraction } from "./tabInteraction";
+import { renderMeasure } from "./measureRenderer";
+import { createSvgElement } from "./svg";
 import { buildLyricsByMeasure } from "./lyricsLayout";
-import {
-  renderMeasureContent,
-  shouldRenderTimeSignature,
-} from "./measureContentRenderer";
 import { resolveNoteMetrics } from "./noteMetrics";
 import { buildNoteStyles } from "./notesStyles";
 import { visibleMeasureRange } from "./measureVisibility";
 import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
-import type { ThemeVariable } from "../../theme/variables";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 import type { Theme } from "../../theme/theme";
 import { applyTheme, clearTheme, mergeThemes } from "../../theme/theme";
@@ -31,16 +29,18 @@ import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
 
 export class TabsRenderer {
-  private static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
-
   private song: Song;
   private currentTheme: Theme;
   private lastRequest?: { trackIndex: number; options: TabRendererOptions };
+  private currentRender?: () => void;
+  private lastSvg?: SVGSVGElement;
+  private readonly interaction: TabInteraction;
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
 
   constructor(song: Song, config: TabsRendererConfig = {}) {
     this.song = song;
     this.currentTheme = coerceTheme(config.theme);
+    this.interaction = new TabInteraction(config.selections);
   }
 
   getTracks(): Track[] {
@@ -78,6 +78,7 @@ export class TabsRenderer {
     }
 
     this.rendererCleanups.get(svg)?.();
+    this.lastSvg = svg;
 
     if (options.theme !== undefined) {
       this.currentTheme = coerceTheme(options.theme);
@@ -92,6 +93,10 @@ export class TabsRenderer {
       return;
     }
 
+    const activeTrackIndex = this.song.tracks[resolvedTrackIndex]
+      ? resolvedTrackIndex
+      : 0;
+
     const allMeasures = this.getMeasureContexts(track);
     const measures = config.hideEmptyMeasures
       ? visibleMeasureRange(allMeasures)
@@ -103,6 +108,7 @@ export class TabsRenderer {
     }
 
     const layoutCalculation = new LayoutCalculation(track, config);
+    const timeline = buildSongTimeline(this.song, track);
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
       const svgWidth = parentWidth || config.defaultMeasureWidth;
@@ -121,6 +127,8 @@ export class TabsRenderer {
       this.renderDefaultStyles(svg, config);
 
       const pass: RenderPass = {
+        song: this.song,
+        stringByIndex: this.currentTheme.stringByIndex,
         layout,
         config,
         metrics: resolveNoteMetrics(config.notes, layout.stringSpacing),
@@ -136,7 +144,15 @@ export class TabsRenderer {
       };
 
       measures.forEach((measureContext, index) => {
-        this.renderMeasure(svg, measureContext, index, pass);
+        renderMeasure(svg, measureContext, index, pass);
+      });
+
+      this.interaction.update({
+        svg,
+        layout,
+        measures,
+        timeline,
+        trackIndex: activeTrackIndex,
       });
 
       svg.setAttribute("width", `${width}`);
@@ -145,6 +161,7 @@ export class TabsRenderer {
       svg.setAttribute("role", "img");
     };
 
+    this.currentRender = render;
     render();
 
     const resizeObserver = new ResizeObserver(render);
@@ -159,13 +176,70 @@ export class TabsRenderer {
     return cleanup;
   }
 
+  /** Redraws the last rendered tab, e.g. after its selections change. */
+  rerender(): void {
+    this.currentRender?.();
+  }
+
+  /** The `<svg>` of the last render, or `undefined` before the first render. */
+  getElement(): SVGSVGElement | undefined {
+    return this.lastSvg;
+  }
+
+  /** Index of the track drawn by the last render. */
+  getActiveTrackIndex(): number {
+    return this.interaction.getActiveTrackIndex();
+  }
+
+  /**
+   * Quantises a time in ms to the beat or measure grid of the rendered song.
+   * @param ms The time to snap.
+   * @param mode `"Beat"`, `"Measure"`, or `"None"` (returns `ms` unchanged).
+   * @returns The snapped time, or `ms` if nothing has been rendered yet.
+   */
+  snapTime(ms: number, mode: SnapMode): number {
+    return this.interaction.snapTime(ms, mode);
+  }
+
+  /**
+   * The song time, in milliseconds, at a screen point. Use with a pointer
+   * event's `clientX`/`clientY` to map a click or drag to a selection time.
+   * @param clientX Screen x in CSS pixels.
+   * @param clientY Screen y in CSS pixels.
+   * @returns The time in ms, or `undefined` if the point is off the tab.
+   */
+  timeAtPoint(clientX: number, clientY: number): number | undefined {
+    return this.interaction.timeAtPoint(clientX, clientY);
+  }
+
+  /**
+   * The selection drawn under a screen point, if any (topmost wins).
+   * @param clientX Screen x in CSS pixels.
+   * @param clientY Screen y in CSS pixels.
+   * @returns The selection under the point, or `undefined`.
+   */
+  selectionAt(clientX: number, clientY: number): Selection | undefined {
+    return this.interaction.selectionAt(clientX, clientY);
+  }
+
+  /**
+   * Tears down the last render: disconnects its `ResizeObserver` and clears the
+   * theme variables scoped to the target `<svg>`.
+   */
+  dispose(): void {
+    if (this.lastSvg) {
+      this.rendererCleanups.get(this.lastSvg)?.();
+      this.rendererCleanups.delete(this.lastSvg);
+    }
+  }
+
   private applyThemeVariables(svg: SVGSVGElement) {
     clearTheme(svg);
     applyTheme(this.currentTheme, svg);
   }
 
   private renderBackground(svg: SVGSVGElement, width: number, height: number) {
-    const rect = this.createSvgElement("rect");
+    const rect = createSvgElement("rect");
     rect.setAttribute("class", "tab-background");
     rect.setAttribute("x", "0");
     rect.setAttribute("y", "0");
@@ -173,6 +247,25 @@ export class TabsRenderer {
     rect.setAttribute("height", `${height}`);
     rect.setAttribute("fill", themeVar(ThemeVariables.COLOR_BG));
     svg.append(rect);
+  }
+
+  private renderDefaultStyles(
+    svg: SVGSVGElement,
+    config: RenderPass["config"],
+  ) {
+    if (!config.notes.defaultStyles) {
+      return;
+    }
+
+    const style = createSvgElement("style");
+    style.textContent = buildNoteStyles(config.notes.classPrefix);
+    svg.append(style);
+  }
+
+  private clearSvg(svg: SVGSVGElement) {
+    while (svg.firstChild) {
+      svg.firstChild.remove();
+    }
   }
 
   private findSvgElement(target: string | SVGSVGElement) {
@@ -193,455 +286,5 @@ export class TabsRenderer {
         this.song.measure_headers[measure.header_index],
       index,
     }));
-  }
-
-  private renderTempo(parent: SVGGElement, bounds: MeasureBounds) {
-    if (this.song.hide_tempo || !Number.isFinite(this.song.tempo)) {
-      return;
-    }
-
-    const tempo = this.createSvgElement("text");
-
-    tempo.setAttribute("class", "tempo");
-    this.applyLabelDefaults(tempo);
-    tempo.setAttribute(
-      "x",
-      `${bounds.x + constants.MEASURE_CONTENT_PADDING_START * 2}`,
-    );
-    tempo.setAttribute(
-      "y",
-      `${bounds.y + constants.MEASURE_TOP_PADDING - constants.MEASURE_INDEX_OFFSET}`,
-    );
-    tempo.textContent = `${this.song.tempo} BPM`;
-
-    parent.append(tempo);
-  }
-
-  private renderMeasure(
-    svg: SVGSVGElement,
-    measureContext: MeasureContext,
-    index: number,
-    pass: RenderPass,
-  ) {
-    const { layout, totalMeasures } = pass;
-    const measureLayout = layout.measureLayouts[index];
-
-    if (!measureLayout) {
-      return;
-    }
-
-    const previousLayout = layout.measureLayouts[index - 1];
-    const isRowStart =
-      !previousLayout || previousLayout.row !== measureLayout.row;
-    const isFirstMeasure = index === 0;
-    const isLastMeasure = index === totalMeasures - 1;
-
-    const { x, y, width } = measureLayout;
-    const measureGroup = this.createSvgElement("g");
-    const stringsGroup = this.createSvgElement("g");
-    const barlinesGroup = this.createSvgElement("g");
-    const notesGroup = this.createSvgElement("g");
-    const rhythmGroup = this.createSvgElement("g");
-    const notationGroup = this.createSvgElement("g");
-    const labelsGroup = this.createSvgElement("g");
-
-    measureGroup.setAttribute("class", "measure");
-    measureGroup.setAttribute("measure-index", `${measureContext.index}`);
-    measureGroup.setAttribute(
-      "measure-number",
-      `${measureContext.measure.number}`,
-    );
-    measureGroup.setAttribute("x", `${x}`);
-    measureGroup.setAttribute("y", `${y}`);
-
-    stringsGroup.setAttribute("class", "measure-strings");
-    barlinesGroup.setAttribute("class", "measure-barlines");
-    notesGroup.setAttribute("class", "measure-notes");
-    rhythmGroup.setAttribute("class", "measure-rhythm");
-    notationGroup.setAttribute("class", "measure-notation");
-    labelsGroup.setAttribute("class", "measure-labels");
-
-    const bounds: MeasureBounds = {
-      x,
-      y,
-      width,
-      height: layout.measureHeight,
-      stringSpacing: layout.stringSpacing,
-      isLastMeasure,
-    };
-    const showTimeSignature = shouldRenderTimeSignature(
-      measureContext,
-      isFirstMeasure,
-      this.song.measure_headers[measureContext.index - 1],
-    );
-
-    this.renderMeasureIndex(labelsGroup, measureContext, x, y);
-    this.renderStringLines(stringsGroup, bounds, layout.stringCount);
-    if (isFirstMeasure) {
-      this.renderTempo(labelsGroup, bounds);
-      this.renderTuningLabels(
-        labelsGroup,
-        bounds,
-        pass.tuningLabels,
-        layout.stringCount,
-      );
-    }
-    this.renderRepeatLines(
-      barlinesGroup,
-      measureContext,
-      bounds,
-      isRowStart,
-      isFirstMeasure,
-    );
-    const previousNotes =
-      pass.previousMeasureIndex === measureContext.index - 1 &&
-      pass.previousMeasureRow === measureLayout.row
-        ? pass.previousNotes
-        : [];
-    pass.previousNotes = previousNotes;
-    const positionedNotes = renderMeasureContent({
-      notesParent: notesGroup,
-      rhythmParent: rhythmGroup,
-      notationParent: notationGroup,
-      measureContext,
-      bounds,
-      stringCount: layout.stringCount,
-      invertStrings: pass.config.invertStrings,
-      reverseStrings: pass.reverseStrings,
-      noteConfig: pass.config.notes,
-      noteMetrics: pass.metrics,
-      previousNotes: pass.previousNotes,
-      showTimeSignature,
-      lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
-    });
-
-    measureGroup.append(
-      stringsGroup,
-      barlinesGroup,
-      notesGroup,
-      rhythmGroup,
-      notationGroup,
-      labelsGroup,
-    );
-    svg.append(measureGroup);
-
-    pass.previousMeasureIndex = measureContext.index;
-    pass.previousMeasureRow = measureLayout.row;
-    pass.previousNotes = positionedNotes;
-  }
-
-  private renderMeasureIndex(
-    parent: SVGGElement,
-    measureContext: MeasureContext,
-    measureX: number,
-    measureY: number,
-  ) {
-    const measureIndex = this.createSvgElement("text");
-
-    measureIndex.setAttribute("class", "measure-index");
-    this.applyLabelDefaults(measureIndex);
-    measureIndex.setAttribute("x", `${measureX}`);
-    measureIndex.setAttribute(
-      "y",
-      `${measureY + constants.MEASURE_TOP_PADDING - constants.MEASURE_INDEX_OFFSET}`,
-    );
-    measureIndex.textContent = `${measureContext.index + 1}`;
-
-    parent.append(measureIndex);
-  }
-
-  private renderTuningLabels(
-    parent: SVGGElement,
-    bounds: MeasureBounds,
-    tuningLabels: string[],
-    stringCount: number,
-  ) {
-    for (let stringIndex = 0; stringIndex < stringCount; stringIndex += 1) {
-      const label = tuningLabels[stringIndex];
-      if (!label) {
-        continue;
-      }
-
-      const tuningLabel = this.createSvgElement("text");
-      const y =
-        bounds.y +
-        constants.MEASURE_TOP_PADDING +
-        stringIndex * bounds.stringSpacing;
-
-      tuningLabel.setAttribute("class", "tuning-label");
-      this.applyLabelDefaults(tuningLabel);
-      tuningLabel.setAttribute("string-index", `${stringIndex}`);
-      tuningLabel.setAttribute(
-        "x",
-        `${bounds.x - constants.TUNING_LABEL_OFFSET}`,
-      );
-      tuningLabel.setAttribute("y", `${y}`);
-      tuningLabel.setAttribute("text-anchor", "middle");
-      tuningLabel.setAttribute("dominant-baseline", "central");
-      tuningLabel.textContent = label;
-
-      parent.append(tuningLabel);
-    }
-  }
-
-  private renderStringLines(
-    parent: SVGGElement,
-    bounds: MeasureBounds,
-    stringCount: number,
-  ) {
-    for (let stringIndex = 0; stringIndex < stringCount; stringIndex += 1) {
-      const stringPath = this.createSvgElement("path");
-      const y =
-        bounds.y +
-        constants.MEASURE_TOP_PADDING +
-        stringIndex * bounds.stringSpacing;
-
-      stringPath.setAttribute("class", "string");
-      stringPath.setAttribute("string-index", `${stringIndex}`);
-      stringPath.setAttribute(
-        "d",
-        `M ${bounds.x} ${y} H ${bounds.x + bounds.width}`,
-      );
-      this.applyLineDefaults(
-        stringPath,
-        ThemeVariables.COLOR_STRING,
-        ThemeVariables.STRING_OPACITY,
-      );
-      const color = this.currentTheme.stringByIndex?.[stringIndex];
-      if (color !== undefined) {
-        stringPath.setAttribute("stroke", color);
-      }
-      stringPath.setAttribute(
-        "stroke-width",
-        themeVar(ThemeVariables.STRING_WIDTH),
-      );
-
-      parent.append(stringPath);
-    }
-  }
-
-  private renderRepeatLines(
-    parent: SVGGElement,
-    measureContext: MeasureContext,
-    bounds: MeasureBounds,
-    isRowStart: boolean,
-    isFirstMeasure: boolean,
-  ) {
-    const top = bounds.y + constants.MEASURE_TOP_PADDING;
-    const bottom = bounds.y + bounds.height - constants.MEASURE_BOTTOM_PADDING;
-    const leftX = bounds.x;
-    const rightX = bounds.x + bounds.width;
-
-    const header = measureContext.header;
-    const repeatCount = Math.max(0, header?.repeat_close ?? 0);
-    const openRepeat = header?.repeat_open ?? false;
-    const closeRepeat = repeatCount > 0;
-    const doubleBar = Boolean(
-      header?.double_bar || measureContext.measure.has_double_bar,
-    );
-    const finalBar = bounds.isLastMeasure && !closeRepeat;
-
-    if (isRowStart && !isFirstMeasure) {
-      this.appendRepeatLine(
-        parent,
-        this.measureBar("barline-start", leftX, top, bottom),
-      );
-    }
-
-    if (openRepeat) {
-      this.appendRepeatLine(
-        parent,
-        this.repeatLine(
-          "barline-repeat-open",
-          leftX + constants.REPEAT_BAR_GAP,
-          top,
-          bottom,
-        ),
-      );
-      this.appendRepeatDots(
-        parent,
-        leftX + constants.REPEAT_DOT_OFFSET,
-        top,
-        bottom,
-        bounds.stringSpacing,
-      );
-    }
-
-    const rightEdge =
-      finalBar || closeRepeat
-        ? this.repeatLine("barline-end", rightX, top, bottom)
-        : this.measureBar("barline-end", rightX, top, bottom);
-    this.appendRepeatLine(parent, rightEdge);
-
-    if (finalBar || doubleBar || closeRepeat) {
-      this.appendRepeatLine(
-        parent,
-        this.measureBar(
-          "barline-inner",
-          rightX - constants.REPEAT_BAR_GAP,
-          top,
-          bottom,
-        ),
-      );
-    }
-
-    if (closeRepeat) {
-      this.appendRepeatDots(
-        parent,
-        rightX - constants.REPEAT_DOT_OFFSET,
-        top,
-        bottom,
-        bounds.stringSpacing,
-      );
-
-      if (repeatCount > 1) {
-        this.appendRepeatCount(parent, repeatCount, rightX, top);
-      }
-    }
-  }
-
-  private measureBar(
-    modifier: string,
-    x: number,
-    top: number,
-    bottom: number,
-  ): RepeatLine {
-    return {
-      className: `barline ${modifier}`,
-      x,
-      top,
-      bottom,
-      width: constants.MEASURE_BAR_WIDTH,
-    };
-  }
-
-  private repeatLine(
-    modifier: string,
-    x: number,
-    top: number,
-    bottom: number,
-  ): RepeatLine {
-    return {
-      className: `barline ${modifier}`,
-      x,
-      top,
-      bottom,
-      width: constants.REPEAT_LINE_WIDTH,
-    };
-  }
-
-  private appendRepeatLine(parent: SVGGElement, line: RepeatLine) {
-    const path = this.createSvgElement("path");
-
-    path.setAttribute("class", line.className);
-    path.setAttribute("stroke-width", `${line.width}`);
-    path.setAttribute("d", `M ${line.x} ${line.top} V ${line.bottom}`);
-    this.applyLineDefaults(
-      path,
-      ThemeVariables.COLOR_BARLINE,
-      ThemeVariables.BARLINE_OPACITY,
-    );
-
-    parent.append(path);
-  }
-
-  private appendRepeatDots(
-    parent: SVGGElement,
-    x: number,
-    top: number,
-    bottom: number,
-    stringSpacing: number,
-  ) {
-    const radius = constants.REPEAT_DOT_RADIUS;
-    const maxOffset = Math.max(0.5, (bottom - top) / stringSpacing - 0.5);
-    const dotOffsets = [clamp(1.5, 0.5, maxOffset), clamp(3.5, 0.5, maxOffset)];
-    const dotYs = Array.from(new Set(dotOffsets)).map(
-      (offset) => top + stringSpacing * offset,
-    );
-
-    for (const cy of dotYs) {
-      const dot = this.createSvgElement("path");
-
-      dot.setAttribute("class", "repeat-dot");
-      dot.setAttribute("fill", themeVar(ThemeVariables.COLOR_BARLINE));
-      dot.setAttribute("stroke", "none");
-      dot.setAttribute(
-        "d",
-        [
-          `M ${x - radius} ${cy}`,
-          `a ${radius} ${radius} 0 1 0 ${radius * 2} 0`,
-          `a ${radius} ${radius} 0 1 0 ${-radius * 2} 0`,
-          "Z",
-        ].join(" "),
-      );
-
-      parent.append(dot);
-    }
-  }
-
-  private appendRepeatCount(
-    parent: SVGGElement,
-    repeatCount: number,
-    measureEndX: number,
-    firstStringY: number,
-  ) {
-    const repeatCountText = this.createSvgElement("text");
-
-    repeatCountText.setAttribute("class", "repeat-count");
-    this.applyLabelDefaults(repeatCountText);
-    repeatCountText.setAttribute(
-      "x",
-      `${measureEndX - constants.REPEAT_DOT_OFFSET - 4}`,
-    );
-    repeatCountText.setAttribute(
-      "y",
-      `${firstStringY - constants.MEASURE_INDEX_OFFSET}`,
-    );
-    repeatCountText.setAttribute("text-anchor", "end");
-    repeatCountText.textContent = `x${repeatCount}`;
-
-    parent.append(repeatCountText);
-  }
-
-  private applyLineDefaults(
-    path: SVGPathElement,
-    colorVariable: ThemeVariable,
-    opacityVariable: ThemeVariable,
-  ) {
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke", themeVar(colorVariable));
-    path.setAttribute("opacity", themeVar(opacityVariable));
-    path.setAttribute("stroke-linecap", "butt");
-    path.setAttribute("vector-effect", "non-scaling-stroke");
-    path.setAttribute("shape-rendering", "crispEdges");
-  }
-
-  private applyLabelDefaults(text: SVGTextElement) {
-    text.setAttribute("fill", themeVar(ThemeVariables.COLOR_MUTED));
-    text.setAttribute("font-family", themeVar(ThemeVariables.FONT_LABEL));
-    text.setAttribute("font-size", themeVar(ThemeVariables.FONT_LABEL_SIZE));
-  }
-
-  private renderDefaultStyles(
-    svg: SVGSVGElement,
-    config: RenderPass["config"],
-  ) {
-    if (!config.notes.defaultStyles) {
-      return;
-    }
-
-    const style = this.createSvgElement("style");
-    style.textContent = buildNoteStyles(config.notes.classPrefix);
-    svg.append(style);
-  }
-
-  private clearSvg(svg: SVGSVGElement) {
-    while (svg.firstChild) {
-      svg.firstChild.remove();
-    }
-  }
-
-  private createSvgElement<K extends keyof SVGElementTagNameMap>(tagName: K) {
-    return document.createElementNS(TabsRenderer.SVG_NAMESPACE, tagName);
   }
 }

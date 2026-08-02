@@ -86,4 +86,6 @@ export const TabsRendererConstants = {
   BEAT_TEXT_OFFSET: 62,
   LYRICS_OFFSET: 70,
   LYRICS_LINE_GAP: 15,
+  SELECTION_LABEL_OFFSET: 6,
+  SELECTION_MIN_WIDTH: 2,
 };
