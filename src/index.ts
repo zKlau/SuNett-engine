@@ -8,6 +8,7 @@ export type {
   Selection,
   SelectionInput,
   SelectionUpdate,
+  SelectionDraftUpdate,
   SelectionStore,
   SelectionEventMap,
   SelectionSource,

@@ -25,13 +25,14 @@ export function renderSelections(
 function renderRegion(region: SelectionRegion): SVGGElement {
   const color =
     region.selection.color ?? themeVar(ThemeVariables.COLOR_SELECTION);
+  const draft = region.draft === true;
   const group = createSvgElement("g");
 
-  group.setAttribute("class", "selection");
+  group.setAttribute("class", draft ? "selection selection-draft" : "selection");
   group.setAttribute("selection-id", region.selection.id);
 
   for (const rect of region.rects) {
-    group.append(renderRect(rect, color));
+    group.append(renderRect(rect, color, draft));
   }
 
   if (region.label) {
@@ -43,7 +44,7 @@ function renderRegion(region: SelectionRegion): SVGGElement {
   return group;
 }
 
-function renderRect(rect: Rect, color: string): SVGRectElement {
+function renderRect(rect: Rect, color: string, draft: boolean): SVGRectElement {
   const element = createSvgElement("rect");
 
   element.setAttribute("class", "selection-region");
@@ -56,7 +57,13 @@ function renderRect(rect: Rect, color: string): SVGRectElement {
     "fill-opacity",
     themeVar(ThemeVariables.SELECTION_OPACITY),
   );
-  element.setAttribute("stroke", "none");
+
+  if (draft) {
+    element.setAttribute("stroke", color);
+    element.setAttribute("stroke-dasharray", "4 3");
+  } else {
+    element.setAttribute("stroke", "none");
+  }
 
   return element;
 }

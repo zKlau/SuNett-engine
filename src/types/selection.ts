@@ -20,6 +20,9 @@ export type SelectionInput = Omit<Selection, "id" | "songId">;
 /** The mutable fields accepted when updating a selection. */
 export type SelectionUpdate = Partial<Omit<Selection, "id" | "songId">>;
 
+/** The fields accepted when updating the in-progress draft selection. */
+export type SelectionDraftUpdate = Partial<SelectionInput>;
+
 /** Adapter that persists and restores a song's selections. */
 export type SelectionStore = {
   /**
@@ -47,4 +50,6 @@ export type SelectionEventMap = {
 /** Supplies the selections a renderer draws as overlay regions. */
 export type SelectionSource = {
   getSelections(): Selection[];
+  /** The in-progress draft selection, drawn distinctly, if any. */
+  getDraftSelection?(): Selection | undefined;
 };

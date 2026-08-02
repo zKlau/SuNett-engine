@@ -90,6 +90,48 @@ describe("SunettEngine selections", () => {
     });
   });
 
+  describe("draft selection", () => {
+    it("holds a draft separate from the committed selections", async () => {
+      const engine = new SunettEngine();
+      await engine.loadSong(song("A"));
+
+      engine.beginDraftSelection(100, 200);
+
+      expect(engine.getDraftSelection()).toMatchObject({
+        startMs: 100,
+        endMs: 200,
+      });
+      expect(engine.getSelections()).toEqual([]);
+    });
+
+    it("commits a draft into a real selection and fires selectionAdded", async () => {
+      const engine = new SunettEngine();
+      await engine.loadSong(song("A"));
+      const added = jest.fn();
+      engine.on("selectionAdded", added);
+
+      engine.beginDraftSelection(100);
+      engine.updateDraftSelection({ endMs: 900, label: "loop" });
+      const committed = engine.commitDraftSelection();
+
+      expect(committed).toMatchObject({ startMs: 100, endMs: 900, label: "loop" });
+      expect(engine.getDraftSelection()).toBeUndefined();
+      expect(engine.getSelections()).toHaveLength(1);
+      expect(added).toHaveBeenCalledTimes(1);
+    });
+
+    it("cancels a draft without committing", async () => {
+      const engine = new SunettEngine();
+      await engine.loadSong(song("A"));
+
+      engine.beginDraftSelection(0, 500);
+      engine.cancelDraftSelection();
+
+      expect(engine.getDraftSelection()).toBeUndefined();
+      expect(engine.getSelections()).toEqual([]);
+    });
+  });
+
   describe("with a selection store", () => {
     function makeStore(initial: Selection[] = []) {
       const state = { saved: [] as Selection[] };

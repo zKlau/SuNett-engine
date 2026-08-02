@@ -118,4 +118,26 @@ describe("TabsRenderer selection overlay", () => {
 
     expect(svg.querySelectorAll(".selection")).toHaveLength(2);
   });
+
+  it("draws the draft selection with a distinct dashed style", () => {
+    document.body.innerHTML = '<div><svg id="tabs"></svg></div>';
+    const svg = document.querySelector("#tabs") as SVGSVGElement;
+    const draft: Selection = {
+      id: "draft",
+      songId: "song",
+      startMs: 0,
+      endMs: 1000,
+    };
+    new TabsRenderer(makeTimedSong(), {
+      selections: { getSelections: () => [], getDraftSelection: () => draft },
+    }).generateMeasures();
+
+    const draftGroup = svg.querySelector(".selection-draft");
+    expect(draftGroup).not.toBeNull();
+    expect(
+      draftGroup?.querySelector(".selection-region")?.getAttribute(
+        "stroke-dasharray",
+      ),
+    ).toBe("4 3");
+  });
 });

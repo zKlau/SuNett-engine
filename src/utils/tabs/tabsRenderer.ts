@@ -13,11 +13,18 @@ import type {
 import { clamp } from "../functions/clamp";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
-import type { SelectionSource } from "../../types/selection";
+import type { Selection, SelectionSource } from "../../types/selection";
 import type { SongTimeline } from "../timing/measureTimeline";
 import { buildSongTimeline } from "../timing/measureTimeline";
-import type { SelectionMeasure } from "../../selection/selectionRegions";
+import type {
+  SelectionLayoutContext,
+  SelectionMeasure,
+} from "../../selection/selectionRegions";
 import { computeSelectionRegions } from "../../selection/selectionRegions";
+import {
+  selectionAtPoint,
+  timeAtPoint,
+} from "../../selection/selectionHitTest";
 import { renderSelections } from "./selectionRenderer";
 import { createSvgElement } from "./svg";
 import { buildLyricsByMeasure } from "./lyricsLayout";
@@ -43,6 +50,7 @@ export class TabsRenderer {
   private lastRequest?: { trackIndex: number; options: TabRendererOptions };
   private currentRender?: () => void;
   private lastSvg?: SVGSVGElement;
+  private lastSelectionContext?: SelectionLayoutContext;
   private readonly selectionSource?: SelectionSource;
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
 
@@ -189,16 +197,45 @@ export class TabsRenderer {
     }
   }
 
+  /**
+   * The song time, in milliseconds, at a screen point. Use with a pointer
+   * event's `clientX`/`clientY` to map a click or drag to a selection time.
+   * @param clientX Screen x in CSS pixels.
+   * @param clientY Screen y in CSS pixels.
+   * @returns The time in ms, or `undefined` if the point is off the tab.
+   */
+  timeAtPoint(clientX: number, clientY: number): number | undefined {
+    const point = this.toUserSpace(clientX, clientY);
+    if (!point || !this.lastSelectionContext) {
+      return undefined;
+    }
+    return timeAtPoint(point, this.lastSelectionContext);
+  }
+
+  /**
+   * The selection drawn under a screen point, if any (topmost wins).
+   * @param clientX Screen x in CSS pixels.
+   * @param clientY Screen y in CSS pixels.
+   * @returns The selection under the point, or `undefined`.
+   */
+  selectionAt(clientX: number, clientY: number): Selection | undefined {
+    const point = this.toUserSpace(clientX, clientY);
+    if (!point || !this.lastSelectionContext) {
+      return undefined;
+    }
+    return selectionAtPoint(
+      point,
+      this.selectionSource?.getSelections() ?? [],
+      this.lastSelectionContext,
+    );
+  }
+
   private renderSelectionOverlay(
     svg: SVGSVGElement,
     layout: RenderPass["layout"],
     measures: MeasureContext[],
     timeline: SongTimeline,
   ) {
-    if (!this.selectionSource) {
-      return;
-    }
-
     const selectionMeasures: SelectionMeasure[] = [];
     measures.forEach((measureContext, index) => {
       const measureLayout = layout.measureLayouts[index];
@@ -210,20 +247,55 @@ export class TabsRenderer {
       }
     });
 
+    const context: SelectionLayoutContext = {
+      timeline,
+      measures: selectionMeasures,
+      measureHeight: layout.measureHeight,
+      topPadding: constants.MEASURE_TOP_PADDING,
+      bottomPadding: constants.MEASURE_BOTTOM_PADDING,
+      labelOffset: constants.SELECTION_LABEL_OFFSET,
+      minWidth: constants.SELECTION_MIN_WIDTH,
+    };
+    this.lastSelectionContext = context;
+
+    if (!this.selectionSource) {
+      return;
+    }
+
     const regions = computeSelectionRegions(
       this.selectionSource.getSelections(),
-      {
-        timeline,
-        measures: selectionMeasures,
-        measureHeight: layout.measureHeight,
-        topPadding: constants.MEASURE_TOP_PADDING,
-        bottomPadding: constants.MEASURE_BOTTOM_PADDING,
-        labelOffset: constants.SELECTION_LABEL_OFFSET,
-        minWidth: constants.SELECTION_MIN_WIDTH,
-      },
+      context,
     );
+    const draft = this.selectionSource.getDraftSelection?.();
+    const draftRegions = draft
+      ? computeSelectionRegions([draft], context).map((region) => ({
+          ...region,
+          draft: true,
+        }))
+      : [];
 
-    renderSelections(svg, regions);
+    renderSelections(svg, [...regions, ...draftRegions]);
+  }
+
+  private toUserSpace(
+    clientX: number,
+    clientY: number,
+  ): { x: number; y: number } | undefined {
+    const svg = this.lastSvg;
+    if (!svg || typeof svg.getScreenCTM !== "function") {
+      return undefined;
+    }
+
+    const matrix = svg.getScreenCTM();
+    if (!matrix) {
+      return undefined;
+    }
+
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const user = point.matrixTransform(matrix.inverse());
+    return { x: user.x, y: user.y };
   }
 
   private applyThemeVariables(svg: SVGSVGElement) {

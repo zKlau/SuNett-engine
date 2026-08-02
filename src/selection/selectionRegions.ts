@@ -29,6 +29,7 @@ export type SelectionRegion = {
   selection: Selection;
   rects: Rect[];
   label?: SelectionLabel;
+  draft?: boolean;
 };
 
 export function computeSelectionRegions(
@@ -66,21 +67,16 @@ function measureRect(
   if (!timing) {
     return undefined;
   }
-  if (selection.endMs <= timing.startMs || selection.startMs >= timing.endMs) {
+
+  const startMs = Math.min(selection.startMs, selection.endMs);
+  const endMs = Math.max(selection.startMs, selection.endMs);
+  if (endMs <= timing.startMs || startMs >= timing.endMs) {
     return undefined;
   }
 
   const duration = timing.durationMs > 0 ? timing.durationMs : 1;
-  const startFraction = clamp(
-    (selection.startMs - timing.startMs) / duration,
-    0,
-    1,
-  );
-  const endFraction = clamp(
-    (selection.endMs - timing.startMs) / duration,
-    0,
-    1,
-  );
+  const startFraction = clamp((startMs - timing.startMs) / duration, 0, 1);
+  const endFraction = clamp((endMs - timing.startMs) / duration, 0, 1);
 
   const x = layout.x + startFraction * layout.width;
   const rawWidth = (endFraction - startFraction) * layout.width;

@@ -106,4 +106,17 @@ describe("computeSelectionRegions", () => {
 
     expect(regions[0].label).toBeUndefined();
   });
+
+  it("normalises an inverted range so a leftward drag still renders", () => {
+    const forward = computeSelectionRegions(
+      [makeSelection({ startMs: 500, endMs: 1500 })],
+      makeContext(),
+    );
+    const inverted = computeSelectionRegions(
+      [makeSelection({ startMs: 1500, endMs: 500 })],
+      makeContext(),
+    );
+
+    expect(inverted[0].rects).toEqual(forward[0].rects);
+  });
 });

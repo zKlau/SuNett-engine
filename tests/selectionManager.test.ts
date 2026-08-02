@@ -128,4 +128,78 @@ describe("SelectionManager", () => {
 
     expect(manager.getSelections()).toHaveLength(1);
   });
+
+  describe("draft", () => {
+    it("tracks a draft without adding it to the committed set", () => {
+      const manager = makeManager("song-1");
+      const changed = jest.fn();
+      manager.on("selectionsChanged", changed);
+
+      manager.beginDraft(100, 200, { label: "loop" });
+
+      expect(manager.getDraftSelection()).toEqual({
+        id: "draft",
+        songId: "song-1",
+        startMs: 100,
+        endMs: 200,
+        label: "loop",
+      });
+      expect(manager.getSelections()).toEqual([]);
+      expect(changed).not.toHaveBeenCalled();
+    });
+
+    it("updates the draft in place", () => {
+      const manager = makeManager();
+      manager.beginDraft(100, 100);
+
+      manager.updateDraft({ endMs: 400 });
+
+      expect(manager.getDraftSelection()?.endMs).toBe(400);
+    });
+
+    it("commits the draft as a normalised selection and clears it", () => {
+      const manager = makeManager("song-1");
+      const added = jest.fn();
+      manager.on("selectionAdded", added);
+      manager.beginDraft(400, 100, { label: "loop" });
+
+      const committed = manager.commitDraft();
+
+      expect(committed).toMatchObject({
+        songId: "song-1",
+        startMs: 100,
+        endMs: 400,
+        label: "loop",
+      });
+      expect(committed?.id).not.toBe("draft");
+      expect(manager.getDraftSelection()).toBeUndefined();
+      expect(manager.getSelections()).toHaveLength(1);
+      expect(added).toHaveBeenCalledTimes(1);
+    });
+
+    it("cancels the draft without committing", () => {
+      const manager = makeManager();
+      manager.beginDraft(0, 100);
+
+      manager.cancelDraft();
+
+      expect(manager.getDraftSelection()).toBeUndefined();
+      expect(manager.getSelections()).toEqual([]);
+    });
+
+    it("commitDraft is a no-op when there is no draft", () => {
+      const manager = makeManager();
+
+      expect(manager.commitDraft()).toBeUndefined();
+    });
+
+    it("clears the draft on reset", () => {
+      const manager = makeManager("song-1");
+      manager.beginDraft(0, 100);
+
+      manager.reset("song-2", []);
+
+      expect(manager.getDraftSelection()).toBeUndefined();
+    });
+  });
 });

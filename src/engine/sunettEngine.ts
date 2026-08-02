@@ -2,6 +2,7 @@ import type { Song } from "../types/song";
 import type { Track } from "../types/track";
 import type {
   Selection,
+  SelectionDraftUpdate,
   SelectionEventMap,
   SelectionInput,
   SelectionStore,
@@ -168,6 +169,69 @@ export class SunettEngine {
    */
   setSelections(selections: Selection[]): void {
     this.selections.setSelections(selections);
+  }
+
+  /**
+   * Maps a screen point to a song time, for turning a click or drag into a
+   * selection time. Pass a pointer event's `clientX`/`clientY`.
+   * @param clientX Screen x in CSS pixels.
+   * @param clientY Screen y in CSS pixels.
+   * @returns The time in ms, or `undefined` if the point is off the tab.
+   */
+  timeAtPoint(clientX: number, clientY: number): number | undefined {
+    return this.renderer?.timeAtPoint(clientX, clientY);
+  }
+
+  /**
+   * Finds the selection drawn under a screen point, for hit-testing edits.
+   * @param clientX Screen x in CSS pixels.
+   * @param clientY Screen y in CSS pixels.
+   * @returns The selection under the point, or `undefined`.
+   */
+  selectionAt(clientX: number, clientY: number): Selection | undefined {
+    return this.renderer?.selectionAt(clientX, clientY);
+  }
+
+  /**
+   * Starts an in-progress draft selection, drawn distinctly but not yet
+   * committed. Typically called on pointer down.
+   * @param startMs The anchored start time in ms.
+   * @param endMs The initial end time in ms; defaults to `startMs`.
+   */
+  beginDraftSelection(startMs: number, endMs = startMs): void {
+    this.selections.beginDraft(startMs, endMs);
+    this.renderer?.rerender();
+  }
+
+  /**
+   * Updates the in-progress draft, e.g. as the pointer moves. No-op when there
+   * is no draft.
+   * @param updates The draft fields to change (typically `endMs`).
+   */
+  updateDraftSelection(updates: SelectionDraftUpdate): void {
+    this.selections.updateDraft(updates);
+    this.renderer?.rerender();
+  }
+
+  /**
+   * Commits the in-progress draft into a real selection, normalising its time
+   * range. Typically called on pointer up.
+   * @param extras Fields to merge in on commit, e.g. `label` or `color`.
+   * @returns The stored selection, or `undefined` if there was no draft.
+   */
+  commitDraftSelection(extras: SelectionDraftUpdate = {}): Selection | undefined {
+    return this.selections.commitDraft(extras);
+  }
+
+  /** Discards the in-progress draft without committing it. */
+  cancelDraftSelection(): void {
+    this.selections.cancelDraft();
+    this.renderer?.rerender();
+  }
+
+  /** The in-progress draft selection, if any. */
+  getDraftSelection(): Selection | undefined {
+    return this.selections.getDraftSelection();
   }
 
   /**
