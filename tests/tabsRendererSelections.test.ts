@@ -135,9 +135,9 @@ describe("TabsRenderer selection overlay", () => {
     const draftGroup = svg.querySelector(".selection-draft");
     expect(draftGroup).not.toBeNull();
     expect(
-      draftGroup?.querySelector(".selection-region")?.getAttribute(
-        "stroke-dasharray",
-      ),
+      draftGroup
+        ?.querySelector(".selection-region")
+        ?.getAttribute("stroke-dasharray"),
     ).toBe("4 3");
   });
 });

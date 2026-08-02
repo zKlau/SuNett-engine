@@ -51,10 +51,7 @@ export function selectionAtPoint(
   return undefined;
 }
 
-function measureAtX(
-  x: number,
-  measures: SelectionMeasure[],
-): SelectionMeasure {
+function measureAtX(x: number, measures: SelectionMeasure[]): SelectionMeasure {
   const containing = measures.find(
     (measure) =>
       x >= measure.layout.x && x <= measure.layout.x + measure.layout.width,

@@ -28,7 +28,10 @@ function renderRegion(region: SelectionRegion): SVGGElement {
   const draft = region.draft === true;
   const group = createSvgElement("g");
 
-  group.setAttribute("class", draft ? "selection selection-draft" : "selection");
+  group.setAttribute(
+    "class",
+    draft ? "selection selection-draft" : "selection",
+  );
   group.setAttribute("selection-id", region.selection.id);
 
   for (const rect of region.rects) {

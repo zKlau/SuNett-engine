@@ -14,9 +14,7 @@ function makeEngine() {
     snapTime: jest.fn((ms: number, _mode: string) => ms),
     beginDraftSelection: jest.fn(),
     updateDraftSelection: jest.fn(),
-    commitDraftSelection: jest.fn(
-      (): Selection | undefined => undefined,
-    ),
+    commitDraftSelection: jest.fn((): Selection | undefined => undefined),
     cancelDraftSelection: jest.fn(),
     removeSelection: jest.fn(),
     updateSelection: jest.fn(),
@@ -68,7 +66,9 @@ describe("attachSelectionInput", () => {
   it("commits a dragged range with onCreate extras", () => {
     const times = [0, 2000];
     const engine = makeEngine();
-    engine.timeAtPoint = jest.fn((_x: number, _y: number) => times.shift() ?? 2000);
+    engine.timeAtPoint = jest.fn(
+      (_x: number, _y: number) => times.shift() ?? 2000,
+    );
     const svg = makeSvg();
     attachSelectionInput(svg, engine, {
       onCreate: () => ({ label: "loop" }),
@@ -97,7 +97,9 @@ describe("attachSelectionInput", () => {
   it("scopes a created selection to the active track when trackScoped", () => {
     const times = [0, 2000];
     const engine = makeEngine();
-    engine.timeAtPoint = jest.fn((_x: number, _y: number) => times.shift() ?? 2000);
+    engine.timeAtPoint = jest.fn(
+      (_x: number, _y: number) => times.shift() ?? 2000,
+    );
     engine.getActiveTrackIndex = jest.fn(() => 3);
     const svg = makeSvg();
     attachSelectionInput(svg, engine, { trackScoped: true });

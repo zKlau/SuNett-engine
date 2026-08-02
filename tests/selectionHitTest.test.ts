@@ -67,9 +67,9 @@ describe("selectionAtPoint", () => {
   ];
 
   it("returns the selection under the point", () => {
-    expect(selectionAtPoint({ x: 25, y: 50 }, selections, makeContext())?.id).toBe(
-      "a",
-    );
+    expect(
+      selectionAtPoint({ x: 25, y: 50 }, selections, makeContext())?.id,
+    ).toBe("a");
   });
 
   it("returns undefined when no selection covers the point", () => {

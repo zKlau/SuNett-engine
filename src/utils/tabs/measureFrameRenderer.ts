@@ -64,7 +64,10 @@ export function renderTuningLabels(
     tuningLabel.setAttribute("class", "tuning-label");
     applyLabelDefaults(tuningLabel);
     tuningLabel.setAttribute("string-index", `${stringIndex}`);
-    tuningLabel.setAttribute("x", `${bounds.x - constants.TUNING_LABEL_OFFSET}`);
+    tuningLabel.setAttribute(
+      "x",
+      `${bounds.x - constants.TUNING_LABEL_OFFSET}`,
+    );
     tuningLabel.setAttribute("y", `${y}`);
     tuningLabel.setAttribute("text-anchor", "middle");
     tuningLabel.setAttribute("dominant-baseline", "central");

@@ -238,7 +238,9 @@ export class SunettEngine {
    * @param extras Fields to merge in on commit, e.g. `label` or `color`.
    * @returns The stored selection, or `undefined` if there was no draft.
    */
-  commitDraftSelection(extras: SelectionDraftUpdate = {}): Selection | undefined {
+  commitDraftSelection(
+    extras: SelectionDraftUpdate = {},
+  ): Selection | undefined {
     return this.selections.commitDraft(extras);
   }
 

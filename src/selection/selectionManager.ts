@@ -100,7 +100,11 @@ export class SelectionManager {
     return this.draft;
   }
 
-  beginDraft(startMs: number, endMs: number, extras: SelectionDraftUpdate = {}): void {
+  beginDraft(
+    startMs: number,
+    endMs: number,
+    extras: SelectionDraftUpdate = {},
+  ): void {
     this.draft = {
       ...extras,
       id: DRAFT_ID,

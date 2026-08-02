@@ -5,9 +5,7 @@ export function isSelectionVisible(
   activeTrackIndex: number,
 ): boolean {
   const scope = selection.trackIndex;
-  return (
-    scope === null || scope === undefined || scope === activeTrackIndex
-  );
+  return scope === null || scope === undefined || scope === activeTrackIndex;
 }
 
 export function visibleSelections(

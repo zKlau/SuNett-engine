@@ -64,7 +64,12 @@ export function renderBarlines(context: BarlineRenderContext): void {
   if (finalBar || doubleBar || closeRepeat) {
     appendRepeatLine(
       parent,
-      measureBar("barline-inner", rightX - constants.REPEAT_BAR_GAP, top, bottom),
+      measureBar(
+        "barline-inner",
+        rightX - constants.REPEAT_BAR_GAP,
+        top,
+        bottom,
+      ),
     );
   }
 

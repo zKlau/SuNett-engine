@@ -73,10 +73,20 @@ export function renderMeasure(
   );
 
   renderMeasureIndex(labelsGroup, measureContext, x, y);
-  renderStringLines(stringsGroup, bounds, layout.stringCount, pass.stringByIndex);
+  renderStringLines(
+    stringsGroup,
+    bounds,
+    layout.stringCount,
+    pass.stringByIndex,
+  );
   if (isFirstMeasure) {
     renderTempo(labelsGroup, bounds, pass.song);
-    renderTuningLabels(labelsGroup, bounds, pass.tuningLabels, layout.stringCount);
+    renderTuningLabels(
+      labelsGroup,
+      bounds,
+      pass.tuningLabels,
+      layout.stringCount,
+    );
   }
   renderBarlines({
     parent: barlinesGroup,

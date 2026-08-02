@@ -126,7 +126,10 @@ export function attachSelectionInput(
     const scoped = options.trackScoped
       ? { trackIndex: engine.getActiveTrackIndex() }
       : {};
-    engine.commitDraftSelection({ ...scoped, ...(options.onCreate?.(range) ?? {}) });
+    engine.commitDraftSelection({
+      ...scoped,
+      ...(options.onCreate?.(range) ?? {}),
+    });
   };
 
   const onPointerCancel = () => {

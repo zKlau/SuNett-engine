@@ -149,7 +149,11 @@ describe("SunettEngine selections", () => {
       engine.updateDraftSelection({ endMs: 900, label: "loop" });
       const committed = engine.commitDraftSelection();
 
-      expect(committed).toMatchObject({ startMs: 100, endMs: 900, label: "loop" });
+      expect(committed).toMatchObject({
+        startMs: 100,
+        endMs: 900,
+        label: "loop",
+      });
       expect(engine.getDraftSelection()).toBeUndefined();
       expect(engine.getSelections()).toHaveLength(1);
       expect(added).toHaveBeenCalledTimes(1);
