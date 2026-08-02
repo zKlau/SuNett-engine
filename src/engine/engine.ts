@@ -14,7 +14,9 @@ import { TabsRenderer } from "../utils/tabs/tabsRenderer";
 import { computeSongHash } from "../utils/song/songHash";
 
 export type EngineConfig = {
+  /** Initial theme: a preset name, a `ThemeInput`, or a built `Theme`. */
   theme?: ThemeLike;
+  /** Adapter used to persist and restore selections across sessions. */
   selectionStore?: SelectionStore;
 };
 
@@ -27,39 +29,53 @@ export class Engine {
   private readonly selections = new SelectionManager();
   private readonly store?: SelectionStore;
   private readonly theme?: ThemeLike;
+  private readonly unsubscribe: () => void;
   private renderer?: TabsRenderer;
-  private cleanup?: () => void;
+  private loadGeneration = 0;
   private loading = false;
 
   constructor(config: EngineConfig = {}) {
     this.theme = config.theme;
     this.store = config.selectionStore;
-    this.selections.on("selectionsChanged", (selections) =>
+    this.unsubscribe = this.selections.on("selectionsChanged", (selections) =>
       this.onSelectionsChanged(selections),
     );
   }
 
   /**
    * Loads a song: builds a renderer for it, clears any prior selections, and,
-   * when a `selectionStore` is configured, restores persisted selections.
+   * when a `selectionStore` is configured, restores persisted selections. A
+   * later `loadSong` supersedes an in-flight one, so its restored selections
+   * are discarded.
    * @param song The parsed song to render selections against.
    */
   async loadSong(song: Song): Promise<void> {
-    this.cleanup?.();
-    this.cleanup = undefined;
+    const generation = ++this.loadGeneration;
+    this.renderer?.dispose();
     this.renderer = new TabsRenderer(song, {
       theme: this.theme,
       selections: this.selections,
     });
 
     const songId = computeSongHash(song);
-    this.loading = true;
-    this.selections.reset(songId, []);
-    if (this.store) {
-      const restored = await this.store.load(songId);
-      this.selections.reset(songId, restored);
+    if (!this.store) {
+      this.selections.reset(songId, []);
+      return;
     }
-    this.loading = false;
+
+    this.loading = true;
+    try {
+      this.selections.reset(songId, []);
+      const restored = await this.store.load(songId);
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+      this.selections.reset(songId, restored);
+    } finally {
+      if (generation === this.loadGeneration) {
+        this.loading = false;
+      }
+    }
   }
 
   /**
@@ -69,7 +85,7 @@ export class Engine {
    * @param options Renderer options forwarded to `TabsRenderer`.
    */
   render(trackIndex = 0, options: TabRendererOptions = {}): void {
-    this.cleanup = this.renderer?.generateMeasures(trackIndex, options);
+    this.renderer?.generateMeasures(trackIndex, options);
   }
 
   /**
@@ -153,6 +169,17 @@ export class Engine {
    */
   setTheme(theme: ThemeLike): Theme | undefined {
     return this.renderer?.setTheme(theme);
+  }
+
+  /**
+   * Releases the engine's resources: tears down the renderer's
+   * `ResizeObserver` and stops listening for selection changes. Call this when
+   * the engine is no longer needed.
+   */
+  dispose(): void {
+    this.renderer?.dispose();
+    this.renderer = undefined;
+    this.unsubscribe();
   }
 
   private onSelectionsChanged(selections: Selection[]): void {

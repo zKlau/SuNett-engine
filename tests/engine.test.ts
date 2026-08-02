@@ -104,5 +104,55 @@ describe("Engine selections", () => {
 
       expect(store.save).toHaveBeenCalledWith(engine.getSongId(), [selection]);
     });
+
+    it("recovers so saves resume after a rejected load", async () => {
+      const store: SelectionStore = {
+        load: jest.fn(async () => {
+          throw new Error("load failed");
+        }),
+        save: jest.fn(async () => {}),
+      };
+      const engine = new Engine({ selectionStore: store });
+
+      await expect(engine.loadSong(song("A"))).rejects.toThrow("load failed");
+      const selection = engine.addSelection({ startMs: 0, endMs: 100 });
+
+      expect(store.save).toHaveBeenCalledWith(engine.getSongId(), [selection]);
+    });
+
+    it("lets a later load supersede an in-flight one", async () => {
+      const deferred: Array<(selections: Selection[]) => void> = [];
+      const store: SelectionStore = {
+        load: jest.fn(
+          () => new Promise<Selection[]>((resolve) => deferred.push(resolve)),
+        ),
+        save: jest.fn(async () => {}),
+      };
+      const engine = new Engine({ selectionStore: store });
+
+      const first = engine.loadSong(song("A"));
+      const second = engine.loadSong(song("B"));
+      const songB = engine.getSongId();
+
+      deferred[1]([{ id: "b", songId: "x", startMs: 0, endMs: 10 }]);
+      deferred[0]([{ id: "a", songId: "x", startMs: 0, endMs: 10 }]);
+      await Promise.all([first, second]);
+
+      expect(engine.getSongId()).toBe(songB);
+      expect(engine.getSelections()).toEqual([
+        { id: "b", songId: songB, startMs: 0, endMs: 10 },
+      ]);
+    });
+
+    it("stops saving after dispose", async () => {
+      const { store } = makeStore();
+      const engine = new Engine({ selectionStore: store });
+      await engine.loadSong(song("A"));
+
+      engine.dispose();
+      engine.addSelection({ startMs: 0, endMs: 100 });
+
+      expect(store.save).not.toHaveBeenCalled();
+    });
   });
 });

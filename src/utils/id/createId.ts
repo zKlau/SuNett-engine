@@ -8,5 +8,5 @@ export function createId(): string {
 
   counter += 1;
   const random = Math.floor(Math.random() * 0x1_0000_0000).toString(16);
-  return `sel-${counter.toString(16)}-${random}`;
+  return `${counter.toString(16)}-${random}`;
 }
