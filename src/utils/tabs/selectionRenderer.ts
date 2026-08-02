@@ -1,8 +1,7 @@
 import type { SelectionRegion } from "../../selection/selectionRegions";
 import type { Rect } from "../../types/UI/rect";
 import { ThemeVariables, themeVar } from "../../theme/variables";
-
-const SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
+import { createSvgElement } from "./svg";
 
 export function renderSelections(
   parent: SVGSVGElement,
@@ -12,7 +11,7 @@ export function renderSelections(
     return;
   }
 
-  const group = createElement("g");
+  const group = createSvgElement("g");
   group.setAttribute("class", "selections");
   group.setAttribute("pointer-events", "none");
 
@@ -26,7 +25,7 @@ export function renderSelections(
 function renderRegion(region: SelectionRegion): SVGGElement {
   const color =
     region.selection.color ?? themeVar(ThemeVariables.COLOR_SELECTION);
-  const group = createElement("g");
+  const group = createSvgElement("g");
 
   group.setAttribute("class", "selection");
   group.setAttribute("selection-id", region.selection.id);
@@ -45,7 +44,7 @@ function renderRegion(region: SelectionRegion): SVGGElement {
 }
 
 function renderRect(rect: Rect, color: string): SVGRectElement {
-  const element = createElement("rect");
+  const element = createSvgElement("rect");
 
   element.setAttribute("class", "selection-region");
   element.setAttribute("x", `${rect.x}`);
@@ -68,7 +67,7 @@ function renderLabel(
   text: string,
   color: string,
 ): SVGTextElement {
-  const label = createElement("text");
+  const label = createSvgElement("text");
 
   label.setAttribute("class", "selection-label");
   label.setAttribute("x", `${x}`);
@@ -79,10 +78,4 @@ function renderLabel(
   label.textContent = text;
 
   return label;
-}
-
-function createElement<Key extends keyof SVGElementTagNameMap>(
-  tagName: Key,
-): SVGElementTagNameMap[Key] {
-  return document.createElementNS(SVG_NAMESPACE, tagName);
 }

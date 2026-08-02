@@ -19,6 +19,7 @@ import { buildSongTimeline } from "../timing/measureTimeline";
 import type { SelectionMeasure } from "../../selection/selectionRegions";
 import { computeSelectionRegions } from "../../selection/selectionRegions";
 import { renderSelections } from "./selectionRenderer";
+import { createSvgElement } from "./svg";
 import { buildLyricsByMeasure } from "./lyricsLayout";
 import {
   renderMeasureContent,
@@ -37,12 +38,11 @@ import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
 
 export class TabsRenderer {
-  private static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg" as const;
-
   private song: Song;
   private currentTheme: Theme;
   private lastRequest?: { trackIndex: number; options: TabRendererOptions };
   private currentRender?: () => void;
+  private lastSvg?: SVGSVGElement;
   private readonly selectionSource?: SelectionSource;
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
 
@@ -87,6 +87,7 @@ export class TabsRenderer {
     }
 
     this.rendererCleanups.get(svg)?.();
+    this.lastSvg = svg;
 
     if (options.theme !== undefined) {
       this.currentTheme = coerceTheme(options.theme);
@@ -175,6 +176,17 @@ export class TabsRenderer {
   /** Redraws the last rendered tab, e.g. after its selections change. */
   rerender(): void {
     this.currentRender?.();
+  }
+
+  /**
+   * Tears down the last render: disconnects its `ResizeObserver` and clears the
+   * theme variables scoped to the target `<svg>`.
+   */
+  dispose(): void {
+    if (this.lastSvg) {
+      this.rendererCleanups.get(this.lastSvg)?.();
+      this.rendererCleanups.delete(this.lastSvg);
+    }
   }
 
   private renderSelectionOverlay(
@@ -697,6 +709,6 @@ export class TabsRenderer {
   }
 
   private createSvgElement<K extends keyof SVGElementTagNameMap>(tagName: K) {
-    return document.createElementNS(TabsRenderer.SVG_NAMESPACE, tagName);
+    return createSvgElement(tagName);
   }
 }
