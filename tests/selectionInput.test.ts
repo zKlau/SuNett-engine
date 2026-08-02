@@ -11,6 +11,7 @@ function makeEngine() {
       (_x: number, _y: number): Selection | undefined => undefined,
     ),
     getActiveTrackIndex: jest.fn((): number => 0),
+    snapTime: jest.fn((ms: number, _mode: string) => ms),
     beginDraftSelection: jest.fn(),
     updateDraftSelection: jest.fn(),
     commitDraftSelection: jest.fn(
@@ -78,6 +79,19 @@ describe("attachSelectionInput", () => {
 
     expect(engine.commitDraftSelection).toHaveBeenCalledWith({ label: "loop" });
     expect(engine.cancelDraftSelection).not.toHaveBeenCalled();
+  });
+
+  it("snaps drag times through the engine", () => {
+    const engine = makeEngine();
+    engine.timeAtPoint = jest.fn((_x: number, _y: number) => 1234);
+    engine.snapTime = jest.fn((_ms: number, _mode: string) => 1000);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { snap: "Beat" });
+
+    svg.dispatchEvent(pointer("pointerdown"));
+
+    expect(engine.snapTime).toHaveBeenCalledWith(1234, "Beat");
+    expect(engine.beginDraftSelection).toHaveBeenCalledWith(1000);
   });
 
   it("scopes a created selection to the active track when trackScoped", () => {

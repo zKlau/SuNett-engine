@@ -33,6 +33,13 @@ describe("SunettEngine selections", () => {
     expect(engine.getActiveTrackIndex()).toBe(0);
   });
 
+  it("snapTime returns the input unchanged before anything is rendered", async () => {
+    const engine = new SunettEngine();
+    await engine.loadSong(song("A"));
+
+    expect(engine.snapTime(1234, "Beat")).toBe(1234);
+  });
+
   it("fires the lifecycle events for each operation", async () => {
     const engine = new SunettEngine();
     await engine.loadSong(song("A"));

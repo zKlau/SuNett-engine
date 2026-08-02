@@ -16,6 +16,8 @@ import { LayoutCalculation } from "./layoutCalculation";
 import type { Selection, SelectionSource } from "../../types/selection";
 import type { SongTimeline } from "../timing/measureTimeline";
 import { buildSongTimeline } from "../timing/measureTimeline";
+import type { SnapMode } from "../timing/snapTime";
+import { snapTime } from "../timing/snapTime";
 import type {
   SelectionLayoutContext,
   SelectionMeasure,
@@ -52,6 +54,7 @@ export class TabsRenderer {
   private currentRender?: () => void;
   private lastSvg?: SVGSVGElement;
   private lastTrackIndex = 0;
+  private lastTimeline?: SongTimeline;
   private lastSelectionContext?: SelectionLayoutContext;
   private readonly selectionSource?: SelectionSource;
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
@@ -128,6 +131,7 @@ export class TabsRenderer {
 
     const layoutCalculation = new LayoutCalculation(track, config);
     const timeline = buildSongTimeline(this.song, track);
+    this.lastTimeline = timeline;
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
       const svgWidth = parentWidth || config.defaultMeasureWidth;
@@ -200,6 +204,19 @@ export class TabsRenderer {
   /** Index of the track drawn by the last render. */
   getActiveTrackIndex(): number {
     return this.lastTrackIndex;
+  }
+
+  /**
+   * Quantises a time in ms to the beat or measure grid of the rendered song.
+   * @param ms The time to snap.
+   * @param mode `"Beat"`, `"Measure"`, or `"None"` (returns `ms` unchanged).
+   * @returns The snapped time, or `ms` if nothing has been rendered yet.
+   */
+  snapTime(ms: number, mode: SnapMode): number {
+    if (!this.lastTimeline) {
+      return ms;
+    }
+    return snapTime(ms, mode, this.lastTimeline);
   }
 
   /**

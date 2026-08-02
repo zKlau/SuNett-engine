@@ -13,6 +13,10 @@ export type MeasureTiming = {
   startMs: number;
   endMs: number;
   durationMs: number;
+  /** Number of beats in the measure (the time-signature numerator). */
+  beatCount: number;
+  /** Duration of one beat in ms. */
+  beatDurationMs: number;
 };
 
 export type SongTimeline = {
@@ -28,11 +32,19 @@ export function buildSongTimeline(song: Song, track: Track): SongTimeline {
     const header =
       song.measure_headers[index] ?? song.measure_headers[measure.header_index];
     const tempo = resolveTempo(header?.tempo, song.tempo);
+    const beatCount = numeratorOf(measure);
     const durationMs = measureDurationMs(measure, tempo);
     const startMs = cursorMs;
     const endMs = startMs + durationMs;
 
-    measures.push({ index, startMs, endMs, durationMs });
+    measures.push({
+      index,
+      startMs,
+      endMs,
+      durationMs,
+      beatCount,
+      beatDurationMs: durationMs / beatCount,
+    });
     cursorMs = endMs;
   });
 

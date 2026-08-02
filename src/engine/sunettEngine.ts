@@ -13,6 +13,7 @@ import type { ThemeLike } from "../theme/resolveTheme";
 import type { Theme } from "../theme/theme";
 import type { SelectionInputOptions } from "./selectionInput";
 import { attachSelectionInput } from "./selectionInput";
+import type { SnapMode } from "../utils/timing/snapTime";
 import { SelectionManager } from "../selection/selectionManager";
 import { TabsRenderer } from "../utils/tabs/tabsRenderer";
 import { computeSongHash } from "../utils/song/songHash";
@@ -119,6 +120,16 @@ export class SunettEngine {
   /** Index of the track currently rendered; `0` before the first `render`. */
   getActiveTrackIndex(): number {
     return this.renderer?.getActiveTrackIndex() ?? 0;
+  }
+
+  /**
+   * Quantises a time in ms to the song's beat or measure grid.
+   * @param ms The time to snap.
+   * @param mode `"Beat"`, `"Measure"`, or `"None"` (returns `ms` unchanged).
+   * @returns The snapped time, or `ms` if no song is rendered.
+   */
+  snapTime(ms: number, mode: SnapMode): number {
+    return this.renderer?.snapTime(ms, mode) ?? ms;
   }
 
   /**

@@ -7,6 +7,7 @@ export type {
   SelectionInputOptions,
   SelectionRange,
 } from "./engine/selectionInput";
+export { SnapMode } from "./utils/timing/snapTime";
 export { computeSongHash } from "./utils/song/songHash";
 export type {
   Selection,

@@ -10,8 +10,22 @@ function makeContext(): SelectionLayoutContext {
     timeline: {
       durationMs: 4000,
       measures: [
-        { index: 0, startMs: 0, endMs: 2000, durationMs: 2000 },
-        { index: 1, startMs: 2000, endMs: 4000, durationMs: 2000 },
+        {
+          index: 0,
+          startMs: 0,
+          endMs: 2000,
+          durationMs: 2000,
+          beatCount: 4,
+          beatDurationMs: 500,
+        },
+        {
+          index: 1,
+          startMs: 2000,
+          endMs: 4000,
+          durationMs: 2000,
+          beatCount: 4,
+          beatDurationMs: 500,
+        },
       ],
     },
     measures: [

@@ -4,6 +4,7 @@ import "./style.css";
 import { parse_guitar_pro } from "sunett-parser";
 import type { Song } from "../../src/types/song.ts";
 import { SunettEngine } from "../../src/engine/sunettEngine.ts";
+import { SnapMode } from "../../src/utils/timing/snapTime.ts";
 import { ThemePresets } from "../../src/theme/presets/index.ts";
 import type { PresetTheme } from "../../src/theme/presets/index.ts";
 
@@ -31,19 +32,25 @@ async function main(filePath: string) {
     setupTrackPicker(engine);
     const scopeToggle = createScopeToggle();
 
-    engine.enableSelectionInput({
-      onCreate: () => ({
-        label: prompt("Selection label:") ?? "practice",
-        color: "#22c55e",
-        trackIndex: scopeToggle.checked ? engine.getActiveTrackIndex() : null,
-      }),
-      onEdit: (selection) => {
-        const label = prompt("New label:", selection.label ?? "");
-        return label === null ? undefined : { label };
-      },
-    });
+    const attachInput = (snap: SnapMode) => {
+      engine.enableSelectionInput({
+        snap,
+        onCreate: () => ({
+          label: prompt("Selection label:") ?? "practice",
+          color: "#22c55e",
+          trackIndex: scopeToggle.checked ? engine.getActiveTrackIndex() : null,
+        }),
+        onEdit: (selection) => {
+          const label = prompt("New label:", selection.label ?? "");
+          return label === null ? undefined : { label };
+        },
+      });
+    };
+
+    attachInput(SnapMode.None);
+    setupSnapPicker(attachInput);
     console.log(
-      "Drag to create, right-click to delete, double-click to rename. Toggle the checkbox to scope new selections to the active track or all tracks.",
+      "Drag to create, right-click to delete, double-click to rename. Use the pickers to switch track, scope, and snapping.",
     );
   } catch (e) {
     console.error("Parsing failed:", e);
@@ -64,6 +71,22 @@ function addDemoSelections(engine: SunettEngine) {
     color: "#f97316",
     trackIndex: TRACK_INDEX,
   });
+}
+
+function setupSnapPicker(onChange: (snap: SnapMode) => void) {
+  const select = document.createElement("select");
+  for (const mode of Object.keys(SnapMode) as SnapMode[]) {
+    const option = document.createElement("option");
+    option.value = mode;
+    option.textContent = `Snap: ${mode}`;
+    select.append(option);
+  }
+
+  select.addEventListener("change", () => {
+    onChange(select.value as SnapMode);
+  });
+
+  document.getElementById("themePicker")?.after(select);
 }
 
 function createScopeToggle(): HTMLInputElement {

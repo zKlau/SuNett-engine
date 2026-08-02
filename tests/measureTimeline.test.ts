@@ -34,6 +34,8 @@ describe("buildSongTimeline", () => {
       startMs: 0,
       endMs: 2000,
       durationMs: 2000,
+      beatCount: 4,
+      beatDurationMs: 500,
     });
     expect(timeline.durationMs).toBe(2000);
   });

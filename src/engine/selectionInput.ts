@@ -3,11 +3,13 @@ import type {
   SelectionDraftUpdate,
   SelectionUpdate,
 } from "../types/selection";
+import { SnapMode } from "../utils/timing/snapTime";
 
 type SelectionInputEngine = {
   timeAtPoint(clientX: number, clientY: number): number | undefined;
   selectionAt(clientX: number, clientY: number): Selection | undefined;
   getActiveTrackIndex(): number;
+  snapTime(ms: number, mode: SnapMode): number;
   beginDraftSelection(startMs: number, endMs?: number): void;
   updateDraftSelection(updates: SelectionDraftUpdate): void;
   commitDraftSelection(extras?: SelectionDraftUpdate): Selection | undefined;
@@ -34,6 +36,11 @@ export type SelectionInputOptions = {
    * tracks). `onCreate` can still override the `trackIndex`.
    */
   trackScoped?: boolean;
+  /**
+   * Quantises drag times to the beat or measure grid. Default `"None"` (free
+   * millisecond precision).
+   */
+  snap?: SnapMode;
   /**
    * Supplies label/color as a drag commits into a selection.
    * @param range The dragged time range.
@@ -67,16 +74,22 @@ export function attachSelectionInput(
 ): () => void {
   const createButton = options.createButton ?? DEFAULT_CREATE_BUTTON;
   const minDurationMs = options.minDurationMs ?? DEFAULT_MIN_DURATION_MS;
+  const snap = options.snap ?? SnapMode.None;
   const previousTouchAction = svg.style.touchAction;
   svg.style.touchAction = "none";
 
   let anchorMs: number | undefined;
 
+  const timeAt = (event: MouseEvent): number | undefined => {
+    const time = engine.timeAtPoint(event.clientX, event.clientY);
+    return time === undefined ? undefined : engine.snapTime(time, snap);
+  };
+
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== createButton) {
       return;
     }
-    const time = engine.timeAtPoint(event.clientX, event.clientY);
+    const time = timeAt(event);
     if (time === undefined) {
       return;
     }
@@ -89,7 +102,7 @@ export function attachSelectionInput(
     if (anchorMs === undefined) {
       return;
     }
-    const time = engine.timeAtPoint(event.clientX, event.clientY);
+    const time = timeAt(event);
     if (time !== undefined) {
       engine.updateDraftSelection({ endMs: time });
     }
@@ -99,7 +112,7 @@ export function attachSelectionInput(
     if (anchorMs === undefined) {
       return;
     }
-    const time = engine.timeAtPoint(event.clientX, event.clientY) ?? anchorMs;
+    const time = timeAt(event) ?? anchorMs;
     const range = {
       startMs: Math.min(anchorMs, time),
       endMs: Math.max(anchorMs, time),
