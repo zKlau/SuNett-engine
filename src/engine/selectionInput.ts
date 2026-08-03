@@ -4,6 +4,7 @@ import type {
   SelectionUpdate,
 } from "../types/selection";
 import { SnapMode } from "../utils/timing/snapTime";
+import { createEdgeAutoScroll } from "./edgeAutoScroll";
 
 type SelectionInputEngine = {
   timeAtPoint(clientX: number, clientY: number): number | undefined;
@@ -78,7 +79,9 @@ const HOLD_MOVE_TOLERANCE_PX = 10;
  * Wires the default selection interaction onto an `<svg>`: drag with the create
  * button to add a selection, right-click to delete the one under the pointer,
  * and double-click to edit it. On touch, an ordinary swipe scrolls the page and
- * a press-and-hold begins a selection (configurable via `holdToSelect`). Uses
+ * a press-and-hold begins a selection (configurable via `holdToSelect`); while
+ * selecting, the page holds still and only auto-scrolls once the drag reaches a
+ * screen edge, so a selection can span measures that wrapped off screen. Uses
  * only the engine's public primitives.
  * @param svg The rendered tab element to listen on.
  * @param engine The engine (or compatible object) driving the selections.
@@ -102,11 +105,27 @@ export function attachSelectionInput(
   let holdTimer: ReturnType<typeof setTimeout> | undefined;
   let holdOrigin: { x: number; y: number } | undefined;
   let lastPointerType: string | undefined;
+  let lastClientX = 0;
+  let lastClientY = 0;
 
-  const timeAt = (event: MouseEvent): number | undefined => {
-    const time = engine.timeAtPoint(event.clientX, event.clientY);
+  const timeAtCoords = (
+    clientX: number,
+    clientY: number,
+  ): number | undefined => {
+    const time = engine.timeAtPoint(clientX, clientY);
     return time === undefined ? undefined : engine.snapTime(time, snap);
   };
+
+  const extendTo = (clientX: number, clientY: number) => {
+    const time = timeAtCoords(clientX, clientY);
+    if (time !== undefined) {
+      engine.updateDraftSelection({ endMs: time });
+    }
+  };
+
+  const autoScroll = createEdgeAutoScroll(svg, () =>
+    extendTo(lastClientX, lastClientY),
+  );
 
   const clearHold = () => {
     if (holdTimer !== undefined) {
@@ -123,12 +142,18 @@ export function attachSelectionInput(
     capturePointer(svg, event);
   };
 
+  const endGesture = () => {
+    autoScroll.stop();
+    active = false;
+    anchorMs = undefined;
+  };
+
   const onPointerDown = (event: PointerEvent) => {
     lastPointerType = event.pointerType;
     if (event.button !== createButton) {
       return;
     }
-    const time = timeAt(event);
+    const time = timeAtCoords(event.clientX, event.clientY);
     if (time === undefined) {
       return;
     }
@@ -155,9 +180,11 @@ export function attachSelectionInput(
     if (!active) {
       return;
     }
-    const time = timeAt(event);
-    if (time !== undefined) {
-      engine.updateDraftSelection({ endMs: time });
+    lastClientX = event.clientX;
+    lastClientY = event.clientY;
+    extendTo(event.clientX, event.clientY);
+    if (event.pointerType === "touch") {
+      autoScroll.track(event.clientY);
     }
   };
 
@@ -169,13 +196,12 @@ export function attachSelectionInput(
     if (!active || anchorMs === undefined) {
       return;
     }
-    const time = timeAt(event) ?? anchorMs;
+    const time = timeAtCoords(event.clientX, event.clientY) ?? anchorMs;
     const range = {
       startMs: Math.min(anchorMs, time),
       endMs: Math.max(anchorMs, time),
     };
-    active = false;
-    anchorMs = undefined;
+    endGesture();
 
     if (range.endMs - range.startMs < minDurationMs) {
       engine.cancelDraftSelection();
@@ -195,8 +221,7 @@ export function attachSelectionInput(
     if (!active) {
       return;
     }
-    active = false;
-    anchorMs = undefined;
+    endGesture();
     engine.cancelDraftSelection();
   };
 
@@ -243,6 +268,7 @@ export function attachSelectionInput(
 
   return () => {
     clearHold();
+    autoScroll.stop();
     restoreStyles();
     svg.removeEventListener("pointerdown", onPointerDown);
     svg.removeEventListener("pointermove", onPointerMove);
