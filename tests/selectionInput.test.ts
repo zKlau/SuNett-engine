@@ -10,6 +10,7 @@ function makeEngine() {
     selectionAt: jest.fn(
       (_x: number, _y: number): Selection | undefined => undefined,
     ),
+    getSelection: jest.fn((_id: string): Selection | undefined => undefined),
     getActiveTrackIndex: jest.fn((): number => 0),
     snapTime: jest.fn((ms: number, _mode: string) => ms),
     beginDraftSelection: jest.fn(),
@@ -38,6 +39,23 @@ function pointer(type: string, init: Partial<MouseEventInit> = {}): MouseEvent {
     button: 0,
     ...init,
   });
+}
+
+function touch(type: string, init: Partial<MouseEventInit> = {}): MouseEvent {
+  const event = pointer(type, init);
+  Object.defineProperty(event, "pointerType", { value: "touch" });
+  return event;
+}
+
+function labelIn(svg: SVGSVGElement, id: string): SVGTextElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const group = document.createElementNS(ns, "g");
+  group.setAttribute("selection-id", id);
+  const label = document.createElementNS(ns, "text") as SVGTextElement;
+  label.setAttribute("class", "selection-label");
+  group.append(label);
+  svg.append(group);
+  return label;
 }
 
 describe("attachSelectionInput", () => {
@@ -153,6 +171,29 @@ describe("attachSelectionInput", () => {
     });
   });
 
+  it("renames a selection when its label is clicked", () => {
+    const target: Selection = {
+      id: "x",
+      songId: "s",
+      startMs: 0,
+      endMs: 10,
+      label: "old",
+    };
+    const engine = makeEngine();
+    engine.getSelection = jest.fn(() => target);
+    const svg = makeSvg();
+    const label = labelIn(svg, "x");
+    attachSelectionInput(svg, engine, {
+      onLabelClick: () => ({ label: "new" }),
+    });
+
+    label.dispatchEvent(pointer("pointerdown"));
+    label.dispatchEvent(pointer("pointerup"));
+
+    expect(engine.updateSelection).toHaveBeenCalledWith("x", { label: "new" });
+    expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+  });
+
   it("does not create on a non-configured button", () => {
     const engine = makeEngine();
     const svg = makeSvg();
@@ -172,5 +213,159 @@ describe("attachSelectionInput", () => {
     svg.dispatchEvent(pointer("pointerdown"));
 
     expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+  });
+
+  it("suppresses native text selection on the tab element", () => {
+    const svg = makeSvg();
+    attachSelectionInput(svg, makeEngine());
+
+    expect(svg.style.userSelect).toBe("none");
+  });
+
+  it("leaves touch scrolling enabled by default", () => {
+    const svg = makeSvg();
+    attachSelectionInput(svg, makeEngine());
+
+    expect(svg.style.touchAction).not.toBe("none");
+  });
+});
+
+describe("attachSelectionInput on touch", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("anchors the start only after a press-and-hold", () => {
+    jest.useFakeTimers();
+    const engine = makeEngine();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdDurationMs: 400 });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(400);
+    expect(engine.beginDraftSelection).toHaveBeenCalledWith(1000);
+  });
+
+  it("anchors on hold, holds the draft on release, commits on the next tap", () => {
+    jest.useFakeTimers();
+    const times = [0, 1000, 5000];
+    const engine = makeEngine();
+    engine.timeAtPoint = jest.fn(() => times.shift() ?? 5000);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdDurationMs: 400 });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    jest.advanceTimersByTime(400);
+    expect(engine.beginDraftSelection).toHaveBeenCalledWith(0);
+
+    svg.dispatchEvent(touch("pointerup"));
+    expect(engine.commitDraftSelection).not.toHaveBeenCalled();
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(engine.updateDraftSelection).toHaveBeenCalledWith({ endMs: 5000 });
+    expect(engine.commitDraftSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the hold when the finger moves first, so touch scrolls", () => {
+    jest.useFakeTimers();
+    const engine = makeEngine();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdDurationMs: 400 });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointermove", { clientX: 40, clientY: 40 }));
+    jest.advanceTimersByTime(400);
+
+    expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+  });
+
+  it("selects immediately when holdToSelect is disabled", () => {
+    const engine = makeEngine();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdToSelect: false });
+
+    svg.dispatchEvent(touch("pointerdown"));
+
+    expect(engine.beginDraftSelection).toHaveBeenCalledWith(1000);
+  });
+
+  it("deletes a tapped selection when onDelete confirms", () => {
+    const target: Selection = { id: "x", songId: "s", startMs: 0, endMs: 10 };
+    const engine = makeEngine();
+    engine.selectionAt = jest.fn(() => target);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { onDelete: () => true });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(engine.removeSelection).toHaveBeenCalledWith("x");
+  });
+
+  it("keeps the selection when onDelete declines the tap", () => {
+    const target: Selection = { id: "x", songId: "s", startMs: 0, endMs: 10 };
+    const engine = makeEngine();
+    engine.selectionAt = jest.fn(() => target);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { onDelete: () => false });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(engine.removeSelection).not.toHaveBeenCalled();
+  });
+
+  it("ignores a tap that misses every selection", () => {
+    const engine = makeEngine();
+    const onDelete = jest.fn();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { onDelete });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it("renames a selection when its label is tapped", () => {
+    const target: Selection = { id: "x", songId: "s", startMs: 0, endMs: 10 };
+    const engine = makeEngine();
+    engine.getSelection = jest.fn(() => target);
+    const svg = makeSvg();
+    const label = labelIn(svg, "x");
+    attachSelectionInput(svg, engine, {
+      onLabelClick: () => ({ label: "renamed" }),
+    });
+
+    label.dispatchEvent(touch("pointerdown"));
+    label.dispatchEvent(touch("pointerup"));
+
+    expect(engine.updateSelection).toHaveBeenCalledWith("x", {
+      label: "renamed",
+    });
+    expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+  });
+
+  it("blocks touch scrolling when holdToSelect is disabled", () => {
+    const svg = makeSvg();
+    attachSelectionInput(svg, makeEngine(), { holdToSelect: false });
+
+    expect(svg.style.touchAction).toBe("none");
+  });
+
+  it("restores styles on detach", () => {
+    const svg = makeSvg();
+    const detach = attachSelectionInput(svg, makeEngine(), {
+      holdToSelect: false,
+    });
+
+    detach();
+
+    expect(svg.style.userSelect).toBe("");
+    expect(svg.style.touchAction).not.toBe("none");
   });
 });
