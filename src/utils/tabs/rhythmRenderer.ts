@@ -5,6 +5,7 @@ import type {
   RhythmBeat,
   RhythmRenderRequest,
 } from "../../types/UI/rhythmRender";
+import { renderRest } from "./rhythm/restRenderer";
 import { renderBeamGroups } from "./rhythm/rhythmBeamsRenderer";
 import { createRhythmPath, createSvgElement } from "./rhythm/rhythmSvg";
 import { renderTuplets } from "./rhythm/rhythmTupletsRenderer";
@@ -75,45 +76,6 @@ function renderStem(
       parent.append(createDot(x + constants.RHYTHM_DOT_OFFSET * 2, baseline));
     }
   }
-}
-
-function renderRest(
-  parent: SVGGElement,
-  beat: Beat,
-  x: number,
-  staffCenter: number,
-) {
-  const rest = createSvgElement("text");
-  rest.setAttribute("class", "rhythm-rest");
-  rest.setAttribute("x", `${x}`);
-  rest.setAttribute("y", `${staffCenter}`);
-  rest.setAttribute("fill", themeVar(ThemeVariables.COLOR_REST));
-  rest.setAttribute("font-family", "Bravura, Segoe UI Symbol, serif");
-  rest.setAttribute("font-size", `${constants.RHYTHM_REST_FONT_SIZE}`);
-  rest.setAttribute("text-anchor", "middle");
-  rest.setAttribute("dominant-baseline", "central");
-  rest.setAttribute("data-duration", `${beat.duration.value}`);
-  rest.textContent = restGlyph(beat.duration.value);
-  parent.append(rest);
-}
-
-function restGlyph(duration: number): string {
-  if (duration <= 1) {
-    return "\u{1d13b}";
-  }
-  if (duration === 2) {
-    return "\u{1d13c}";
-  }
-  if (duration === 4) {
-    return "\u{1d13d}";
-  }
-  if (duration === 8) {
-    return "\u{1d13e}";
-  }
-  if (duration === 16) {
-    return "\u{1d13f}";
-  }
-  return "\u{1d140}";
 }
 
 function createDot(x: number, y: number): SVGCircleElement {

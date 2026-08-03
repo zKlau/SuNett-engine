@@ -212,7 +212,7 @@ describe("renderRhythm", () => {
     },
   );
 
-  it("renders rest glyphs with duration metadata", () => {
+  it("renders a quarter rest as theme-aware SVG geometry", () => {
     const parent = makeParent();
     const measure = makeMeasureFromVoices([
       [
@@ -234,12 +234,50 @@ describe("renderRhythm", () => {
     const rest = parent.querySelector(".rhythm-rest");
     expect(rest).not.toBeNull();
     expect(rest!.getAttribute("data-duration")).toBe("4");
-    expect(rest!.textContent).toBe("\u{1d13d}");
-    expect(rest!.getAttribute("y")).toBe("75");
+    expect(rest!.getAttribute("data-rest-kind")).toBe("quarter");
+    expect(rest!.getAttribute("transform")).toBe("translate(50 75)");
     expect(rest!.getAttribute("fill")).toBe(
       themeVar(ThemeVariables.COLOR_REST),
     );
+    const glyph = rest!.querySelector("path");
+    expect(glyph).not.toBeNull();
+    expect(glyph!.getAttribute("d")).toContain("C");
+    expect(glyph!.getAttribute("transform")).toContain("scale(0.06 -0.06)");
+    expect(rest!.querySelector("text")).toBeNull();
     expect(parent.querySelector(".rhythm-stem")).toBeNull();
+  });
+
+  it.each([
+    [1, "whole"],
+    [2, "half"],
+    [4, "quarter"],
+    [8, "flagged"],
+    [16, "flagged"],
+    [32, "flagged"],
+  ])("renders a %sth rest without font-dependent text", (duration, kind) => {
+    const parent = makeParent();
+    const measure = makeMeasureFromVoices([
+      [
+        makeBeat({
+          status: "Rest",
+          duration: makeDuration({ value: duration }),
+        }),
+      ],
+    ]);
+
+    renderRhythm({
+      parent,
+      measure,
+      beatLayouts: [makeBeatLayout()],
+      staffTop: 50,
+      staffBottom: 100,
+    });
+
+    const rest = parent.querySelector(".rhythm-rest")!;
+    expect(rest.getAttribute("data-rest-kind")).toBe(kind);
+    expect(rest.children).toHaveLength(1);
+    expect(rest.querySelector("path")).not.toBeNull();
+    expect(rest.querySelector("text")).toBeNull();
   });
 
   it("does not render rhythm marks for empty placeholder beats", () => {
