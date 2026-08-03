@@ -40,6 +40,12 @@ function pointer(type: string, init: Partial<MouseEventInit> = {}): MouseEvent {
   });
 }
 
+function touch(type: string, init: Partial<MouseEventInit> = {}): MouseEvent {
+  const event = pointer(type, init);
+  Object.defineProperty(event, "pointerType", { value: "touch" });
+  return event;
+}
+
 describe("attachSelectionInput", () => {
   it("begins a draft on pointer down over the tab", () => {
     const engine = makeEngine();
@@ -172,5 +178,80 @@ describe("attachSelectionInput", () => {
     svg.dispatchEvent(pointer("pointerdown"));
 
     expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+  });
+
+  it("suppresses native text selection on the tab element", () => {
+    const svg = makeSvg();
+    attachSelectionInput(svg, makeEngine());
+
+    expect(svg.style.userSelect).toBe("none");
+  });
+
+  it("leaves touch scrolling enabled by default", () => {
+    const svg = makeSvg();
+    attachSelectionInput(svg, makeEngine());
+
+    expect(svg.style.touchAction).not.toBe("none");
+  });
+});
+
+describe("attachSelectionInput on touch", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("waits for a press-and-hold before selecting", () => {
+    jest.useFakeTimers();
+    const engine = makeEngine();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdDurationMs: 400 });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(400);
+    expect(engine.beginDraftSelection).toHaveBeenCalledWith(1000);
+  });
+
+  it("cancels the hold when the finger moves first, so touch scrolls", () => {
+    jest.useFakeTimers();
+    const engine = makeEngine();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdDurationMs: 400 });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointermove", { clientX: 40, clientY: 40 }));
+    jest.advanceTimersByTime(400);
+
+    expect(engine.beginDraftSelection).not.toHaveBeenCalled();
+  });
+
+  it("selects immediately when holdToSelect is disabled", () => {
+    const engine = makeEngine();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdToSelect: false });
+
+    svg.dispatchEvent(touch("pointerdown"));
+
+    expect(engine.beginDraftSelection).toHaveBeenCalledWith(1000);
+  });
+
+  it("blocks touch scrolling when holdToSelect is disabled", () => {
+    const svg = makeSvg();
+    attachSelectionInput(svg, makeEngine(), { holdToSelect: false });
+
+    expect(svg.style.touchAction).toBe("none");
+  });
+
+  it("restores styles on detach", () => {
+    const svg = makeSvg();
+    const detach = attachSelectionInput(svg, makeEngine(), {
+      holdToSelect: false,
+    });
+
+    detach();
+
+    expect(svg.style.userSelect).toBe("");
+    expect(svg.style.touchAction).not.toBe("none");
   });
 });

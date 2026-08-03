@@ -18,6 +18,11 @@ type SelectionInputEngine = {
   updateSelection(id: string, updates: SelectionUpdate): void;
 };
 
+type MutableStyle = CSSStyleDeclaration & {
+  webkitUserSelect?: string;
+  webkitTouchCallout?: string;
+};
+
 /** A committed time range, passed to `onCreate`. */
 export type SelectionRange = {
   startMs: number;
@@ -42,6 +47,15 @@ export type SelectionInputOptions = {
    */
   snap?: SnapMode;
   /**
+   * On touch, require a press-and-hold before a drag starts a selection, so an
+   * ordinary swipe scrolls the page instead of selecting. Mouse and pen always
+   * start on drag. Default `true`. Set `false` to make touch match the mouse
+   * (drag starts immediately and blocks touch scrolling over the tab).
+   */
+  holdToSelect?: boolean;
+  /** Milliseconds to hold on touch before a selection begins. Default `400`. */
+  holdDurationMs?: number;
+  /**
    * Supplies label/color as a drag commits into a selection.
    * @param range The dragged time range.
    * @returns Fields to store on the new selection, or nothing.
@@ -57,11 +71,15 @@ export type SelectionInputOptions = {
 
 const DEFAULT_CREATE_BUTTON = 0;
 const DEFAULT_MIN_DURATION_MS = 40;
+const DEFAULT_HOLD_DURATION_MS = 400;
+const HOLD_MOVE_TOLERANCE_PX = 10;
 
 /**
  * Wires the default selection interaction onto an `<svg>`: drag with the create
  * button to add a selection, right-click to delete the one under the pointer,
- * and double-click to edit it. Uses only the engine's public primitives.
+ * and double-click to edit it. On touch, an ordinary swipe scrolls the page and
+ * a press-and-hold begins a selection (configurable via `holdToSelect`). Uses
+ * only the engine's public primitives.
  * @param svg The rendered tab element to listen on.
  * @param engine The engine (or compatible object) driving the selections.
  * @param options Interaction configuration.
@@ -75,17 +93,38 @@ export function attachSelectionInput(
   const createButton = options.createButton ?? DEFAULT_CREATE_BUTTON;
   const minDurationMs = options.minDurationMs ?? DEFAULT_MIN_DURATION_MS;
   const snap = options.snap ?? SnapMode.None;
-  const previousTouchAction = svg.style.touchAction;
-  svg.style.touchAction = "none";
+  const holdToSelect = options.holdToSelect ?? true;
+  const holdDurationMs = options.holdDurationMs ?? DEFAULT_HOLD_DURATION_MS;
+  const restoreStyles = applyInteractionStyles(svg, !holdToSelect);
 
   let anchorMs: number | undefined;
+  let active = false;
+  let holdTimer: ReturnType<typeof setTimeout> | undefined;
+  let holdOrigin: { x: number; y: number } | undefined;
+  let lastPointerType: string | undefined;
 
   const timeAt = (event: MouseEvent): number | undefined => {
     const time = engine.timeAtPoint(event.clientX, event.clientY);
     return time === undefined ? undefined : engine.snapTime(time, snap);
   };
 
+  const clearHold = () => {
+    if (holdTimer !== undefined) {
+      clearTimeout(holdTimer);
+    }
+    holdTimer = undefined;
+    holdOrigin = undefined;
+  };
+
+  const beginSelection = (time: number, event: PointerEvent) => {
+    anchorMs = time;
+    active = true;
+    engine.beginDraftSelection(time);
+    capturePointer(svg, event);
+  };
+
   const onPointerDown = (event: PointerEvent) => {
+    lastPointerType = event.pointerType;
     if (event.button !== createButton) {
       return;
     }
@@ -93,13 +132,27 @@ export function attachSelectionInput(
     if (time === undefined) {
       return;
     }
-    anchorMs = time;
-    engine.beginDraftSelection(time);
-    capturePointer(svg, event);
+    if (holdToSelect && event.pointerType === "touch") {
+      holdOrigin = { x: event.clientX, y: event.clientY };
+      holdTimer = setTimeout(() => {
+        holdTimer = undefined;
+        holdOrigin = undefined;
+        beginSelection(time, event);
+        vibrate();
+      }, holdDurationMs);
+      return;
+    }
+    beginSelection(time, event);
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (anchorMs === undefined) {
+    if (holdOrigin !== undefined) {
+      if (movedBeyondTolerance(holdOrigin, event)) {
+        clearHold();
+      }
+      return;
+    }
+    if (!active) {
       return;
     }
     const time = timeAt(event);
@@ -109,7 +162,11 @@ export function attachSelectionInput(
   };
 
   const onPointerUp = (event: PointerEvent) => {
-    if (anchorMs === undefined) {
+    if (holdOrigin !== undefined) {
+      clearHold();
+      return;
+    }
+    if (!active || anchorMs === undefined) {
       return;
     }
     const time = timeAt(event) ?? anchorMs;
@@ -117,6 +174,7 @@ export function attachSelectionInput(
       startMs: Math.min(anchorMs, time),
       endMs: Math.max(anchorMs, time),
     };
+    active = false;
     anchorMs = undefined;
 
     if (range.endMs - range.startMs < minDurationMs) {
@@ -133,14 +191,26 @@ export function attachSelectionInput(
   };
 
   const onPointerCancel = () => {
-    if (anchorMs === undefined) {
+    clearHold();
+    if (!active) {
       return;
     }
+    active = false;
     anchorMs = undefined;
     engine.cancelDraftSelection();
   };
 
+  const onTouchMove = (event: TouchEvent) => {
+    if (active) {
+      event.preventDefault();
+    }
+  };
+
   const onContextMenu = (event: MouseEvent) => {
+    if (lastPointerType === "touch") {
+      event.preventDefault();
+      return;
+    }
     const hit = engine.selectionAt(event.clientX, event.clientY);
     if (!hit) {
       return;
@@ -167,18 +237,66 @@ export function attachSelectionInput(
   svg.addEventListener("pointermove", onPointerMove);
   svg.addEventListener("pointerup", onPointerUp);
   svg.addEventListener("pointercancel", onPointerCancel);
+  svg.addEventListener("touchmove", onTouchMove, { passive: false });
   svg.addEventListener("contextmenu", onContextMenu);
   svg.addEventListener("dblclick", onDoubleClick);
 
   return () => {
-    svg.style.touchAction = previousTouchAction;
+    clearHold();
+    restoreStyles();
     svg.removeEventListener("pointerdown", onPointerDown);
     svg.removeEventListener("pointermove", onPointerMove);
     svg.removeEventListener("pointerup", onPointerUp);
     svg.removeEventListener("pointercancel", onPointerCancel);
+    svg.removeEventListener("touchmove", onTouchMove);
     svg.removeEventListener("contextmenu", onContextMenu);
     svg.removeEventListener("dblclick", onDoubleClick);
   };
+}
+
+function applyInteractionStyles(
+  svg: SVGSVGElement,
+  blockTouchScroll: boolean,
+): () => void {
+  const style = svg.style as MutableStyle;
+  const previous = {
+    userSelect: style.userSelect,
+    webkitUserSelect: style.webkitUserSelect,
+    webkitTouchCallout: style.webkitTouchCallout,
+    touchAction: style.touchAction,
+  };
+  style.userSelect = "none";
+  style.webkitUserSelect = "none";
+  style.webkitTouchCallout = "none";
+  if (blockTouchScroll) {
+    style.touchAction = "none";
+  }
+  return () => {
+    style.userSelect = previous.userSelect;
+    style.webkitUserSelect = previous.webkitUserSelect ?? "";
+    style.webkitTouchCallout = previous.webkitTouchCallout ?? "";
+    style.touchAction = previous.touchAction;
+  };
+}
+
+function movedBeyondTolerance(
+  origin: { x: number; y: number },
+  event: PointerEvent,
+): boolean {
+  const distance = Math.hypot(
+    event.clientX - origin.x,
+    event.clientY - origin.y,
+  );
+  return distance > HOLD_MOVE_TOLERANCE_PX;
+}
+
+function vibrate(): void {
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.vibrate === "function"
+  ) {
+    navigator.vibrate(10);
+  }
 }
 
 function capturePointer(svg: SVGSVGElement, event: PointerEvent): void {

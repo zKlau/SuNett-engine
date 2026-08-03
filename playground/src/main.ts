@@ -50,7 +50,7 @@ async function main(filePath: string) {
     attachInput(SnapMode.None);
     setupSnapPicker(attachInput);
     console.log(
-      "Drag to create, right-click to delete, double-click to rename. Use the pickers to switch track, scope, and snapping.",
+      "Drag (mouse) or press-and-hold then drag (touch) to create, right-click to delete, double-click to rename. Swipe to scroll on touch. Use the pickers to switch track, scope, and snapping.",
     );
   } catch (e) {
     console.error("Parsing failed:", e);
