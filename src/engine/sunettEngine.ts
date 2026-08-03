@@ -181,6 +181,17 @@ export class SunettEngine {
   }
 
   /**
+   * Finds a selection by id.
+   * @param id The id of the selection to look up.
+   * @returns The matching selection, or `undefined` if none has that id.
+   */
+  getSelection(id: string): Selection | undefined {
+    return this.selections
+      .getSelections()
+      .find((selection) => selection.id === id);
+  }
+
+  /**
    * Replaces every selection for the current song, e.g. when loading a saved
    * set.
    * @param selections The selections to store; each is scoped to the current

@@ -40,10 +40,8 @@ async function main(filePath: string) {
           color: "#22c55e",
           trackIndex: scopeToggle.checked ? engine.getActiveTrackIndex() : null,
         }),
-        onEdit: (selection) => {
-          const label = prompt("New label:", selection.label ?? "");
-          return label === null ? undefined : { label };
-        },
+        onEdit: (selection) => renamePrompt(selection.label),
+        onLabelClick: (selection) => renamePrompt(selection.label),
         onDelete: (selection) =>
           confirm(`Delete "${selection.label ?? "selection"}"?`),
       });
@@ -52,7 +50,7 @@ async function main(filePath: string) {
     attachInput(SnapMode.None);
     setupSnapPicker(attachInput);
     console.log(
-      "Mouse: drag to create, right-click to delete, double-click to rename. Touch: press-and-hold a measure to start, scroll, then tap another measure to finish; tap a selection to delete. Use the pickers to switch track, scope, and snapping.",
+      "Mouse: drag to create, right-click to delete, double-click or click the label to rename. Touch: press-and-hold a measure to start, scroll, then tap another measure to finish; tap a selection to delete; tap its label to rename. Use the pickers to switch track, scope, and snapping.",
     );
   } catch (e) {
     console.error("Parsing failed:", e);
@@ -140,6 +138,11 @@ function setupThemePicker(engine: SunettEngine) {
   select.addEventListener("change", () => {
     engine.setTheme(select.value as PresetTheme);
   });
+}
+
+function renamePrompt(current?: string): { label: string } | undefined {
+  const label = prompt("New label:", current ?? "");
+  return label === null ? undefined : { label };
 }
 
 function displayTitle(name: string) {

@@ -80,6 +80,7 @@ function renderLabel(
   const label = createSvgElement("text");
 
   label.setAttribute("class", "selection-label");
+  label.setAttribute("pointer-events", "all");
   label.setAttribute("x", `${x}`);
   label.setAttribute("y", `${y}`);
   label.setAttribute("fill", color);

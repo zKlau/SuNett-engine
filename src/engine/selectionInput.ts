@@ -9,6 +9,7 @@ import { createEdgeAutoScroll } from "./edgeAutoScroll";
 type SelectionInputEngine = {
   timeAtPoint(clientX: number, clientY: number): number | undefined;
   selectionAt(clientX: number, clientY: number): Selection | undefined;
+  getSelection(id: string): Selection | undefined;
   getActiveTrackIndex(): number;
   snapTime(ms: number, mode: SnapMode): number;
   beginDraftSelection(startMs: number, endMs?: number): void;
@@ -72,6 +73,13 @@ export type SelectionInputOptions = {
    */
   onEdit?: (selection: Selection) => SelectionUpdate | void;
   /**
+   * Invoked when a selection's label is clicked or tapped, giving touch a
+   * single-tap rename path where double-click is awkward.
+   * @param selection The selection whose label was clicked.
+   * @returns Fields to update on the selection, or nothing.
+   */
+  onLabelClick?: (selection: Selection) => SelectionUpdate | void;
+  /**
    * Invoked when a selection is tapped on touch, giving touch a delete path
    * where there is no right-click. Ignored while a start is anchored (there the
    * tap sets the selection end instead).
@@ -92,8 +100,10 @@ const HOLD_MOVE_TOLERANCE_PX = 10;
  * the pointer, and double-click edits it. On touch, an ordinary swipe scrolls
  * the page, a press-and-hold anchors a selection start, a following tap sets its
  * end (so the page scrolls freely between the two), and a tap on an existing
- * selection deletes it through `onDelete`. Mouse drags auto-scroll the page once
- * they reach a screen edge. Uses only the engine's public primitives.
+ * selection deletes it through `onDelete`. A click or tap on a selection's label
+ * fires `onLabelClick` (a single-tap rename path for touch). Mouse drags
+ * auto-scroll the page once they reach a screen edge. Uses only the engine's
+ * public primitives.
  * @param svg The rendered tab element to listen on.
  * @param engine The engine (or compatible object) driving the selections.
  * @param options Interaction configuration.
@@ -115,6 +125,7 @@ export function attachSelectionInput(
   let dragging = false;
   let pendingStartMs: number | undefined;
   let anchoredThisGesture = false;
+  let labelPressId: string | undefined;
   let holdTimer: ReturnType<typeof setTimeout> | undefined;
   let holdOrigin: Point | undefined;
   let lastPointerType: string | undefined;
@@ -204,10 +215,29 @@ export function attachSelectionInput(
     }
   };
 
+  const handleLabelClick = (id: string) => {
+    const selection = engine.getSelection(id);
+    if (!selection) {
+      return;
+    }
+    const updates = options.onLabelClick?.(selection);
+    if (updates) {
+      engine.updateSelection(id, updates);
+    }
+  };
+
   const onPointerDown = (event: PointerEvent) => {
     lastPointerType = event.pointerType;
     if (event.button !== createButton) {
       return;
+    }
+    if (options.onLabelClick) {
+      const labelId = labelSelectionId(event.target);
+      if (labelId !== undefined) {
+        labelPressId = labelId;
+        holdOrigin = { x: event.clientX, y: event.clientY };
+        return;
+      }
     }
     const time = timeAtCoords(event.clientX, event.clientY);
     if (time === undefined) {
@@ -238,6 +268,7 @@ export function attachSelectionInput(
     }
     if (holdOrigin !== undefined && movedBeyondTolerance(holdOrigin, event)) {
       clearHold();
+      labelPressId = undefined;
     }
   };
 
@@ -249,6 +280,13 @@ export function attachSelectionInput(
       if (start !== undefined && end !== undefined) {
         commitRange(start, end);
       }
+      return;
+    }
+    if (labelPressId !== undefined) {
+      const id = labelPressId;
+      labelPressId = undefined;
+      holdOrigin = undefined;
+      handleLabelClick(id);
       return;
     }
     if (anchoredThisGesture) {
@@ -264,6 +302,7 @@ export function attachSelectionInput(
   const onPointerCancel = () => {
     clearHold();
     anchoredThisGesture = false;
+    labelPressId = undefined;
     if (dragging) {
       endDrag();
       engine.cancelDraftSelection();
@@ -352,6 +391,19 @@ function applyInteractionStyles(
     style.webkitTouchCallout = previous.webkitTouchCallout ?? "";
     style.touchAction = previous.touchAction;
   };
+}
+
+function labelSelectionId(target: EventTarget | null): string | undefined {
+  if (!(target instanceof Element)) {
+    return undefined;
+  }
+  const label = target.closest(".selection-label");
+  if (!label) {
+    return undefined;
+  }
+  return (
+    label.closest("[selection-id]")?.getAttribute("selection-id") ?? undefined
+  );
 }
 
 function movedBeyondTolerance(origin: Point, event: PointerEvent): boolean {
