@@ -236,6 +236,44 @@ describe("attachSelectionInput on touch", () => {
     expect(engine.beginDraftSelection).toHaveBeenCalledWith(1000);
   });
 
+  it("deletes a tapped selection when onDelete confirms", () => {
+    const target: Selection = { id: "x", songId: "s", startMs: 0, endMs: 10 };
+    const engine = makeEngine();
+    engine.selectionAt = jest.fn(() => target);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { onDelete: () => true });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(engine.removeSelection).toHaveBeenCalledWith("x");
+  });
+
+  it("keeps the selection when onDelete declines the tap", () => {
+    const target: Selection = { id: "x", songId: "s", startMs: 0, endMs: 10 };
+    const engine = makeEngine();
+    engine.selectionAt = jest.fn(() => target);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { onDelete: () => false });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(engine.removeSelection).not.toHaveBeenCalled();
+  });
+
+  it("ignores a tap that misses every selection", () => {
+    const engine = makeEngine();
+    const onDelete = jest.fn();
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { onDelete });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
   it("blocks touch scrolling when holdToSelect is disabled", () => {
     const svg = makeSvg();
     attachSelectionInput(svg, makeEngine(), { holdToSelect: false });

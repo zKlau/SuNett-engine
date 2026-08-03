@@ -44,13 +44,15 @@ async function main(filePath: string) {
           const label = prompt("New label:", selection.label ?? "");
           return label === null ? undefined : { label };
         },
+        onDelete: (selection) =>
+          confirm(`Delete "${selection.label ?? "selection"}"?`),
       });
     };
 
     attachInput(SnapMode.None);
     setupSnapPicker(attachInput);
     console.log(
-      "Drag (mouse) or press-and-hold then drag (touch) to create, right-click to delete, double-click to rename. Swipe to scroll on touch. Use the pickers to switch track, scope, and snapping.",
+      "Drag (mouse) or press-and-hold then drag (touch) to create, right-click (mouse) or tap a selection (touch) to delete, double-click to rename. Swipe to scroll on touch. Use the pickers to switch track, scope, and snapping.",
     );
   } catch (e) {
     console.error("Parsing failed:", e);

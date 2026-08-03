@@ -68,6 +68,13 @@ export type SelectionInputOptions = {
    * @returns Fields to update on the selection, or nothing.
    */
   onEdit?: (selection: Selection) => SelectionUpdate | void;
+  /**
+   * Invoked when a selection is tapped on touch (a press-and-release without a
+   * hold or drag), giving touch a delete path where there is no right-click.
+   * @param selection The tapped selection.
+   * @returns `true` to remove it, e.g. after a confirmation prompt.
+   */
+  onDelete?: (selection: Selection) => boolean | void;
 };
 
 const DEFAULT_CREATE_BUTTON = 0;
@@ -78,11 +85,12 @@ const HOLD_MOVE_TOLERANCE_PX = 10;
 /**
  * Wires the default selection interaction onto an `<svg>`: drag with the create
  * button to add a selection, right-click to delete the one under the pointer,
- * and double-click to edit it. On touch, an ordinary swipe scrolls the page and
- * a press-and-hold begins a selection (configurable via `holdToSelect`); while
- * selecting, the page holds still and only auto-scrolls once the drag reaches a
- * screen edge, so a selection can span measures that wrapped off screen. Uses
- * only the engine's public primitives.
+ * and double-click to edit it. On touch, an ordinary swipe scrolls the page, a
+ * press-and-hold begins a selection (configurable via `holdToSelect`), and a
+ * tap on a selection deletes it through `onDelete`; while selecting, the page
+ * holds still and only auto-scrolls once the drag reaches a screen edge, so a
+ * selection can span measures that wrapped off screen. Uses only the engine's
+ * public primitives.
  * @param svg The rendered tab element to listen on.
  * @param engine The engine (or compatible object) driving the selections.
  * @param options Interaction configuration.
@@ -188,9 +196,20 @@ export function attachSelectionInput(
     }
   };
 
+  const handleTap = (event: PointerEvent) => {
+    if (!options.onDelete) {
+      return;
+    }
+    const hit = engine.selectionAt(event.clientX, event.clientY);
+    if (hit && options.onDelete(hit)) {
+      engine.removeSelection(hit.id);
+    }
+  };
+
   const onPointerUp = (event: PointerEvent) => {
     if (holdOrigin !== undefined) {
       clearHold();
+      handleTap(event);
       return;
     }
     if (!active || anchorMs === undefined) {
