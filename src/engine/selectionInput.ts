@@ -24,6 +24,8 @@ type MutableStyle = CSSStyleDeclaration & {
   webkitTouchCallout?: string;
 };
 
+type Point = { x: number; y: number };
+
 /** A committed time range, passed to `onCreate`. */
 export type SelectionRange = {
   startMs: number;
@@ -34,7 +36,7 @@ export type SelectionRange = {
 export type SelectionInputOptions = {
   /** Mouse button that drags out a new selection. Default `0` (left). */
   createButton?: number;
-  /** Minimum dragged span, in ms, before a create commits. Default `40`. */
+  /** Minimum selected span, in ms, before a create commits. Default `40`. */
   minDurationMs?: number;
   /**
    * When `true`, a created selection is scoped to the active track, so it only
@@ -43,22 +45,23 @@ export type SelectionInputOptions = {
    */
   trackScoped?: boolean;
   /**
-   * Quantises drag times to the beat or measure grid. Default `"None"` (free
+   * Quantises times to the beat or measure grid. Default `"None"` (free
    * millisecond precision).
    */
   snap?: SnapMode;
   /**
-   * On touch, require a press-and-hold before a drag starts a selection, so an
-   * ordinary swipe scrolls the page instead of selecting. Mouse and pen always
-   * start on drag. Default `true`. Set `false` to make touch match the mouse
-   * (drag starts immediately and blocks touch scrolling over the tab).
+   * On touch, press-and-hold a measure to anchor the selection start, then tap
+   * another measure to set the end, so the page scrolls normally between the
+   * two. Mouse and pen always drag to select. Default `true`. Set `false` to
+   * make touch drag-select immediately, which blocks touch scrolling over the
+   * tab.
    */
   holdToSelect?: boolean;
-  /** Milliseconds to hold on touch before a selection begins. Default `400`. */
+  /** Milliseconds to hold on touch before the start is anchored. Default `400`. */
   holdDurationMs?: number;
   /**
-   * Supplies label/color as a drag commits into a selection.
-   * @param range The dragged time range.
+   * Supplies label/color as a selection commits.
+   * @param range The selected time range.
    * @returns Fields to store on the new selection, or nothing.
    */
   onCreate?: (range: SelectionRange) => SelectionDraftUpdate | void;
@@ -69,8 +72,9 @@ export type SelectionInputOptions = {
    */
   onEdit?: (selection: Selection) => SelectionUpdate | void;
   /**
-   * Invoked when a selection is tapped on touch (a press-and-release without a
-   * hold or drag), giving touch a delete path where there is no right-click.
+   * Invoked when a selection is tapped on touch, giving touch a delete path
+   * where there is no right-click. Ignored while a start is anchored (there the
+   * tap sets the selection end instead).
    * @param selection The tapped selection.
    * @returns `true` to remove it, e.g. after a confirmation prompt.
    */
@@ -83,14 +87,13 @@ const DEFAULT_HOLD_DURATION_MS = 400;
 const HOLD_MOVE_TOLERANCE_PX = 10;
 
 /**
- * Wires the default selection interaction onto an `<svg>`: drag with the create
- * button to add a selection, right-click to delete the one under the pointer,
- * and double-click to edit it. On touch, an ordinary swipe scrolls the page, a
- * press-and-hold begins a selection (configurable via `holdToSelect`), and a
- * tap on a selection deletes it through `onDelete`; while selecting, the page
- * holds still and only auto-scrolls once the drag reaches a screen edge, so a
- * selection can span measures that wrapped off screen. Uses only the engine's
- * public primitives.
+ * Wires the default selection interaction onto an `<svg>`. Mouse and pen drag
+ * with the create button to add a selection, right-click deletes the one under
+ * the pointer, and double-click edits it. On touch, an ordinary swipe scrolls
+ * the page, a press-and-hold anchors a selection start, a following tap sets its
+ * end (so the page scrolls freely between the two), and a tap on an existing
+ * selection deletes it through `onDelete`. Mouse drags auto-scroll the page once
+ * they reach a screen edge. Uses only the engine's public primitives.
  * @param svg The rendered tab element to listen on.
  * @param engine The engine (or compatible object) driving the selections.
  * @param options Interaction configuration.
@@ -108,10 +111,12 @@ export function attachSelectionInput(
   const holdDurationMs = options.holdDurationMs ?? DEFAULT_HOLD_DURATION_MS;
   const restoreStyles = applyInteractionStyles(svg, !holdToSelect);
 
-  let anchorMs: number | undefined;
-  let active = false;
+  let dragAnchorMs: number | undefined;
+  let dragging = false;
+  let pendingStartMs: number | undefined;
+  let anchoredThisGesture = false;
   let holdTimer: ReturnType<typeof setTimeout> | undefined;
-  let holdOrigin: { x: number; y: number } | undefined;
+  let holdOrigin: Point | undefined;
   let lastPointerType: string | undefined;
   let lastClientX = 0;
   let lastClientY = 0;
@@ -143,17 +148,60 @@ export function attachSelectionInput(
     holdOrigin = undefined;
   };
 
-  const beginSelection = (time: number, event: PointerEvent) => {
-    anchorMs = time;
-    active = true;
+  const commitRange = (startMs: number, endMs: number) => {
+    if (Math.abs(endMs - startMs) < minDurationMs) {
+      engine.cancelDraftSelection();
+      return;
+    }
+    const range = {
+      startMs: Math.min(startMs, endMs),
+      endMs: Math.max(startMs, endMs),
+    };
+    const scoped = options.trackScoped
+      ? { trackIndex: engine.getActiveTrackIndex() }
+      : {};
+    engine.commitDraftSelection({ ...scoped, ...options.onCreate?.(range) });
+  };
+
+  const beginDrag = (time: number, event: PointerEvent) => {
+    dragAnchorMs = time;
+    dragging = true;
     engine.beginDraftSelection(time);
     capturePointer(svg, event);
   };
 
-  const endGesture = () => {
+  const endDrag = () => {
     autoScroll.stop();
-    active = false;
-    anchorMs = undefined;
+    dragging = false;
+    dragAnchorMs = undefined;
+  };
+
+  const anchorStart = (time: number) => {
+    pendingStartMs = time;
+    anchoredThisGesture = true;
+    engine.beginDraftSelection(time);
+    vibrate();
+  };
+
+  const onTap = (event: PointerEvent) => {
+    if (pendingStartMs !== undefined) {
+      const end = timeAtCoords(event.clientX, event.clientY);
+      if (end === undefined) {
+        return;
+      }
+      const start = pendingStartMs;
+      pendingStartMs = undefined;
+      engine.updateDraftSelection({ endMs: end });
+      commitRange(start, end);
+      return;
+    }
+    if (!options.onDelete) {
+      return;
+    }
+    const hit = engine.selectionAt(event.clientX, event.clientY);
+    if (hit && options.onDelete(hit)) {
+      engine.removeSelection(hit.id);
+    }
   };
 
   const onPointerDown = (event: PointerEvent) => {
@@ -165,87 +213,65 @@ export function attachSelectionInput(
     if (time === undefined) {
       return;
     }
+    anchoredThisGesture = false;
     if (holdToSelect && event.pointerType === "touch") {
       holdOrigin = { x: event.clientX, y: event.clientY };
       holdTimer = setTimeout(() => {
         holdTimer = undefined;
         holdOrigin = undefined;
-        beginSelection(time, event);
-        vibrate();
+        anchorStart(time);
       }, holdDurationMs);
       return;
     }
-    beginSelection(time, event);
+    beginDrag(time, event);
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (holdOrigin !== undefined) {
-      if (movedBeyondTolerance(holdOrigin, event)) {
-        clearHold();
+    if (dragging) {
+      lastClientX = event.clientX;
+      lastClientY = event.clientY;
+      extendTo(event.clientX, event.clientY);
+      if (event.pointerType === "touch") {
+        autoScroll.track(event.clientY);
       }
       return;
     }
-    if (!active) {
-      return;
-    }
-    lastClientX = event.clientX;
-    lastClientY = event.clientY;
-    extendTo(event.clientX, event.clientY);
-    if (event.pointerType === "touch") {
-      autoScroll.track(event.clientY);
-    }
-  };
-
-  const handleTap = (event: PointerEvent) => {
-    if (!options.onDelete) {
-      return;
-    }
-    const hit = engine.selectionAt(event.clientX, event.clientY);
-    if (hit && options.onDelete(hit)) {
-      engine.removeSelection(hit.id);
+    if (holdOrigin !== undefined && movedBeyondTolerance(holdOrigin, event)) {
+      clearHold();
     }
   };
 
   const onPointerUp = (event: PointerEvent) => {
+    if (dragging) {
+      const start = dragAnchorMs;
+      const end = timeAtCoords(event.clientX, event.clientY) ?? start;
+      endDrag();
+      if (start !== undefined && end !== undefined) {
+        commitRange(start, end);
+      }
+      return;
+    }
+    if (anchoredThisGesture) {
+      anchoredThisGesture = false;
+      return;
+    }
     if (holdOrigin !== undefined) {
       clearHold();
-      handleTap(event);
-      return;
+      onTap(event);
     }
-    if (!active || anchorMs === undefined) {
-      return;
-    }
-    const time = timeAtCoords(event.clientX, event.clientY) ?? anchorMs;
-    const range = {
-      startMs: Math.min(anchorMs, time),
-      endMs: Math.max(anchorMs, time),
-    };
-    endGesture();
-
-    if (range.endMs - range.startMs < minDurationMs) {
-      engine.cancelDraftSelection();
-      return;
-    }
-    const scoped = options.trackScoped
-      ? { trackIndex: engine.getActiveTrackIndex() }
-      : {};
-    engine.commitDraftSelection({
-      ...scoped,
-      ...options.onCreate?.(range),
-    });
   };
 
   const onPointerCancel = () => {
     clearHold();
-    if (!active) {
-      return;
+    anchoredThisGesture = false;
+    if (dragging) {
+      endDrag();
+      engine.cancelDraftSelection();
     }
-    endGesture();
-    engine.cancelDraftSelection();
   };
 
   const onTouchMove = (event: TouchEvent) => {
-    if (active) {
+    if (dragging) {
       event.preventDefault();
     }
   };
@@ -288,6 +314,10 @@ export function attachSelectionInput(
   return () => {
     clearHold();
     autoScroll.stop();
+    if (pendingStartMs !== undefined) {
+      engine.cancelDraftSelection();
+      pendingStartMs = undefined;
+    }
     restoreStyles();
     svg.removeEventListener("pointerdown", onPointerDown);
     svg.removeEventListener("pointermove", onPointerMove);
@@ -324,10 +354,7 @@ function applyInteractionStyles(
   };
 }
 
-function movedBeyondTolerance(
-  origin: { x: number; y: number },
-  event: PointerEvent,
-): boolean {
+function movedBeyondTolerance(origin: Point, event: PointerEvent): boolean {
   const distance = Math.hypot(
     event.clientX - origin.x,
     event.clientY - origin.y,

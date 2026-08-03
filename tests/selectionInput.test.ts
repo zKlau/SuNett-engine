@@ -200,7 +200,7 @@ describe("attachSelectionInput on touch", () => {
     jest.useRealTimers();
   });
 
-  it("waits for a press-and-hold before selecting", () => {
+  it("anchors the start only after a press-and-hold", () => {
     jest.useFakeTimers();
     const engine = makeEngine();
     const svg = makeSvg();
@@ -211,6 +211,28 @@ describe("attachSelectionInput on touch", () => {
 
     jest.advanceTimersByTime(400);
     expect(engine.beginDraftSelection).toHaveBeenCalledWith(1000);
+  });
+
+  it("anchors on hold, holds the draft on release, commits on the next tap", () => {
+    jest.useFakeTimers();
+    const times = [0, 1000, 5000];
+    const engine = makeEngine();
+    engine.timeAtPoint = jest.fn(() => times.shift() ?? 5000);
+    const svg = makeSvg();
+    attachSelectionInput(svg, engine, { holdDurationMs: 400 });
+
+    svg.dispatchEvent(touch("pointerdown"));
+    jest.advanceTimersByTime(400);
+    expect(engine.beginDraftSelection).toHaveBeenCalledWith(0);
+
+    svg.dispatchEvent(touch("pointerup"));
+    expect(engine.commitDraftSelection).not.toHaveBeenCalled();
+
+    svg.dispatchEvent(touch("pointerdown"));
+    svg.dispatchEvent(touch("pointerup"));
+
+    expect(engine.updateDraftSelection).toHaveBeenCalledWith({ endMs: 5000 });
+    expect(engine.commitDraftSelection).toHaveBeenCalledTimes(1);
   });
 
   it("cancels the hold when the finger moves first, so touch scrolls", () => {
