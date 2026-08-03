@@ -1,3 +1,4 @@
+import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import type { Duration } from "../../types/duration";
 import type { Measure } from "../../types/measure";
 import type { BeatLayout } from "../../types/UI/noteLayout";
@@ -21,12 +22,18 @@ export function calculateBeatLayouts(
 
     const layouts: BeatLayout[] = [];
     let cursor = 0;
-    voice.beats.forEach((_beat, beatIndex) => {
+    voice.beats.forEach((beat, beatIndex) => {
       const width = (lengths[beatIndex] / totalLength) * availableWidth;
+      const beatStartX = startX + cursor;
+      const isSingleTie =
+        voice.beats.length === 1 &&
+        beat.notes.some((note) => note.kind === "Tie");
       layouts.push({
         beatIndex,
         voiceIndex,
-        x: startX + cursor + width / 2,
+        x: isSingleTie
+          ? beatStartX + width * constants.TIED_BEAT_POSITION_RATIO
+          : beatStartX + width / 2,
         width,
       });
       cursor += width;

@@ -50,6 +50,9 @@ export function renderMeasureContent(request: MeasureContentRenderRequest) {
     config: request.noteConfig,
     metrics: request.noteMetrics,
     previousNotes: request.previousNotes,
+    previousMeasureNotes: request.previousMeasureNotes,
+    nextMeasure: request.nextMeasure,
+    nextRowMeasure: request.nextRowMeasure,
   });
   const staffTop = request.bounds.y + constants.MEASURE_TOP_PADDING;
   const staffBottom =

@@ -89,3 +89,26 @@ export function noteEdgeX(note: PositionedNote, direction: -1 | 1): number {
     direction * (note.glyphWidth / 2 + constants.NOTE_EFFECT_NOTE_GAP)
   );
 }
+
+export function noteCurveDirection(
+  notes: PositionedNote[],
+  current: PositionedNote,
+): -1 | 1 {
+  const beatNotes = notes.filter(({ context }) => {
+    return (
+      context.voiceIndex === current.context.voiceIndex &&
+      context.beatIndex === current.context.beatIndex
+    );
+  });
+  const topY = Math.min(...beatNotes.map(({ context }) => context.y));
+  return current.context.y === topY ? -1 : 1;
+}
+
+export function noteCurveAnchor(note: PositionedNote, direction: -1 | 1) {
+  return {
+    x: note.context.x,
+    y:
+      note.context.y +
+      direction * (note.glyphHeight / 2 + constants.NOTE_EFFECT_NOTE_GAP),
+  };
+}

@@ -1,4 +1,5 @@
 import type { LyricSyllable } from "./measureNotationRender";
+import type { Measure } from "../measure";
 import type { MeasureBounds } from "./measureBounds";
 import type { MeasureContext } from "./measureContext";
 import type { NoteMetrics } from "./noteMetrics";
@@ -17,6 +18,9 @@ export type MeasureContentRenderRequest = {
   noteConfig: NoteRenderConfig;
   noteMetrics: NoteMetrics;
   previousNotes: PositionedNote[];
+  previousMeasureNotes: PositionedNote[];
+  nextMeasure?: Measure;
+  nextRowMeasure?: Measure;
   showTimeSignature: boolean;
   lyrics: LyricSyllable[];
 };

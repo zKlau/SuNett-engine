@@ -11,6 +11,7 @@ import {
   renderNoteElement,
   resolveGlyphWidth,
 } from "./noteRendering/noteElementRenderer";
+import { resolveNoteContinuations } from "./noteRendering/noteContinuationResolver";
 import { createNoteSvgElement } from "./noteRendering/noteSvg";
 import { stringDisplayRow } from "./stringOrder";
 
@@ -58,33 +59,56 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     });
   });
 
-  const positionedNotes = notes.map(positionNote);
-  positionedNotes.forEach(({ request: noteRequest, context }, index) => {
+  const positionedNotes = resolveNoteContinuations(
+    notes.map(positionNote),
+    request,
+  );
+  positionedNotes.forEach(({ request: noteRequest, context, label }, index) => {
     if (!isInternalTie(positionedNotes, index)) {
-      renderNoteElement(noteRequest, context);
+      renderNoteElement(noteRequest, context, label);
     }
   });
   renderNoteEffects({
     parent,
-    notes: positionedNotes.map(({ context, width, glyphWidth }) => ({
-      context,
-      width,
-      glyphWidth,
-    })),
+    notes: positionedNotes.map(
+      ({
+        context,
+        width,
+        glyphWidth,
+        glyphHeight,
+        displayValue,
+        deferBend,
+      }) => ({
+        context,
+        width,
+        glyphWidth,
+        glyphHeight,
+        displayValue,
+        deferBend,
+      }),
+    ),
     classPrefix: config.classPrefix,
     spanY:
       bounds.y +
       constants.MEASURE_TOP_PADDING -
       constants.NOTE_EFFECT_SPAN_OFFSET,
     staffTop: bounds.y + constants.MEASURE_TOP_PADDING,
+    measureStartX: bounds.x,
+    measureEndX: bounds.x + bounds.width,
     previousNotes,
+    nextRowMeasure: request.nextRowMeasure,
   });
 
-  return positionedNotes.map(({ context, width, glyphWidth }) => ({
-    context,
-    width,
-    glyphWidth,
-  }));
+  return positionedNotes.map(
+    ({ context, width, glyphWidth, glyphHeight, displayValue, deferBend }) => ({
+      context,
+      width,
+      glyphWidth,
+      glyphHeight,
+      displayValue,
+      deferBend,
+    }),
+  );
 }
 
 function positionNote(request: NoteRenderRequest): PositionedNoteRender {
@@ -128,7 +152,16 @@ function positionNote(request: NoteRenderRequest): PositionedNoteRender {
     metrics,
   );
 
-  return { request, context, width: beatLayout.width, glyphWidth };
+  return {
+    request,
+    context,
+    width: beatLayout.width,
+    glyphWidth,
+    glyphHeight: metrics.backgroundHeight,
+    label: noteLabel(note),
+    displayValue: note.value,
+    deferBend: false,
+  };
 }
 
 function isInternalTie(

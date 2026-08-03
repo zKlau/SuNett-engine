@@ -1,9 +1,13 @@
 import type { NoteRenderContext } from "./noteRenderContext";
+import type { Measure } from "../measure";
 
 export type PositionedNote = {
   context: NoteRenderContext;
   width: number;
   glyphWidth: number;
+  glyphHeight: number;
+  displayValue: number;
+  deferBend: boolean;
 };
 
 export type NoteEffectsRenderRequest = {
@@ -12,7 +16,10 @@ export type NoteEffectsRenderRequest = {
   classPrefix: string;
   spanY: number;
   staffTop: number;
+  measureStartX: number;
+  measureEndX: number;
   previousNotes?: PositionedNote[];
+  nextRowMeasure?: Measure;
 };
 
 export type EffectRenderState = {

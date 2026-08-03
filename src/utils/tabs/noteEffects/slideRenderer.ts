@@ -3,7 +3,12 @@ import type {
   EffectRenderState,
   NoteEffectsRenderRequest,
 } from "../../../types/UI/noteEffectsRender";
-import { collectEffectBeats, noteEdgeX } from "./effectLayout";
+import {
+  collectEffectBeats,
+  noteCurveAnchor,
+  noteCurveDirection,
+  noteEdgeX,
+} from "./effectLayout";
 import { createEffectGroup, createEffectPath } from "./effectSvg";
 
 export function renderLegatoSlideSlurs(request: NoteEffectsRenderRequest) {
@@ -45,16 +50,18 @@ export function renderLegatoSlideSlurs(request: NoteEffectsRenderRequest) {
       return;
     }
 
-    const startX = noteEdgeX(source, 1);
-    const endX = noteEdgeX(target, -1);
-    if (endX <= startX) {
+    const direction = noteCurveDirection(request.notes, source);
+    const start = noteCurveAnchor(source, direction);
+    const end = noteCurveAnchor(target, direction);
+    if (end.x <= start.x) {
       return;
     }
 
-    const startY = source.context.y - constants.NOTE_EFFECT_NOTE_GAP;
-    const endY = target.context.y - constants.NOTE_EFFECT_NOTE_GAP;
-    const middleX = (startX + endX) / 2;
-    const curveY = Math.min(startY, endY) - constants.NOTE_EFFECT_SLUR_HEIGHT;
+    const middleX = (start.x + end.x) / 2;
+    const curveY =
+      direction < 0
+        ? Math.min(start.y, end.y) - constants.NOTE_EFFECT_SLUR_HEIGHT
+        : Math.max(start.y, end.y) + constants.NOTE_EFFECT_SLUR_HEIGHT;
     const state: EffectRenderState = {
       parent: request.parent,
       entry: source,
@@ -64,7 +71,7 @@ export function renderLegatoSlideSlurs(request: NoteEffectsRenderRequest) {
     group.setAttribute("data-target-beat", `${targetBeat.beatIndex}`);
     group.append(
       createEffectPath(
-        `M ${startX} ${startY} Q ${middleX} ${curveY} ${endX} ${endY}`,
+        `M ${start.x} ${start.y} Q ${middleX} ${curveY} ${end.x} ${end.y}`,
       ),
     );
     request.parent.append(group);

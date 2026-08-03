@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { renderMeasureNotes } from "../src/utils/tabs/notesRenderer";
+import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
 import {
   makeBeat,
   makeBeatLayout,
@@ -115,7 +116,17 @@ describe("slide effects", () => {
     );
     expect(slideLines).toHaveLength(2);
     expect(slurs).toHaveLength(1);
-    expect(slurs[0].getAttribute("d")).toContain("Q");
+    const path = slurs[0].getAttribute("d")!.split(" ");
+    const backgrounds = parent.querySelectorAll<SVGRectElement>(".tab-note-bg");
+    expect(path).toContain("Q");
+    expect(Number(path[1])).toBe(50);
+    expect(Number(path[6])).toBe(150);
+    expect(Number(path[2])).toBe(
+      Number(backgrounds[0].getAttribute("y")) - constants.NOTE_EFFECT_NOTE_GAP,
+    );
+    expect(Number(path[7])).toBe(
+      Number(backgrounds[2].getAttribute("y")) - constants.NOTE_EFFECT_NOTE_GAP,
+    );
     expect(slurs[0].parentElement!.getAttribute("data-target-beat")).toBe("1");
   });
 

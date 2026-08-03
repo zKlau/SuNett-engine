@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
+import { BravuraNotationGlyphs } from "../src/constants/notationGlyphPaths";
 import { renderMeasureNotes } from "../src/utils/tabs/notesRenderer";
 import {
   makeBeat,
@@ -92,7 +93,7 @@ describe("note technique effects", () => {
     );
   });
 
-  it("renders one beat-width vibrato line above an affected chord", () => {
+  it("renders Bravura guitar-shake glyphs across an affected chord beat", () => {
     const parent = makeParent();
     const bounds = makeBounds({ y: 20 });
     const vibratoEffect = {
@@ -121,22 +122,15 @@ describe("note technique effects", () => {
     });
 
     const vibrato = parent.querySelectorAll(".tab-note-effect--vibrato path");
-    const noteBackground = parent.querySelector(".tab-note-bg")!;
-    const expectedY =
-      bounds.y +
-      constants.MEASURE_TOP_PADDING -
-      constants.NOTE_EFFECT_VIBRATO_OFFSET;
-    const path = vibrato[0].getAttribute("d")!;
-
-    expect(vibrato).toHaveLength(1);
-    expect(path).toMatch(
-      new RegExp(`^M ${noteBackground.getAttribute("x")} ${expectedY} `),
-    );
-    expect(path).toContain(
-      `L ${100 + 90 - constants.NOTE_EFFECT_NOTE_GAP} ${expectedY}`,
-    );
-    expect(path.match(/L /g)!.length).toBeGreaterThan(10);
-    expect(vibrato[0].getAttribute("stroke")).toContain("--sunett-color-muted");
+    expect(vibrato.length).toBeGreaterThan(1);
+    vibrato.forEach((path) => {
+      expect(path.getAttribute("d")).toBe(
+        BravuraNotationGlyphs.GUITAR_SHAKE.path,
+      );
+      expect(path.getAttribute("fill")).toContain("--sunett-color-muted");
+      expect(path.getAttribute("stroke")).toBe("none");
+      expect(path.getAttribute("transform")).toContain("scale(");
+    });
   });
 
   it("omits linked techniques when no following note exists", () => {
@@ -201,8 +195,66 @@ describe("note technique effects", () => {
     expect(effect.getAttribute("data-bend-value")).toBe("100");
     expect(effect.querySelectorAll("path")).toHaveLength(2);
     expect(effect.querySelector("text")!.textContent).toBe("full");
-    expect(effect.querySelector("path")!.getAttribute("stroke")).toContain(
-      "--sunett-color-note-fg",
+    const paths = effect.querySelectorAll("path");
+    expect(paths[0].getAttribute("d")).toContain("C");
+    expect(paths[0].getAttribute("stroke")).toContain("--sunett-color-note-fg");
+    expect(paths[1].getAttribute("d")).toBe(
+      BravuraNotationGlyphs.BEND_ARROW_DOWN.path,
+    );
+    expect(paths[1].getAttribute("fill")).toContain("--sunett-color-note-fg");
+    expect(paths[1].getAttribute("stroke")).toBe("none");
+  });
+
+  it("renders parser bend values as a full-height full bend", () => {
+    const note = makeNote({
+      effect: {
+        ...makeNote().effect,
+        bend: {
+          kind: "Bend",
+          value: 100,
+          semitone_length: 1,
+          max_position: 12,
+          max_value: 12,
+          points: [
+            { position: 0, value: 0, vibrato: false },
+            { position: 3, value: 4, vibrato: false },
+            { position: 12, value: 4, vibrato: false },
+          ],
+        },
+      },
+    });
+    const parent = makeParent();
+
+    renderMeasureNotes({
+      parent,
+      measure: makeMeasureFromVoices([[makeBeat({ notes: [note] })]]),
+      measureIndex: 0,
+      beatLayouts: [makeBeatLayout()],
+      bounds: makeBounds(),
+      stringCount: 6,
+      config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
+    });
+
+    const effect = parent.querySelector(".tab-note-effect--bend")!;
+    const paths = effect.querySelectorAll("path");
+    const bendPath = paths[0].getAttribute("d")!.split(" ");
+    const background = parent.querySelector(".tab-note-bg")!;
+
+    expect(effect.querySelector("text")!.textContent).toBe("full");
+    expect(Number(bendPath[1])).toBe(
+      Number(background.getAttribute("x")) +
+        Number(background.getAttribute("width")) +
+        constants.NOTE_EFFECT_NOTE_GAP,
+    );
+    expect(Number(bendPath[2])).toBe(
+      Number(background.getAttribute("y")) - constants.NOTE_EFFECT_NOTE_GAP,
+    );
+    expect(Number(bendPath[2]) - Number(bendPath[16])).toBe(
+      constants.NOTE_EFFECT_BEND_HEIGHT,
+    );
+    expect(paths[1].getAttribute("d")).toBe(
+      BravuraNotationGlyphs.BEND_ARROW_UP.path,
     );
   });
 

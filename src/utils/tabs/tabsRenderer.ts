@@ -144,7 +144,7 @@ export class TabsRenderer {
       };
 
       measures.forEach((measureContext, index) => {
-        renderMeasure(svg, measureContext, index, pass);
+        renderMeasure(svg, measureContext, index, pass, measures[index + 1]);
       });
 
       this.interaction.update({

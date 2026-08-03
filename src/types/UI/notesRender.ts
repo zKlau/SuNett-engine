@@ -34,6 +34,9 @@ export type NotesRenderRequest = {
   config: NoteRenderConfig;
   metrics: NoteMetrics;
   previousNotes?: PositionedNote[];
+  previousMeasureNotes?: PositionedNote[];
+  nextMeasure?: Measure;
+  nextRowMeasure?: Measure;
 };
 
 export type NoteRenderRequest = {
@@ -56,4 +59,8 @@ export type PositionedNoteRender = {
   context: NoteRenderContext;
   width: number;
   glyphWidth: number;
+  glyphHeight: number;
+  label: string;
+  displayValue: number;
+  deferBend: boolean;
 };

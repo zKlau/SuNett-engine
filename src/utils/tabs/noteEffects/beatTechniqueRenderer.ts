@@ -1,15 +1,13 @@
 import { TabsRendererConstants as constants } from "../../../constants/tabRendererConstants";
+import { BravuraNotationGlyphs } from "../../../constants/notationGlyphPaths";
 import { ThemeVariables, themeVar } from "../../../theme/variables";
 import type {
   EffectRenderState,
   NoteEffectsRenderRequest,
 } from "../../../types/UI/noteEffectsRender";
 import { collectEffectBeats } from "./effectLayout";
-import {
-  createEffectGroup,
-  createMutedEffectPath,
-  createSvgElement,
-} from "./effectSvg";
+import { createEffectGroup, createSvgElement } from "./effectSvg";
+import { createNotationGlyph } from "./notationGlyphRenderer";
 
 export function renderBeatVibrato(request: NoteEffectsRenderRequest) {
   collectEffectBeats(request.notes).forEach((beat) => {
@@ -31,30 +29,45 @@ export function renderBeatVibrato(request: NoteEffectsRenderRequest) {
     }
 
     const y = request.staffTop - constants.NOTE_EFFECT_VIBRATO_OFFSET;
-    const points: string[] = [`M ${startX} ${y}`];
-    let offset = constants.NOTE_EFFECT_WAVE_STEP;
-
-    while (startX + offset < endX) {
-      const waveY =
-        y +
-        ((offset / constants.NOTE_EFFECT_WAVE_STEP) % 2) *
-          constants.NOTE_EFFECT_WAVE_HEIGHT *
-          2 -
-        constants.NOTE_EFFECT_WAVE_HEIGHT;
-      points.push(`L ${startX + offset} ${waveY}`);
-      offset += constants.NOTE_EFFECT_WAVE_STEP;
-    }
-    points.push(`L ${endX} ${y}`);
-
     const state: EffectRenderState = {
       parent: request.parent,
       entry: affectedNotes[0],
       classPrefix: request.classPrefix,
     };
     const group = createEffectGroup(state, "vibrato");
-    group.append(createMutedEffectPath(points.join(" ")));
+    appendGuitarShake(group, startX, endX, y);
     request.parent.append(group);
   });
+}
+
+function appendGuitarShake(
+  parent: SVGGElement,
+  startX: number,
+  endX: number,
+  y: number,
+) {
+  const glyph = BravuraNotationGlyphs.GUITAR_SHAKE;
+  const availableWidth = endX - startX;
+  const scale = Math.min(
+    constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE,
+    availableWidth / glyph.width,
+  );
+  const segmentWidth = glyph.width * scale;
+  const count = Math.max(1, Math.floor(availableWidth / segmentWidth));
+  const renderedWidth = count * segmentWidth;
+  const offset = (availableWidth - renderedWidth) / 2;
+
+  for (let index = 0; index < count; index += 1) {
+    parent.append(
+      createNotationGlyph(
+        glyph,
+        startX + offset + segmentWidth * (index + 0.5),
+        y,
+        scale,
+        ThemeVariables.COLOR_MUTED,
+      ),
+    );
+  }
 }
 
 export function renderBeatStaccato(request: NoteEffectsRenderRequest) {

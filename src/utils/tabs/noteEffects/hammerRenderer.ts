@@ -4,7 +4,11 @@ import type {
   NoteEffectsRenderRequest,
   PositionedNote,
 } from "../../../types/UI/noteEffectsRender";
-import { findNextNote, noteEdgeX } from "./effectLayout";
+import {
+  findNextNote,
+  noteCurveAnchor,
+  noteCurveDirection,
+} from "./effectLayout";
 import { createEffectGroup, createEffectPath } from "./effectSvg";
 
 export function renderHammerPhrases(
@@ -49,30 +53,36 @@ export function renderHammerPhrases(
   return sources;
 }
 
-export function renderHammer(state: EffectRenderState) {
+export function renderHammer(
+  state: EffectRenderState,
+  notes: PositionedNote[],
+) {
   if (!state.entry.context.note.effect.hammer || !state.next) {
     return;
   }
 
   const { context } = state.entry;
   const nextContext = state.next.context;
-  const startX = noteEdgeX(state.entry, 1);
-  const endX = noteEdgeX(state.next, -1);
-  if (endX <= startX) {
+  const direction = noteCurveDirection(notes, state.entry);
+  const start = noteCurveAnchor(state.entry, direction);
+  const end = noteCurveAnchor(state.next, direction);
+  if (end.x <= start.x) {
     return;
   }
 
   const group = createEffectGroup(state, "hammer");
-  const y = context.y - constants.NOTE_EFFECT_NOTE_GAP;
-  const middleX = (startX + endX) / 2;
+  const middleX = (start.x + end.x) / 2;
+  const curveY =
+    direction < 0
+      ? Math.min(start.y, end.y) - constants.NOTE_EFFECT_SLUR_HEIGHT
+      : Math.max(start.y, end.y) + constants.NOTE_EFFECT_SLUR_HEIGHT;
   const path = createEffectPath(
-    `M ${startX} ${y} Q ${middleX} ${
-      y - constants.NOTE_EFFECT_SLUR_HEIGHT
-    } ${endX} ${y}`,
+    `M ${start.x} ${start.y} Q ${middleX} ${curveY} ${end.x} ${end.y}`,
   );
   const symbol = nextContext.note.value > context.note.value ? "h" : "p";
 
   group.setAttribute("data-technique", symbol);
+  group.setAttribute("data-placement", direction < 0 ? "above" : "below");
   group.append(path);
   state.parent.append(group);
 }
@@ -83,17 +93,18 @@ function renderHammerPhrase(
 ) {
   const first = phrase[0];
   const last = phrase[phrase.length - 1];
-  const startX = noteEdgeX(first, 1);
-  const endX = noteEdgeX(last, -1);
-  if (endX <= startX) {
+  const direction = noteCurveDirection(request.notes, first);
+  const start = noteCurveAnchor(first, direction);
+  const end = noteCurveAnchor(last, direction);
+  if (end.x <= start.x) {
     return;
   }
 
-  const startY = first.context.y - constants.NOTE_EFFECT_NOTE_GAP;
-  const endY = last.context.y - constants.NOTE_EFFECT_NOTE_GAP;
-  const middleX = (startX + endX) / 2;
+  const middleX = (start.x + end.x) / 2;
   const curveY =
-    Math.min(startY, endY) - constants.NOTE_EFFECT_PHRASE_SLUR_HEIGHT;
+    direction < 0
+      ? Math.min(start.y, end.y) - constants.NOTE_EFFECT_PHRASE_SLUR_HEIGHT
+      : Math.max(start.y, end.y) + constants.NOTE_EFFECT_PHRASE_SLUR_HEIGHT;
   const state: EffectRenderState = {
     parent: request.parent,
     entry: first,
@@ -107,6 +118,7 @@ function renderHammerPhrase(
   });
 
   group.setAttribute("data-technique", techniques.join("-"));
+  group.setAttribute("data-placement", direction < 0 ? "above" : "below");
   group.setAttribute("data-target-beat", `${last.context.beatIndex}`);
   group.setAttribute(
     "data-tuplet",
@@ -114,7 +126,7 @@ function renderHammerPhrase(
   );
   group.append(
     createEffectPath(
-      `M ${startX} ${startY} Q ${middleX} ${curveY} ${endX} ${endY}`,
+      `M ${start.x} ${start.y} Q ${middleX} ${curveY} ${end.x} ${end.y}`,
     ),
   );
   request.parent.append(group);
