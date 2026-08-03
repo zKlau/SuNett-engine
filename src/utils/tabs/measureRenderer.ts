@@ -19,6 +19,7 @@ export function renderMeasure(
   measureContext: MeasureContext,
   index: number,
   pass: RenderPass,
+  nextMeasureContext?: MeasureContext,
 ): void {
   const { layout, totalMeasures } = pass;
   const measureLayout = layout.measureLayouts[index];
@@ -28,8 +29,10 @@ export function renderMeasure(
   }
 
   const previousLayout = layout.measureLayouts[index - 1];
+  const nextLayout = layout.measureLayouts[index + 1];
   const isRowStart =
     !previousLayout || previousLayout.row !== measureLayout.row;
+  const isRowEnd = !nextLayout || nextLayout.row !== measureLayout.row;
   const isFirstMeasure = index === 0;
   const isLastMeasure = index === totalMeasures - 1;
 
@@ -96,12 +99,12 @@ export function renderMeasure(
     isFirstMeasure,
   });
 
-  const previousNotes =
-    pass.previousMeasureIndex === measureContext.index - 1 &&
-    pass.previousMeasureRow === measureLayout.row
+  const previousMeasureNotes =
+    pass.previousMeasureIndex === measureContext.index - 1
       ? pass.previousNotes
       : [];
-  pass.previousNotes = previousNotes;
+  const previousNotes =
+    pass.previousMeasureRow === measureLayout.row ? previousMeasureNotes : [];
   const positionedNotes = renderMeasureContent({
     notesParent: notesGroup,
     rhythmParent: rhythmGroup,
@@ -113,7 +116,14 @@ export function renderMeasure(
     reverseStrings: pass.reverseStrings,
     noteConfig: pass.config.notes,
     noteMetrics: pass.metrics,
-    previousNotes: pass.previousNotes,
+    previousNotes,
+    previousMeasureNotes,
+    nextMeasure:
+      nextLayout?.row === measureLayout.row
+        ? nextMeasureContext?.measure
+        : undefined,
+    nextRowMeasure:
+      isRowEnd && nextMeasureContext ? nextMeasureContext.measure : undefined,
     showTimeSignature,
     lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
   });

@@ -1,5 +1,11 @@
+import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
 import { calculateBeatLayouts } from "../src/utils/tabs/notesLayout";
-import { makeBeat, makeDuration, makeMeasureFromVoices } from "./fixtures";
+import {
+  makeBeat,
+  makeDuration,
+  makeMeasureFromVoices,
+  makeNote,
+} from "./fixtures";
 
 describe("calculateBeatLayouts", () => {
   it("returns an empty array when available width is not positive", () => {
@@ -24,6 +30,17 @@ describe("calculateBeatLayouts", () => {
     expect(layout.width).toBe(100);
     expect(layout.beatIndex).toBe(0);
     expect(layout.voiceIndex).toBe(0);
+  });
+
+  it("places a single tied continuation near the measure start", () => {
+    const measure = makeMeasureFromVoices([
+      [makeBeat({ notes: [makeNote({ kind: "Tie" })] })],
+    ]);
+
+    const [layout] = calculateBeatLayouts(measure, 10, 100);
+
+    expect(layout.x).toBe(10 + 100 * constants.TIED_BEAT_POSITION_RATIO);
+    expect(layout.width).toBe(100);
   });
 
   it("splits equal-duration beats evenly", () => {

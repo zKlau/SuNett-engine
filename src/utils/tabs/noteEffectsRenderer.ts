@@ -21,7 +21,7 @@ import {
   renderSlides,
 } from "./noteEffects/slideRenderer";
 import { renderTechniqueSpans } from "./noteEffects/techniqueSpanRenderer";
-import { renderTie } from "./noteEffects/tieRenderer";
+import { renderOutgoingRowTies, renderTie } from "./noteEffects/tieRenderer";
 
 export function renderNoteEffects(request: NoteEffectsRenderRequest) {
   renderTechniqueSpans(request);
@@ -41,16 +41,20 @@ export function renderNoteEffects(request: NoteEffectsRenderRequest) {
       next: findNextNote(request.notes, index),
       classPrefix: request.classPrefix,
     };
+    const previous =
+      findPreviousNote(request.notes, index) ??
+      findPreviousMeasureNote(request.previousNotes ?? [], entry);
 
     if (!phraseHammerSources.has(entry)) {
-      renderHammer(state);
+      renderHammer(state, request.notes);
     }
-    renderTie(
-      state,
-      findPreviousNote(request.notes, index) ??
-        findPreviousMeasureNote(request.previousNotes ?? [], entry),
-    );
-    renderNoteSymbols(state);
+    renderTie(state, previous, request.measureStartX);
+    const inheritedBend =
+      entry.context.note.kind === "Tie" && previous?.deferBend
+        ? (previous.context.note.effect.bend ?? undefined)
+        : undefined;
+    renderNoteSymbols(state, inheritedBend);
     renderSlides(state);
   });
+  renderOutgoingRowTies(request);
 }

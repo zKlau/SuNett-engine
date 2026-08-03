@@ -12,6 +12,7 @@ import { attachNoteInteractions } from "./noteInteractions";
 export function renderNoteElement(
   request: NoteRenderRequest,
   context: NoteRenderContext,
+  label: string,
 ) {
   const { parent, config, metrics } = request;
   const customElement = config.render?.(context);
@@ -21,7 +22,7 @@ export function renderNoteElement(
     return;
   }
 
-  const noteGroup = buildDefaultNote(context, config, metrics);
+  const noteGroup = buildDefaultNote(context, config, metrics, label);
   config.onCreate?.(noteGroup, context);
   attachNoteInteractions(noteGroup, context, config);
   parent.append(noteGroup);
@@ -40,8 +41,8 @@ export function resolveGlyphWidth(
   );
 }
 
-export function noteLabel(note: Note): string {
-  const value = note.kind === "Dead" ? "x" : `${note.value}`;
+export function noteLabel(note: Note, tiedValue?: number): string {
+  const value = note.kind === "Dead" ? "x" : `${tiedValue ?? note.value}`;
   return note.effect?.ghost_note || note.kind === "Tie" ? `(${value})` : value;
 }
 
@@ -49,6 +50,7 @@ function buildDefaultNote(
   context: NoteRenderContext,
   config: NoteRenderConfig,
   metrics: NoteMetrics,
+  label: string,
 ): SVGGElement {
   const { note, x, y, fontSize } = context;
   const prefix = config.classPrefix;
@@ -66,7 +68,6 @@ function buildDefaultNote(
   group.setAttribute("data-measure-index", `${context.measureIndex}`);
   group.setAttribute("data-voice-index", `${context.voiceIndex}`);
 
-  const label = noteLabel(note);
   const glyphWidth = resolveGlyphWidth(label, fontSize, config, metrics);
 
   if (config.background) {

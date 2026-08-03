@@ -159,12 +159,16 @@ describe("linked note effects", () => {
     expect(tie).not.toBeNull();
     const tiePath = tie!.querySelector("path")!.getAttribute("d")!.split(" ");
     expect(tiePath).toContain("Q");
+    expect(tie!.getAttribute("data-placement")).toBe("below");
     expect(Number(tiePath[5]) - Number(tiePath[2])).toBe(
-      constants.NOTE_EFFECT_SLUR_HEIGHT,
+      Math.max(
+        constants.NOTE_EFFECT_SLUR_HEIGHT,
+        100 * constants.NOTE_EFFECT_TIE_HEIGHT_RATIO,
+      ),
     );
   });
 
-  it("bows ties and hammer-ons toward each other within a chord", () => {
+  it("attaches every tied chord arc below its note", () => {
     const parent = makeParent();
 
     renderMeasureNotes({
@@ -174,21 +178,13 @@ describe("linked note effects", () => {
           makeBeat({
             notes: [
               makeNote({ string: 0, value: 4 }),
-              makeNote({
-                string: 1,
-                value: 0,
-                effect: { ...makeNote().effect, hammer: true },
-              }),
+              makeNote({ string: 1, value: 0 }),
             ],
           }),
           makeBeat({
             notes: [
               makeNote({ string: 0, value: 4, kind: "Tie" }),
-              makeNote({
-                string: 1,
-                value: 2,
-                effect: { ...makeNote().effect, hammer: true },
-              }),
+              makeNote({ string: 1, value: 0, kind: "Tie" }),
             ],
           }),
         ],
@@ -204,17 +200,46 @@ describe("linked note effects", () => {
       metrics: makeNoteMetrics(),
     });
 
-    const tie = parent
-      .querySelector(".tab-note-effect--tie path")!
+    const ties = parent.querySelectorAll(".tab-note-effect--tie");
+    const backgrounds = parent.querySelectorAll<SVGRectElement>(".tab-note-bg");
+    const upperPath = ties[0]
+      .querySelector("path")!
       .getAttribute("d")!
       .split(" ");
-    const hammer = parent
-      .querySelector(".tab-note-effect--hammer path")!
+    const lowerPath = ties[1]
+      .querySelector("path")!
       .getAttribute("d")!
       .split(" ");
 
-    expect(Number(tie[5])).toBeGreaterThan(Number(tie[2]));
-    expect(Number(hammer[5])).toBeLessThan(Number(hammer[2]));
+    expect(ties).toHaveLength(2);
+    expect(ties[0].getAttribute("data-placement")).toBe("below");
+    expect(ties[1].getAttribute("data-placement")).toBe("below");
+    expect(Number(upperPath[5])).toBeGreaterThan(Number(upperPath[2]));
+    expect(Number(lowerPath[5])).toBeGreaterThan(Number(lowerPath[2]));
+    expect(Number(upperPath[1])).toBe(50);
+    expect(Number(upperPath[6])).toBe(150);
+    expect(Number(lowerPath[1])).toBe(50);
+    expect(Number(lowerPath[6])).toBe(150);
+    expect(Number(upperPath[2])).toBe(
+      Number(backgrounds[0].getAttribute("y")) +
+        Number(backgrounds[0].getAttribute("height")) +
+        constants.NOTE_EFFECT_NOTE_GAP,
+    );
+    expect(Number(upperPath[7])).toBe(
+      Number(backgrounds[0].getAttribute("y")) +
+        Number(backgrounds[0].getAttribute("height")) +
+        constants.NOTE_EFFECT_NOTE_GAP,
+    );
+    expect(Number(lowerPath[2])).toBe(
+      Number(backgrounds[1].getAttribute("y")) +
+        Number(backgrounds[1].getAttribute("height")) +
+        constants.NOTE_EFFECT_NOTE_GAP,
+    );
+    expect(Number(lowerPath[7])).toBe(
+      Number(backgrounds[1].getAttribute("y")) +
+        Number(backgrounds[1].getAttribute("height")) +
+        constants.NOTE_EFFECT_NOTE_GAP,
+    );
   });
 
   it("does not carry a hammer arc across an intervening rest", () => {
@@ -313,10 +338,10 @@ describe("linked note effects", () => {
       const path = tie.getAttribute("d")!.split(" ");
       const expectedStart =
         Number(source.getAttribute("x")) +
-        Number(source.getAttribute("width")) +
-        constants.NOTE_EFFECT_NOTE_GAP;
+        Number(source.getAttribute("width")) / 2;
       const expectedEnd =
-        Number(destination.getAttribute("x")) - constants.NOTE_EFFECT_NOTE_GAP;
+        Number(destination.getAttribute("x")) +
+        Number(destination.getAttribute("width")) / 2;
 
       expect(Number(path[1])).toBeCloseTo(expectedStart);
       expect(Number(path[6])).toBeCloseTo(expectedEnd);
