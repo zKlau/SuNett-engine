@@ -9,14 +9,36 @@ import type {
   SelectionUpdate,
 } from "../types/selection";
 import type { TabRendererOptions } from "../types/UI/rendererOptions";
+import type {
+  EngineEventMap,
+  LoopRange,
+  PlaybackEventMap,
+  PlaybackState,
+} from "../types/playback";
 import type { ThemeLike } from "../theme/resolveTheme";
 import type { Theme } from "../theme/theme";
 import type { SelectionInputOptions } from "./selectionInput";
 import { attachSelectionInput } from "./selectionInput";
+import type { PlaybackInputOptions } from "./playbackInput";
+import { attachPlaybackInput } from "./playbackInput";
 import type { SnapMode } from "../utils/timing/snapTime";
 import { SelectionManager } from "../selection/selectionManager";
+import { PlaybackController } from "../playback/playbackController";
 import { TabsRenderer } from "../utils/tabs/tabsRenderer";
 import { computeSongHash } from "../utils/song/songHash";
+
+const PLAYBACK_EVENTS = new Set<keyof PlaybackEventMap>([
+  "playbackStarted",
+  "playbackPaused",
+  "playbackStopped",
+  "playbackPositionChanged",
+]);
+
+function isPlaybackEvent(
+  event: keyof EngineEventMap,
+): event is keyof PlaybackEventMap {
+  return PLAYBACK_EVENTS.has(event as keyof PlaybackEventMap);
+}
 
 export type SunettEngineConfig = {
   /** Initial theme: a preset name, a `ThemeInput`, or a built `Theme`. */
@@ -33,12 +55,15 @@ export type SunettEngineConfig = {
  */
 export class SunettEngine {
   private readonly selections = new SelectionManager();
+  private readonly playback = new PlaybackController();
   private readonly store?: SelectionStore;
   private readonly theme?: ThemeLike;
   private readonly unsubscribe: () => void;
+  private readonly unsubscribePlayback: () => void;
   private song?: Song;
   private renderer?: TabsRenderer;
   private detachInput?: () => void;
+  private detachPlaybackInput?: () => void;
   private loadGeneration = 0;
   private loading = false;
 
@@ -47,6 +72,10 @@ export class SunettEngine {
     this.store = config.selectionStore;
     this.unsubscribe = this.selections.on("selectionsChanged", (selections) =>
       this.onSelectionsChanged(selections),
+    );
+    this.unsubscribePlayback = this.playback.on(
+      "playbackPositionChanged",
+      ({ positionMs }) => this.renderer?.setCursor(positionMs),
     );
   }
 
@@ -59,6 +88,8 @@ export class SunettEngine {
    */
   async loadSong(song: Song): Promise<void> {
     const generation = ++this.loadGeneration;
+    this.playback.setLoop(undefined);
+    this.playback.stop();
     this.renderer?.dispose();
     this.song = song;
     this.renderer = new TabsRenderer(song, {
@@ -95,6 +126,8 @@ export class SunettEngine {
    */
   render(trackIndex = 0, options: TabRendererOptions = {}): void {
     this.renderer?.generateMeasures(trackIndex, options);
+    this.playback.setDuration(this.renderer?.getSongDurationMs() ?? 0);
+    this.renderer?.setCursor(this.playback.getPosition());
   }
 
   /** Redraws the current tab without recomputing the song setup. */
@@ -120,6 +153,53 @@ export class SunettEngine {
   /** Index of the track currently rendered; `0` before the first `render`. */
   getActiveTrackIndex(): number {
     return this.renderer?.getActiveTrackIndex() ?? 0;
+  }
+
+  /** Starts visual playback from the current cursor position. */
+  play(): void {
+    this.playback.play();
+  }
+
+  /** Pauses playback, holding the cursor at the current position. */
+  pause(): void {
+    this.playback.pause();
+  }
+
+  /** Stops playback and resets the cursor to the start (or the loop start). */
+  stop(): void {
+    this.playback.stop();
+  }
+
+  /**
+   * Moves the cursor to a time position, continuing playback if it is running.
+   * @param positionMs The target time in milliseconds.
+   */
+  seek(positionMs: number): void {
+    this.playback.seek(positionMs);
+  }
+
+  /** The current transport state: `"playing" | "paused" | "stopped"`. */
+  getPlaybackState(): PlaybackState {
+    return this.playback.getState();
+  }
+
+  /** The current playback position in milliseconds. */
+  getCurrentPosition(): number {
+    return this.playback.getPosition();
+  }
+
+  /**
+   * Sets or clears the loop range playback wraps within. Passing `null` clears
+   * it; `stop()` then resets to the song start again.
+   * @param loop The loop range, or `null` to clear.
+   */
+  setLoop(loop: LoopRange | null): void {
+    this.playback.setLoop(loop);
+  }
+
+  /** The active loop range, or `undefined` if none is set. */
+  getLoop(): LoopRange | undefined {
+    return this.playback.getLoop();
   }
 
   /**
@@ -267,28 +347,47 @@ export class SunettEngine {
   }
 
   /**
-   * Subscribes to a selection lifecycle event.
+   * Subscribes to a selection or playback lifecycle event.
    * @param event The event name to listen for.
    * @param listener Handler invoked with the event payload.
    * @returns A function that removes the listener.
    */
-  on<Key extends keyof SelectionEventMap>(
+  on<Key extends keyof EngineEventMap>(
     event: Key,
-    listener: (payload: SelectionEventMap[Key]) => void,
+    listener: (payload: EngineEventMap[Key]) => void,
   ): () => void {
-    return this.selections.on(event, listener);
+    if (isPlaybackEvent(event)) {
+      return this.playback.on(
+        event,
+        listener as (payload: PlaybackEventMap[keyof PlaybackEventMap]) => void,
+      );
+    }
+    return this.selections.on(
+      event as keyof SelectionEventMap,
+      listener as (payload: SelectionEventMap[keyof SelectionEventMap]) => void,
+    );
   }
 
   /**
-   * Removes a previously registered selection event listener.
+   * Removes a previously registered event listener.
    * @param event The event name the listener was registered for.
    * @param listener The handler to remove.
    */
-  off<Key extends keyof SelectionEventMap>(
+  off<Key extends keyof EngineEventMap>(
     event: Key,
-    listener: (payload: SelectionEventMap[Key]) => void,
+    listener: (payload: EngineEventMap[Key]) => void,
   ): void {
-    this.selections.off(event, listener);
+    if (isPlaybackEvent(event)) {
+      this.playback.off(
+        event,
+        listener as (payload: PlaybackEventMap[keyof PlaybackEventMap]) => void,
+      );
+      return;
+    }
+    this.selections.off(
+      event as keyof SelectionEventMap,
+      listener as (payload: SelectionEventMap[keyof SelectionEventMap]) => void,
+    );
   }
 
   /**
@@ -319,6 +418,24 @@ export class SunettEngine {
   }
 
   /**
+   * Attaches click-to-seek to the rendered tab: a click moves the playback
+   * cursor to the clicked time, while a drag still selects. Call after `render`.
+   * Any previous attachment is replaced, and it is torn down on `dispose`.
+   * @param options Interaction configuration (seek button, snapping).
+   * @returns A function that detaches the interaction.
+   */
+  enablePlaybackInput(options: PlaybackInputOptions = {}): () => void {
+    this.detachPlaybackInput?.();
+    const svg = this.renderer?.getElement();
+    if (!svg) {
+      this.detachPlaybackInput = undefined;
+      return () => {};
+    }
+    this.detachPlaybackInput = attachPlaybackInput(svg, this, options);
+    return this.detachPlaybackInput;
+  }
+
+  /**
    * Releases the engine's resources: detaches any pointer interaction, tears
    * down the renderer's `ResizeObserver`, and stops listening for selection
    * changes. Call this when the engine is no longer needed.
@@ -326,9 +443,13 @@ export class SunettEngine {
   dispose(): void {
     this.detachInput?.();
     this.detachInput = undefined;
+    this.detachPlaybackInput?.();
+    this.detachPlaybackInput = undefined;
+    this.playback.stop();
     this.renderer?.dispose();
     this.renderer = undefined;
     this.unsubscribe();
+    this.unsubscribePlayback();
   }
 
   private onSelectionsChanged(selections: Selection[]): void {

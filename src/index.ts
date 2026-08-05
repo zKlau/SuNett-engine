@@ -7,8 +7,22 @@ export type {
   SelectionInputOptions,
   SelectionRange,
 } from "./engine/selectionInput";
+export type { PlaybackInputOptions } from "./engine/playbackInput";
 export { SnapMode } from "./utils/timing/snapTime";
 export { computeSongHash } from "./utils/song/songHash";
+
+export { PlaybackController } from "./playback/playbackController";
+export type {
+  FrameScheduler,
+  PlaybackControllerConfig,
+} from "./playback/playbackController";
+export { PlaybackState } from "./types/playback";
+export type {
+  LoopRange,
+  PlaybackPositionEvent,
+  PlaybackEventMap,
+  EngineEventMap,
+} from "./types/playback";
 export type {
   Selection,
   SelectionInput,
