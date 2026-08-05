@@ -9,6 +9,7 @@ export const ThemeVariables = {
   COLOR_REST: "--sunett-color-rest",
   COLOR_ACCENT: "--sunett-color-accent",
   COLOR_SELECTION: "--sunett-color-selection",
+  COLOR_CURSOR: "--sunett-color-cursor",
   FONT_NOTE: "--sunett-font-note",
   FONT_LABEL: "--sunett-font-label",
   FONT_LABEL_SIZE: "--sunett-font-label-size",
@@ -34,6 +35,8 @@ const ThemeVariableFallbacks: Record<ThemeVariable, string> = {
     "var(--sunett-color-muted, color-mix(in srgb, currentColor 55%, transparent))",
   [ThemeVariables.COLOR_ACCENT]: "var(--sunett-color-fg, currentColor)",
   [ThemeVariables.COLOR_SELECTION]: "#3b82f6",
+  [ThemeVariables.COLOR_CURSOR]:
+    "var(--sunett-color-accent, var(--sunett-color-fg, currentColor))",
   [ThemeVariables.FONT_NOTE]: "ui-monospace, monospace",
   [ThemeVariables.FONT_LABEL]: "system-ui, sans-serif",
   [ThemeVariables.FONT_LABEL_SIZE]: "11px",

@@ -93,4 +93,5 @@ export const TabsRendererConstants = {
   LYRICS_LINE_GAP: 15,
   SELECTION_LABEL_OFFSET: 6,
   SELECTION_MIN_WIDTH: 2,
+  CURSOR_WIDTH: 2,
 };

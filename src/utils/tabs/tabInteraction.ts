@@ -16,6 +16,8 @@ import {
 } from "../../selection/selectionHitTest";
 import { visibleSelections } from "../../selection/selectionVisibility";
 import { renderSelections } from "./selectionRenderer";
+import { cursorGeometryAt } from "../../playback/cursorGeometry";
+import { createCursorLine, positionCursorLine } from "./cursorRenderer";
 
 export type InteractionUpdate = {
   svg: SVGSVGElement;
@@ -36,6 +38,8 @@ export class TabInteraction {
   private timeline?: SongTimeline;
   private trackIndex = 0;
   private context?: SelectionLayoutContext;
+  private cursorMs?: number;
+  private cursorLine?: SVGLineElement;
 
   constructor(selectionSource?: SelectionSource) {
     this.selectionSource = selectionSource;
@@ -46,24 +50,33 @@ export class TabInteraction {
     this.timeline = input.timeline;
     this.trackIndex = input.trackIndex;
     this.context = buildContext(input);
+    this.cursorLine = undefined;
 
-    if (!this.selectionSource) {
-      return;
+    if (this.selectionSource) {
+      const regions = computeSelectionRegions(
+        visibleSelections(
+          this.selectionSource.getSelections(),
+          this.trackIndex,
+        ),
+        this.context,
+      );
+      const draft = this.selectionSource.getDraftSelection?.();
+      const draftRegions = draft
+        ? computeSelectionRegions([draft], this.context).map((region) => ({
+            ...region,
+            draft: true,
+          }))
+        : [];
+
+      renderSelections(input.svg, [...regions, ...draftRegions]);
     }
 
-    const regions = computeSelectionRegions(
-      visibleSelections(this.selectionSource.getSelections(), this.trackIndex),
-      this.context,
-    );
-    const draft = this.selectionSource.getDraftSelection?.();
-    const draftRegions = draft
-      ? computeSelectionRegions([draft], this.context).map((region) => ({
-          ...region,
-          draft: true,
-        }))
-      : [];
+    this.drawCursor();
+  }
 
-    renderSelections(input.svg, [...regions, ...draftRegions]);
+  setCursor(ms: number | undefined): void {
+    this.cursorMs = ms;
+    this.drawCursor();
   }
 
   getActiveTrackIndex(): number {
@@ -95,6 +108,30 @@ export class TabInteraction {
       ),
       this.context,
     );
+  }
+
+  private drawCursor(): void {
+    const svg = this.svg;
+    if (!svg || !this.context || this.cursorMs === undefined) {
+      this.removeCursor();
+      return;
+    }
+
+    const geometry = cursorGeometryAt(this.cursorMs, this.context);
+    if (!geometry) {
+      this.removeCursor();
+      return;
+    }
+
+    if (!this.cursorLine || this.cursorLine.parentNode !== svg) {
+      this.cursorLine = createCursorLine(svg);
+    }
+    positionCursorLine(this.cursorLine, geometry);
+  }
+
+  private removeCursor(): void {
+    this.cursorLine?.remove();
+    this.cursorLine = undefined;
   }
 
   private toUserSpace(

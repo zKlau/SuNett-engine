@@ -9,6 +9,7 @@
   --sunett-color-rest: var(--sunett-color-muted);
   --sunett-color-accent: var(--sunett-color-fg);
   --sunett-color-selection: #3b82f6;
+  --sunett-color-cursor: var(--sunett-color-accent);
 
   --sunett-font-note: ui-monospace, monospace;
   --sunett-font-label: system-ui, sans-serif;
