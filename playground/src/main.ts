@@ -83,8 +83,13 @@ function setupTransport(engine: SunettEngine) {
   const stop = button("Stop", () => engine.stop());
   const position = document.createElement("span");
 
+  let lastShown = "";
   engine.on("playbackPositionChanged", ({ positionMs }) => {
-    position.textContent = ` ${(positionMs / 1000).toFixed(2)}s`;
+    const text = ` ${(positionMs / 1000).toFixed(1)}s`;
+    if (text !== lastShown) {
+      lastShown = text;
+      position.textContent = text;
+    }
   });
 
   bar.append(play, pause, stop, position);
