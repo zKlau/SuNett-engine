@@ -149,6 +149,11 @@ export class TabsRenderer {
         renderMeasure(svg, measureContext, index, pass, measures[index + 1]);
       });
 
+      svg.setAttribute("width", `${width}`);
+      svg.setAttribute("height", `${height}`);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("role", "img");
+
       this.interaction.update({
         svg,
         layout,
@@ -156,11 +161,6 @@ export class TabsRenderer {
         timeline,
         trackIndex: activeTrackIndex,
       });
-
-      svg.setAttribute("width", `${width}`);
-      svg.setAttribute("height", `${height}`);
-      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.setAttribute("role", "img");
     };
 
     this.currentRender = render;
@@ -243,6 +243,7 @@ export class TabsRenderer {
    * theme variables scoped to the target `<svg>`.
    */
   dispose(): void {
+    this.interaction.teardownCursor();
     if (this.lastSvg) {
       this.rendererCleanups.get(this.lastSvg)?.();
       this.rendererCleanups.delete(this.lastSvg);

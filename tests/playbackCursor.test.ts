@@ -45,17 +45,18 @@ describe("playback cursor rendering", () => {
       ResizeObserverStub;
   });
 
-  it("draws a vertical cursor line at the current position", () => {
+  it("draws the cursor in a separate overlay layer on top of the tab", () => {
     const { svg, renderer } = renderTab();
 
     renderer.setCursor(1000);
-    const cursor = svg.querySelector(".playback-cursor") as SVGLineElement;
+    const overlay = document.querySelector(".playback-cursor-layer");
+    const cursor = document.querySelector(".playback-cursor") as SVGLineElement;
 
-    expect(cursor).not.toBeNull();
+    expect(overlay).not.toBeNull();
+    expect(svg.querySelector(".playback-cursor")).toBeNull();
+    expect(cursor.parentElement).toBe(overlay);
     expect(cursor.getAttribute("x1")).toBe(cursor.getAttribute("x2"));
-    const y1 = Number(cursor.getAttribute("y1"));
-    const y2 = Number(cursor.getAttribute("y2"));
-    expect(y2).toBeGreaterThan(y1);
+    expect(Number(cursor.getAttribute("y2"))).toBeGreaterThan(0);
     expect(cursor.style.transform).toContain("translate");
     expect(cursor.getAttribute("stroke")).toBe(
       themeVar(ThemeVariables.COLOR_CURSOR),
@@ -63,32 +64,33 @@ describe("playback cursor rendering", () => {
   });
 
   it("moves the cursor to a later time further right", () => {
-    const { svg, renderer } = renderTab();
+    const { renderer } = renderTab();
 
     renderer.setCursor(500);
-    const early = translateX(svg.querySelector(".playback-cursor"));
+    const early = translateX(document.querySelector(".playback-cursor"));
     renderer.setCursor(3000);
-    const late = translateX(svg.querySelector(".playback-cursor"));
+    const late = translateX(document.querySelector(".playback-cursor"));
 
     expect(late).toBeGreaterThan(early);
   });
 
-  it("removes the cursor when set to undefined", () => {
-    const { svg, renderer } = renderTab();
+  it("removes the cursor overlay when set to undefined", () => {
+    const { renderer } = renderTab();
 
     renderer.setCursor(1000);
-    expect(svg.querySelector(".playback-cursor")).not.toBeNull();
+    expect(document.querySelector(".playback-cursor")).not.toBeNull();
 
     renderer.setCursor(undefined);
-    expect(svg.querySelector(".playback-cursor")).toBeNull();
+    expect(document.querySelector(".playback-cursor")).toBeNull();
+    expect(document.querySelector(".playback-cursor-layer")).toBeNull();
   });
 
   it("keeps the cursor after a re-render", () => {
-    const { svg, renderer } = renderTab();
+    const { renderer } = renderTab();
 
     renderer.setCursor(1000);
     renderer.generateMeasures();
 
-    expect(svg.querySelector(".playback-cursor")).not.toBeNull();
+    expect(document.querySelector(".playback-cursor")).not.toBeNull();
   });
 });
