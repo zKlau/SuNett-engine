@@ -341,3 +341,11 @@ code {
 .tab-note--tie .tab-note-text {
   opacity: 0.6;
 }
+
+.transport {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  width: 100%;
+}

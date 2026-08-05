@@ -77,6 +77,7 @@ function addDemoSelections(engine: SunettEngine) {
 
 function setupTransport(engine: SunettEngine) {
   const bar = document.createElement("div");
+  bar.className = "transport";
   const play = button("Play", () => engine.play());
   const pause = button("Pause", () => engine.pause());
   const stop = button("Stop", () => engine.stop());
@@ -90,9 +91,10 @@ function setupTransport(engine: SunettEngine) {
   document.getElementById("themePicker")?.after(bar);
 }
 
-function button(label: string, onClick: () => void): HTMLButtonElement {
+function button(label: string, onClick: () => void, className?: string): HTMLButtonElement {
   const element = document.createElement("button");
   element.type = "button";
+  element.className = className || "";
   element.textContent = label;
   element.addEventListener("click", onClick);
   return element;
