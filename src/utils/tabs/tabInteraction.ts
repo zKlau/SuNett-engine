@@ -124,7 +124,7 @@ export class TabInteraction {
     }
 
     if (!this.cursorLine || this.cursorLine.parentNode !== svg) {
-      this.cursorLine = createCursorLine(svg);
+      this.cursorLine = createCursorLine(svg, geometry.height);
     }
     positionCursorLine(this.cursorLine, geometry);
   }

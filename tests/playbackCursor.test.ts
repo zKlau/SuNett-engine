@@ -24,6 +24,12 @@ function measureWithBeat(): Measure {
   ]);
 }
 
+function translateX(element: Element | null): number {
+  const transform = (element as SVGLineElement | null)?.style.transform ?? "";
+  const match = transform.match(/translate\(\s*(-?[\d.]+)/);
+  return match ? Number(match[1]) : NaN;
+}
+
 function renderTab(): { svg: SVGSVGElement; renderer: TabsRenderer } {
   document.body.innerHTML = '<div><svg id="tabs"></svg></div>';
   const svg = document.querySelector("#tabs") as SVGSVGElement;
@@ -43,14 +49,15 @@ describe("playback cursor rendering", () => {
     const { svg, renderer } = renderTab();
 
     renderer.setCursor(1000);
-    const cursor = svg.querySelector(".playback-cursor");
+    const cursor = svg.querySelector(".playback-cursor") as SVGLineElement;
 
     expect(cursor).not.toBeNull();
-    expect(cursor?.getAttribute("x1")).toBe(cursor?.getAttribute("x2"));
-    const y1 = Number(cursor?.getAttribute("y1"));
-    const y2 = Number(cursor?.getAttribute("y2"));
+    expect(cursor.getAttribute("x1")).toBe(cursor.getAttribute("x2"));
+    const y1 = Number(cursor.getAttribute("y1"));
+    const y2 = Number(cursor.getAttribute("y2"));
     expect(y2).toBeGreaterThan(y1);
-    expect(cursor?.getAttribute("stroke")).toBe(
+    expect(cursor.style.transform).toContain("translate");
+    expect(cursor.getAttribute("stroke")).toBe(
       themeVar(ThemeVariables.COLOR_CURSOR),
     );
   });
@@ -59,13 +66,9 @@ describe("playback cursor rendering", () => {
     const { svg, renderer } = renderTab();
 
     renderer.setCursor(500);
-    const early = Number(
-      svg.querySelector(".playback-cursor")?.getAttribute("x1"),
-    );
+    const early = translateX(svg.querySelector(".playback-cursor"));
     renderer.setCursor(3000);
-    const late = Number(
-      svg.querySelector(".playback-cursor")?.getAttribute("x1"),
-    );
+    const late = translateX(svg.querySelector(".playback-cursor"));
 
     expect(late).toBeGreaterThan(early);
   });
