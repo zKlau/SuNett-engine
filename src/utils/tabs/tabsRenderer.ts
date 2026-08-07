@@ -12,6 +12,7 @@ import type { Selection } from "../../types/selection";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
 import { buildSongTimeline } from "../timing/measureTimeline";
+import type { CursorGeometry } from "../../playback/cursorGeometry";
 import type { SnapMode } from "../timing/snapTime";
 import { TabInteraction } from "./tabInteraction";
 import { renderMeasure } from "./measureRenderer";
@@ -34,13 +35,14 @@ export class TabsRenderer {
   private lastRequest?: { trackIndex: number; options: TabRendererOptions };
   private currentRender?: () => void;
   private lastSvg?: SVGSVGElement;
+  private songDurationMs = 0;
   private readonly interaction: TabInteraction;
   private readonly rendererCleanups = new WeakMap<SVGSVGElement, () => void>();
 
   constructor(song: Song, config: TabsRendererConfig = {}) {
     this.song = song;
     this.currentTheme = coerceTheme(config.theme);
-    this.interaction = new TabInteraction(config.selections);
+    this.interaction = new TabInteraction(config.selections, config.cursor);
   }
 
   getTracks(): Track[] {
@@ -109,6 +111,7 @@ export class TabsRenderer {
 
     const layoutCalculation = new LayoutCalculation(track, config);
     const timeline = buildSongTimeline(this.song, track);
+    this.songDurationMs = timeline.durationMs;
     const render = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
       const svgWidth = parentWidth || config.defaultMeasureWidth;
@@ -147,6 +150,11 @@ export class TabsRenderer {
         renderMeasure(svg, measureContext, index, pass, measures[index + 1]);
       });
 
+      svg.setAttribute("width", `${width}`);
+      svg.setAttribute("height", `${height}`);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("role", "img");
+
       this.interaction.update({
         svg,
         layout,
@@ -154,11 +162,6 @@ export class TabsRenderer {
         timeline,
         trackIndex: activeTrackIndex,
       });
-
-      svg.setAttribute("width", `${width}`);
-      svg.setAttribute("height", `${height}`);
-      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.setAttribute("role", "img");
     };
 
     this.currentRender = render;
@@ -179,6 +182,42 @@ export class TabsRenderer {
   /** Redraws the last rendered tab, e.g. after its selections change. */
   rerender(): void {
     this.currentRender?.();
+  }
+
+  /**
+   * Moves the playback cursor to a song time, or removes it when `undefined`.
+   * Repositions the overlay in place without a full re-render.
+   * @param ms The song time in milliseconds, or `undefined` to hide the cursor.
+   */
+  setCursor(ms: number | undefined): void {
+    this.interaction.setCursor(ms);
+  }
+
+  /** Total playing time of the rendered track in ms; `0` before any render. */
+  getSongDurationMs(): number {
+    return this.songDurationMs;
+  }
+
+  /** The cursor's geometry in tab coordinates at its current position. */
+  getCursorGeometry(): CursorGeometry | undefined {
+    return this.interaction.getCursorGeometry();
+  }
+
+  /** The cursor's bounding rect in client space, or `undefined` if not drawn. */
+  getCursorRect(): DOMRect | undefined {
+    return this.interaction.getCursorRect();
+  }
+
+  /**
+   * The cursor's client-space position at a song time, the inverse of
+   * {@link timeAtPoint}.
+   * @param ms The song time in milliseconds.
+   * @returns `{ x, y, height }` in CSS pixels, or `undefined` if not rendered.
+   */
+  pointAtTime(
+    ms: number,
+  ): { x: number; y: number; height: number } | undefined {
+    return this.interaction.pointAtTime(ms);
   }
 
   /** The `<svg>` of the last render, or `undefined` before the first render. */
@@ -227,6 +266,7 @@ export class TabsRenderer {
    * theme variables scoped to the target `<svg>`.
    */
   dispose(): void {
+    this.interaction.teardownCursor();
     if (this.lastSvg) {
       this.rendererCleanups.get(this.lastSvg)?.();
       this.rendererCleanups.delete(this.lastSvg);

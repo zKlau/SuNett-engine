@@ -16,6 +16,8 @@ export type ThemeColors = {
   accent?: string;
   /** Fill for selection overlay regions. Falls back to a built-in highlight. */
   selection?: string;
+  /** Stroke for the playback cursor line. Falls back to the accent color. */
+  cursor?: string;
 };
 
 export type ThemeFonts = {
@@ -99,6 +101,7 @@ const COLOR_VARIABLES: Record<keyof ThemeVariableColors, ThemeVariable> = {
   rest: ThemeVariables.COLOR_REST,
   accent: ThemeVariables.COLOR_ACCENT,
   selection: ThemeVariables.COLOR_SELECTION,
+  cursor: ThemeVariables.COLOR_CURSOR,
 };
 
 const FONT_VARIABLES: Record<keyof ThemeFonts, ThemeVariable> = {

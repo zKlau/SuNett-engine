@@ -30,6 +30,7 @@ async function main(filePath: string) {
     displayTitle(song.name);
     setupThemePicker(engine);
     setupTrackPicker(engine);
+    setupTransport(engine);
     const scopeToggle = createScopeToggle();
 
     const attachInput = (snap: SnapMode) => {
@@ -48,6 +49,7 @@ async function main(filePath: string) {
     };
 
     attachInput(SnapMode.None);
+    engine.enablePlaybackInput();
     setupSnapPicker(attachInput);
     console.log(
       "Mouse: drag to create, right-click to delete, double-click or click the label to rename. Touch: press-and-hold a measure to start, scroll, then tap another measure to finish; tap a selection to delete; tap its label to rename. Use the pickers to switch track, scope, and snapping.",
@@ -71,6 +73,50 @@ function addDemoSelections(engine: SunettEngine) {
     color: "#f97316",
     trackIndex: TRACK_INDEX,
   });
+}
+
+function setupTransport(engine: SunettEngine) {
+  const bar = document.createElement("div");
+  bar.className = "transport";
+  const play = button("Play", () => engine.play());
+  const pause = button("Pause", () => engine.pause());
+  const stop = button("Stop", () => engine.stop());
+  const position = document.createElement("span");
+
+  let lastShown = "";
+  engine.on("playbackPositionChanged", ({ positionMs }) => {
+    const text = ` ${(positionMs / 1000).toFixed(1)}s`;
+    if (text !== lastShown) {
+      lastShown = text;
+      position.textContent = text;
+    }
+  });
+
+  const follow = document.createElement("label");
+  const followToggle = document.createElement("input");
+  followToggle.type = "checkbox";
+  let detachFollow: (() => void) | undefined;
+  followToggle.addEventListener("change", () => {
+    if (followToggle.checked) {
+      detachFollow = engine.enableAutoScroll();
+    } else {
+      detachFollow?.();
+      detachFollow = undefined;
+    }
+  });
+  follow.append(followToggle, document.createTextNode(" Follow cursor"));
+
+  bar.append(play, pause, stop, position, follow);
+  document.getElementById("themePicker")?.after(bar);
+}
+
+function button(label: string, onClick: () => void, className?: string): HTMLButtonElement {
+  const element = document.createElement("button");
+  element.type = "button";
+  element.className = className || "";
+  element.textContent = label;
+  element.addEventListener("click", onClick);
+  return element;
 }
 
 function setupSnapPicker(onChange: (snap: SnapMode) => void) {
@@ -153,5 +199,5 @@ function displayTitle(name: string) {
 }
 
 // main("/tabs/7string.gp");
-main("/tabs/hpb.gp5");
-// main("/tabs/mop.gp");
+//main("/tabs/hpb.gp5");
+ main("/tabs/mop.gp");

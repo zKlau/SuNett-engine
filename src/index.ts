@@ -7,8 +7,24 @@ export type {
   SelectionInputOptions,
   SelectionRange,
 } from "./engine/selectionInput";
+export type { PlaybackInputOptions } from "./engine/playbackInput";
+export { FollowAlign } from "./engine/playbackFollow";
+export type { AutoScrollOptions } from "./engine/playbackFollow";
 export { SnapMode } from "./utils/timing/snapTime";
 export { computeSongHash } from "./utils/song/songHash";
+
+export { PlaybackController } from "./playback/playbackController";
+export type {
+  FrameScheduler,
+  PlaybackControllerConfig,
+} from "./playback/playbackController";
+export { PlaybackState } from "./types/playback";
+export type {
+  LoopRange,
+  PlaybackPositionEvent,
+  PlaybackEventMap,
+  EngineEventMap,
+} from "./types/playback";
 export type {
   Selection,
   SelectionInput,
@@ -41,6 +57,7 @@ export type {
   TabsRendererConfig,
 } from "./types/UI/rendererOptions";
 export type { TabNoteOptions } from "./types/UI/tabNoteOptions";
+export type { CursorOptions, CursorSvgFactory } from "./types/UI/cursorOptions";
 export type { NoteRenderContext } from "./types/UI/noteRenderContext";
 
 export type { Song } from "./types/song";
