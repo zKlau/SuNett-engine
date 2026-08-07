@@ -8,6 +8,8 @@ export type {
   SelectionRange,
 } from "./engine/selectionInput";
 export type { PlaybackInputOptions } from "./engine/playbackInput";
+export { FollowAlign } from "./engine/playbackFollow";
+export type { AutoScrollOptions } from "./engine/playbackFollow";
 export { SnapMode } from "./utils/timing/snapTime";
 export { computeSongHash } from "./utils/song/songHash";
 

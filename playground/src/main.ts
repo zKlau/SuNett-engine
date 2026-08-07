@@ -92,7 +92,21 @@ function setupTransport(engine: SunettEngine) {
     }
   });
 
-  bar.append(play, pause, stop, position);
+  const follow = document.createElement("label");
+  const followToggle = document.createElement("input");
+  followToggle.type = "checkbox";
+  let detachFollow: (() => void) | undefined;
+  followToggle.addEventListener("change", () => {
+    if (followToggle.checked) {
+      detachFollow = engine.enableAutoScroll();
+    } else {
+      detachFollow?.();
+      detachFollow = undefined;
+    }
+  });
+  follow.append(followToggle, document.createTextNode(" Follow cursor"));
+
+  bar.append(play, pause, stop, position, follow);
   document.getElementById("themePicker")?.after(bar);
 }
 

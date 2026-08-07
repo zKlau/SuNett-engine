@@ -22,6 +22,8 @@ import type { SelectionInputOptions } from "./selectionInput";
 import { attachSelectionInput } from "./selectionInput";
 import type { PlaybackInputOptions } from "./playbackInput";
 import { attachPlaybackInput } from "./playbackInput";
+import type { AutoScrollOptions } from "./playbackFollow";
+import { attachPlaybackFollow } from "./playbackFollow";
 import type { SnapMode } from "../utils/timing/snapTime";
 import { SelectionManager } from "../selection/selectionManager";
 import { PlaybackController } from "../playback/playbackController";
@@ -68,6 +70,7 @@ export class SunettEngine {
   private renderer?: TabsRenderer;
   private detachInput?: () => void;
   private detachPlaybackInput?: () => void;
+  private detachAutoScroll?: () => void;
   private loadGeneration = 0;
   private loading = false;
 
@@ -192,6 +195,50 @@ export class SunettEngine {
   /** The current playback position in milliseconds. */
   getCurrentPosition(): number {
     return this.playback.getPosition();
+  }
+
+  /**
+   * The cursor's client-space position at a song time, the inverse of
+   * {@link timeAtPoint}. Use it to build custom scroll/focus behavior.
+   * @param ms The song time in milliseconds.
+   * @returns `{ x, y, height }` in CSS pixels, or `undefined` if not rendered.
+   */
+  pointAtTime(
+    ms: number,
+  ): { x: number; y: number; height: number } | undefined {
+    return this.renderer?.pointAtTime(ms);
+  }
+
+  /** The cursor's bounding rect in client space, or `undefined` if not drawn. */
+  getCursorRect(): DOMRect | undefined {
+    return this.renderer?.getCursorRect();
+  }
+
+  /**
+   * Keeps the playback cursor's row in view as it plays and on seek. Off unless
+   * called. Scrolls only when the cursor changes row, so it never forces
+   * per-frame layout. Call after `render`; replaces any prior attachment and is
+   * torn down on `dispose`.
+   * @param options Scroll container, margin, alignment, and behavior.
+   * @returns A function that detaches auto-scroll.
+   */
+  enableAutoScroll(options: AutoScrollOptions = {}): () => void {
+    this.detachAutoScroll?.();
+    const renderer = this.renderer;
+    if (!renderer) {
+      this.detachAutoScroll = undefined;
+      return () => {};
+    }
+    this.detachAutoScroll = attachPlaybackFollow(
+      {
+        on: (event, listener) => this.playback.on(event, listener),
+        getCursorGeometry: () => renderer.getCursorGeometry(),
+        getCursorRect: () => renderer.getCursorRect(),
+        getTabElement: () => renderer.getElement(),
+      },
+      options,
+    );
+    return this.detachAutoScroll;
   }
 
   /**
@@ -451,6 +498,8 @@ export class SunettEngine {
     this.detachInput = undefined;
     this.detachPlaybackInput?.();
     this.detachPlaybackInput = undefined;
+    this.detachAutoScroll?.();
+    this.detachAutoScroll = undefined;
     this.playback.stop();
     this.renderer?.dispose();
     this.renderer = undefined;

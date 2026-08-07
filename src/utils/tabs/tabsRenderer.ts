@@ -12,6 +12,7 @@ import type { Selection } from "../../types/selection";
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
 import { buildSongTimeline } from "../timing/measureTimeline";
+import type { CursorGeometry } from "../../playback/cursorGeometry";
 import type { SnapMode } from "../timing/snapTime";
 import { TabInteraction } from "./tabInteraction";
 import { renderMeasure } from "./measureRenderer";
@@ -195,6 +196,28 @@ export class TabsRenderer {
   /** Total playing time of the rendered track in ms; `0` before any render. */
   getSongDurationMs(): number {
     return this.songDurationMs;
+  }
+
+  /** The cursor's geometry in tab coordinates at its current position. */
+  getCursorGeometry(): CursorGeometry | undefined {
+    return this.interaction.getCursorGeometry();
+  }
+
+  /** The cursor's bounding rect in client space, or `undefined` if not drawn. */
+  getCursorRect(): DOMRect | undefined {
+    return this.interaction.getCursorRect();
+  }
+
+  /**
+   * The cursor's client-space position at a song time, the inverse of
+   * {@link timeAtPoint}.
+   * @param ms The song time in milliseconds.
+   * @returns `{ x, y, height }` in CSS pixels, or `undefined` if not rendered.
+   */
+  pointAtTime(
+    ms: number,
+  ): { x: number; y: number; height: number } | undefined {
+    return this.interaction.pointAtTime(ms);
   }
 
   /** The `<svg>` of the last render, or `undefined` before the first render. */

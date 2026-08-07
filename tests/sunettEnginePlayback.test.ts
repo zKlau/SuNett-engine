@@ -113,6 +113,25 @@ describe("SunettEngine playback", () => {
     expect(started).not.toHaveBeenCalled();
   });
 
+  it("enableAutoScroll returns a disposer and is safe to dispose", async () => {
+    const engine = await loadedEngine();
+
+    const detach = engine.enableAutoScroll();
+
+    expect(typeof detach).toBe("function");
+    expect(() => {
+      detach();
+      engine.dispose();
+    }).not.toThrow();
+  });
+
+  it("pointAtTime is undefined before anything is rendered", async () => {
+    const engine = await loadedEngine();
+
+    expect(engine.pointAtTime(1000)).toBeUndefined();
+    expect(engine.getCursorRect()).toBeUndefined();
+  });
+
   it("resets playback when a new song is loaded", async () => {
     const engine = await loadedEngine();
     engine.seek(1500);

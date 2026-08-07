@@ -17,6 +17,7 @@ import {
 } from "../../selection/selectionHitTest";
 import { visibleSelections } from "../../selection/selectionVisibility";
 import { renderSelections } from "./selectionRenderer";
+import type { CursorGeometry } from "../../playback/cursorGeometry";
 import { cursorGeometryAt } from "../../playback/cursorGeometry";
 import {
   createCursorLine,
@@ -50,6 +51,7 @@ export class TabInteraction {
   private cursorWrapper?: HTMLElement;
   private cursorOverlay?: SVGSVGElement;
   private cursorLine?: SVGGElement;
+  private cursorGeometry?: CursorGeometry;
 
   constructor(
     selectionSource?: SelectionSource,
@@ -103,8 +105,7 @@ export class TabInteraction {
 
   /** Removes the cursor overlay and unwraps the tab. */
   teardownCursor(): void {
-    this.cursorLine?.remove();
-    this.cursorLine = undefined;
+    this.clearCursorLine();
     this.cursorOverlay?.remove();
     this.cursorOverlay = undefined;
     if (this.cursorWrapper && this.svg) {
@@ -142,6 +143,51 @@ export class TabInteraction {
       ),
       this.context,
     );
+  }
+
+  /** The cursor's geometry in tab coordinates at its current position. */
+  getCursorGeometry(): CursorGeometry | undefined {
+    return this.cursorGeometry;
+  }
+
+  /** The cursor's bounding rect in client space, or `undefined` if not drawn. */
+  getCursorRect(): DOMRect | undefined {
+    if (
+      !this.cursorLine ||
+      typeof this.cursorLine.getBoundingClientRect !== "function"
+    ) {
+      return undefined;
+    }
+    return this.cursorLine.getBoundingClientRect();
+  }
+
+  /** The cursor's client-space position for a song time, mapped through the CTM. */
+  pointAtTime(
+    ms: number,
+  ): { x: number; y: number; height: number } | undefined {
+    const svg = this.svg;
+    if (!svg || !this.context || typeof svg.getScreenCTM !== "function") {
+      return undefined;
+    }
+    const geometry = cursorGeometryAt(ms, this.context);
+    const matrix = svg.getScreenCTM();
+    if (!geometry || !matrix) {
+      return undefined;
+    }
+
+    const top = svg.createSVGPoint();
+    top.x = geometry.x;
+    top.y = geometry.y;
+    const bottom = svg.createSVGPoint();
+    bottom.x = geometry.x;
+    bottom.y = geometry.y + geometry.height;
+    const topScreen = top.matrixTransform(matrix);
+    const bottomScreen = bottom.matrixTransform(matrix);
+    return {
+      x: topScreen.x,
+      y: topScreen.y,
+      height: bottomScreen.y - topScreen.y,
+    };
   }
 
   private refreshCursorLayer(): void {
@@ -191,15 +237,13 @@ export class TabInteraction {
   private moveCursor(): void {
     const overlay = this.cursorOverlay;
     if (!overlay || !this.context || this.cursorMs === undefined) {
-      this.cursorLine?.remove();
-      this.cursorLine = undefined;
+      this.clearCursorLine();
       return;
     }
 
     const geometry = cursorGeometryAt(this.cursorMs, this.context);
     if (!geometry) {
-      this.cursorLine?.remove();
-      this.cursorLine = undefined;
+      this.clearCursorLine();
       return;
     }
 
@@ -211,6 +255,13 @@ export class TabInteraction {
       );
     }
     positionCursorLine(this.cursorLine, geometry);
+    this.cursorGeometry = geometry;
+  }
+
+  private clearCursorLine(): void {
+    this.cursorLine?.remove();
+    this.cursorLine = undefined;
+    this.cursorGeometry = undefined;
   }
 
   private toUserSpace(
