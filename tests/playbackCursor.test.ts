@@ -25,7 +25,7 @@ function measureWithBeat(): Measure {
 }
 
 function translateX(element: Element | null): number {
-  const transform = (element as SVGLineElement | null)?.style.transform ?? "";
+  const transform = (element as SVGGElement | null)?.style.transform ?? "";
   const match = transform.match(/translate\(\s*(-?[\d.]+)/);
   return match ? Number(match[1]) : NaN;
 }
@@ -50,15 +50,13 @@ describe("playback cursor rendering", () => {
 
     renderer.setCursor(1000);
     const overlay = document.querySelector(".playback-cursor-layer");
-    const cursor = document.querySelector(".playback-cursor") as SVGLineElement;
+    const cursor = document.querySelector(".playback-cursor") as SVGGElement;
 
     expect(overlay).not.toBeNull();
     expect(svg.querySelector(".playback-cursor")).toBeNull();
     expect(cursor.parentElement).toBe(overlay);
-    expect(cursor.getAttribute("x1")).toBe(cursor.getAttribute("x2"));
-    expect(Number(cursor.getAttribute("y2"))).toBeGreaterThan(0);
     expect(cursor.style.transform).toContain("translate");
-    expect(cursor.getAttribute("stroke")).toBe(
+    expect(cursor.querySelector("path")?.getAttribute("fill")).toBe(
       themeVar(ThemeVariables.COLOR_CURSOR),
     );
   });

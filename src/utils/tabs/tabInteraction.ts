@@ -47,7 +47,7 @@ export class TabInteraction {
   private cursorMs?: number;
   private cursorWrapper?: HTMLElement;
   private cursorOverlay?: SVGSVGElement;
-  private cursorLine?: SVGLineElement;
+  private cursorLine?: SVGGElement;
 
   constructor(selectionSource?: SelectionSource) {
     this.selectionSource = selectionSource;

@@ -45,26 +45,64 @@ export function createCursorOverlay(wrapper: HTMLElement): SVGSVGElement {
   return overlay;
 }
 
+const CURSOR_PATH =
+  "M23 4.99999C23 2.23857 25.2386 0 28 0H102.5H177C179.761 0 182 2.23858 182 5V725.952C182 726.609 181.871 727.259 181.62 727.865L107.12 907.84C105.416 911.956 99.5843 911.956 97.8802 907.84L23.3802 727.865C23.1292 727.259 23 726.609 23 725.952V4.99999Z";
+
+const CURSOR_BARS = [
+  { y: 28, height: 22, rx: 5 },
+  { y: 723, height: 22, rx: 5 },
+] as const;
+
+/**
+ * Builds the playback cursor: the marker artwork scaled to the staff height and
+ * horizontally centred on the playhead. Returns the group moved by
+ * {@link positionCursorLine}.
+ */
 export function createCursorLine(
   parent: SVGSVGElement,
   height: number,
-): SVGLineElement {
-  const line = createSvgElement("line");
-  line.setAttribute("class", "playback-cursor");
-  line.setAttribute("pointer-events", "none");
-  line.setAttribute("stroke", themeVar(ThemeVariables.COLOR_CURSOR));
-  line.setAttribute("stroke-width", `${constants.CURSOR_WIDTH}`);
-  line.setAttribute("x1", "0");
-  line.setAttribute("x2", "0");
-  line.setAttribute("y1", "0");
-  line.setAttribute("y2", `${height}`);
-  line.style.willChange = "transform";
-  parent.append(line);
-  return line;
+): SVGGElement {
+  const artWidth = constants.CURSOR_ART_WIDTH;
+  const artHeight = constants.CURSOR_ART_HEIGHT;
+  const width = (height * artWidth) / artHeight;
+  const fill = themeVar(ThemeVariables.COLOR_CURSOR);
+
+  const group = createSvgElement("g");
+  group.setAttribute("class", "playback-cursor");
+  group.setAttribute("pointer-events", "none");
+  group.style.willChange = "transform";
+
+  const art = createSvgElement("svg");
+  art.setAttribute("viewBox", `0 0 ${artWidth} ${artHeight}`);
+  art.setAttribute("width", `${width}`);
+  art.setAttribute("height", `${height}`);
+  art.setAttribute("x", `${-width / 2}`);
+  art.setAttribute("y", "0");
+  art.setAttribute("preserveAspectRatio", "none");
+
+  const path = createSvgElement("path");
+  path.setAttribute("d", CURSOR_PATH);
+  path.setAttribute("fill", fill);
+  art.append(path);
+
+  for (const bar of CURSOR_BARS) {
+    const rect = createSvgElement("rect");
+    rect.setAttribute("x", "0");
+    rect.setAttribute("y", `${bar.y}`);
+    rect.setAttribute("width", `${artWidth}`);
+    rect.setAttribute("height", `${bar.height}`);
+    rect.setAttribute("rx", `${bar.rx}`);
+    rect.setAttribute("fill", fill);
+    art.append(rect);
+  }
+
+  group.append(art);
+  parent.append(group);
+  return group;
 }
 
 export function positionCursorLine(
-  line: SVGLineElement,
+  line: SVGGElement,
   geometry: CursorGeometry,
 ): void {
   line.style.transform = `translate(${geometry.x}px, ${geometry.y}px)`;
