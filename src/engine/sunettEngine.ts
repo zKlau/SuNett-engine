@@ -9,6 +9,7 @@ import type {
   SelectionUpdate,
 } from "../types/selection";
 import type { TabRendererOptions } from "../types/UI/rendererOptions";
+import type { CursorOptions } from "../types/UI/cursorOptions";
 import type {
   EngineEventMap,
   LoopRange,
@@ -45,6 +46,8 @@ export type SunettEngineConfig = {
   theme?: ThemeLike;
   /** Adapter used to persist and restore selections across sessions. */
   selectionStore?: SelectionStore;
+  /** Customises the playback cursor's artwork and CSS class. */
+  cursor?: CursorOptions;
 };
 
 /**
@@ -58,6 +61,7 @@ export class SunettEngine {
   private readonly playback = new PlaybackController();
   private readonly store?: SelectionStore;
   private readonly theme?: ThemeLike;
+  private readonly cursorOptions?: CursorOptions;
   private readonly unsubscribe: () => void;
   private readonly unsubscribePlayback: () => void;
   private song?: Song;
@@ -70,6 +74,7 @@ export class SunettEngine {
   constructor(config: SunettEngineConfig = {}) {
     this.theme = config.theme;
     this.store = config.selectionStore;
+    this.cursorOptions = config.cursor;
     this.unsubscribe = this.selections.on("selectionsChanged", (selections) =>
       this.onSelectionsChanged(selections),
     );
@@ -95,6 +100,7 @@ export class SunettEngine {
     this.renderer = new TabsRenderer(song, {
       theme: this.theme,
       selections: this.selections,
+      cursor: this.cursorOptions,
     });
 
     const songId = computeSongHash(song);

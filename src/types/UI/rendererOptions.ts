@@ -1,4 +1,5 @@
 import type { TabNoteOptions } from "./tabNoteOptions";
+import type { CursorOptions } from "./cursorOptions";
 import type { ThemeLike } from "../../theme/resolveTheme";
 import type { SelectionSource } from "../selection";
 
@@ -11,6 +12,8 @@ export type TabsRendererConfig = {
   theme?: ThemeLike;
   /** Supplies the selections drawn as overlay regions on each render. */
   selections?: SelectionSource;
+  /** Customises the playback cursor's artwork and CSS class. */
+  cursor?: CursorOptions;
 };
 
 export type TabRendererOptions = {

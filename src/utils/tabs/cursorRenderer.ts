@@ -1,5 +1,6 @@
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import type { CursorGeometry } from "../../playback/cursorGeometry";
+import type { CursorOptions } from "../../types/UI/cursorOptions";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 import { createSvgElement } from "./svg";
 
@@ -54,47 +55,26 @@ const CURSOR_BARS = [
 ] as const;
 
 /**
- * Builds the playback cursor: the marker artwork scaled to the staff height and
- * horizontally centred on the playhead. Returns the group moved by
- * {@link positionCursorLine}.
+ * Builds the playback cursor: the artwork (a consumer's or the built-in marker)
+ * scaled to the staff height and horizontally centred on the playhead. Returns
+ * the group moved by {@link positionCursorLine}.
  */
 export function createCursorLine(
   parent: SVGSVGElement,
   height: number,
+  cursor?: CursorOptions,
 ): SVGGElement {
-  const artWidth = constants.CURSOR_ART_WIDTH;
-  const artHeight = constants.CURSOR_ART_HEIGHT;
-  const width = (height * artWidth) / artHeight;
-  const fill = themeVar(ThemeVariables.COLOR_CURSOR);
-
   const group = createSvgElement("g");
-  group.setAttribute("class", "playback-cursor");
+  group.setAttribute("class", cursorClassName(cursor));
   group.setAttribute("pointer-events", "none");
   group.style.willChange = "transform";
 
-  const art = createSvgElement("svg");
-  art.setAttribute("viewBox", `0 0 ${artWidth} ${artHeight}`);
+  const art = resolveCursorArt(cursor) ?? buildDefaultCursorArt();
+  const width = height * aspectRatioOf(art);
   art.setAttribute("width", `${width}`);
   art.setAttribute("height", `${height}`);
   art.setAttribute("x", `${-width / 2}`);
   art.setAttribute("y", "0");
-  art.setAttribute("preserveAspectRatio", "none");
-
-  const path = createSvgElement("path");
-  path.setAttribute("d", CURSOR_PATH);
-  path.setAttribute("fill", fill);
-  art.append(path);
-
-  for (const bar of CURSOR_BARS) {
-    const rect = createSvgElement("rect");
-    rect.setAttribute("x", "0");
-    rect.setAttribute("y", `${bar.y}`);
-    rect.setAttribute("width", `${artWidth}`);
-    rect.setAttribute("height", `${bar.height}`);
-    rect.setAttribute("rx", `${bar.rx}`);
-    rect.setAttribute("fill", fill);
-    art.append(rect);
-  }
 
   group.append(art);
   parent.append(group);
@@ -106,4 +86,78 @@ export function positionCursorLine(
   geometry: CursorGeometry,
 ): void {
   line.style.transform = `translate(${geometry.x}px, ${geometry.y}px)`;
+}
+
+function cursorClassName(cursor?: CursorOptions): string {
+  return cursor?.className
+    ? `playback-cursor ${cursor.className}`
+    : "playback-cursor";
+}
+
+function resolveCursorArt(cursor?: CursorOptions): SVGElement | undefined {
+  if (!cursor?.svg || typeof document === "undefined") {
+    return undefined;
+  }
+  if (typeof cursor.svg === "function") {
+    return cursor.svg(document);
+  }
+  return parseSvg(cursor.svg);
+}
+
+function parseSvg(markup: string): SVGElement | undefined {
+  if (typeof DOMParser === "undefined") {
+    return undefined;
+  }
+  const root = new DOMParser().parseFromString(
+    markup,
+    "image/svg+xml",
+  ).documentElement;
+  if (root.nodeName.toLowerCase() !== "svg") {
+    return undefined;
+  }
+  return document.importNode(root, true) as unknown as SVGElement;
+}
+
+function aspectRatioOf(art: SVGElement): number {
+  const viewBox = art.getAttribute("viewBox");
+  if (viewBox) {
+    const parts = viewBox.split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+      return parts[2] / parts[3];
+    }
+  }
+  const width = parseFloat(art.getAttribute("width") ?? "");
+  const height = parseFloat(art.getAttribute("height") ?? "");
+  if (width > 0 && height > 0) {
+    return width / height;
+  }
+  return constants.CURSOR_ART_WIDTH / constants.CURSOR_ART_HEIGHT;
+}
+
+function buildDefaultCursorArt(): SVGSVGElement {
+  const art = createSvgElement("svg");
+  art.setAttribute(
+    "viewBox",
+    `0 0 ${constants.CURSOR_ART_WIDTH} ${constants.CURSOR_ART_HEIGHT}`,
+  );
+  art.setAttribute("preserveAspectRatio", "none");
+
+  const fill = themeVar(ThemeVariables.COLOR_CURSOR);
+  const path = createSvgElement("path");
+  path.setAttribute("d", CURSOR_PATH);
+  path.setAttribute("fill", fill);
+  art.append(path);
+
+  for (const bar of CURSOR_BARS) {
+    const rect = createSvgElement("rect");
+    rect.setAttribute("x", "0");
+    rect.setAttribute("y", `${bar.y}`);
+    rect.setAttribute("width", `${constants.CURSOR_ART_WIDTH}`);
+    rect.setAttribute("height", `${bar.height}`);
+    rect.setAttribute("rx", `${bar.rx}`);
+    rect.setAttribute("fill", fill);
+    art.append(rect);
+  }
+
+  return art;
 }

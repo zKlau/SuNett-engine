@@ -41,7 +41,7 @@ export class TabsRenderer {
   constructor(song: Song, config: TabsRendererConfig = {}) {
     this.song = song;
     this.currentTheme = coerceTheme(config.theme);
-    this.interaction = new TabInteraction(config.selections);
+    this.interaction = new TabInteraction(config.selections, config.cursor);
   }
 
   getTracks(): Track[] {

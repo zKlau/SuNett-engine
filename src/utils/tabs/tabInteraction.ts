@@ -1,5 +1,6 @@
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import type { Selection, SelectionSource } from "../../types/selection";
+import type { CursorOptions } from "../../types/UI/cursorOptions";
 import type { MeasureContext } from "../../types/UI/measureContext";
 import type { TabLayout } from "../../types/UI/tabLayout";
 import type { SongTimeline } from "../timing/measureTimeline";
@@ -40,6 +41,7 @@ export type InteractionUpdate = {
  */
 export class TabInteraction {
   private readonly selectionSource?: SelectionSource;
+  private readonly cursorOptions?: CursorOptions;
   private svg?: SVGSVGElement;
   private timeline?: SongTimeline;
   private trackIndex = 0;
@@ -49,8 +51,12 @@ export class TabInteraction {
   private cursorOverlay?: SVGSVGElement;
   private cursorLine?: SVGGElement;
 
-  constructor(selectionSource?: SelectionSource) {
+  constructor(
+    selectionSource?: SelectionSource,
+    cursorOptions?: CursorOptions,
+  ) {
     this.selectionSource = selectionSource;
+    this.cursorOptions = cursorOptions;
   }
 
   update(input: InteractionUpdate): void {
@@ -198,7 +204,11 @@ export class TabInteraction {
     }
 
     if (!this.cursorLine) {
-      this.cursorLine = createCursorLine(overlay, geometry.height);
+      this.cursorLine = createCursorLine(
+        overlay,
+        geometry.height,
+        this.cursorOptions,
+      );
     }
     positionCursorLine(this.cursorLine, geometry);
   }

@@ -55,6 +55,7 @@ export type {
   TabsRendererConfig,
 } from "./types/UI/rendererOptions";
 export type { TabNoteOptions } from "./types/UI/tabNoteOptions";
+export type { CursorOptions, CursorSvgFactory } from "./types/UI/cursorOptions";
 export type { NoteRenderContext } from "./types/UI/noteRenderContext";
 
 export type { Song } from "./types/song";
