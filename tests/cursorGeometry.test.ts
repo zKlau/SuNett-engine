@@ -42,6 +42,8 @@ describe("cursorGeometryAt", () => {
       x: 50,
       y: 50,
       height: 120,
+      rowTop: 0,
+      rowHeight: 200,
     });
   });
 

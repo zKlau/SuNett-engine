@@ -6,6 +6,8 @@ export type CursorGeometry = {
   x: number;
   y: number;
   height: number;
+  rowTop: number;
+  rowHeight: number;
 };
 
 export function cursorGeometryAt(
@@ -42,5 +44,7 @@ function geometryFor(
     x: measure.layout.x + fraction * measure.layout.width,
     y: measure.layout.y + context.topPadding,
     height: context.measureHeight - context.topPadding - context.bottomPadding,
+    rowTop: measure.layout.y,
+    rowHeight: context.measureHeight,
   };
 }
