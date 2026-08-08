@@ -39,5 +39,19 @@ export type TabRendererOptions = {
   rowGap?: number;
   paddingX?: number;
   paddingY?: number;
+  /**
+   * Renders only the measures near the viewport, adding and removing them as the
+   * tab scrolls, so a long song no longer materialises every measure at once.
+   * Defaults to `true`; set `false` to draw the whole song up front.
+   */
+  virtualize?: boolean;
+  /** Extra rows kept rendered beyond each viewport edge. Default `3`. */
+  overscanRows?: number;
+  /**
+   * The element (or `window`) whose scrolling drives virtualization. Defaults to
+   * the nearest scrollable ancestor of the target `<svg>`, falling back to
+   * `window` - pass this when a framework wrapper owns the scroll container.
+   */
+  scrollContainer?: HTMLElement | Window;
   notes?: TabNoteOptions;
 };

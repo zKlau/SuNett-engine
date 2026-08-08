@@ -11,6 +11,10 @@ import type { Selection } from "../../types/selection";
 
 import { normalizeOptions } from "./tabsOptionsNormalizer";
 import { LayoutCalculation } from "./layoutCalculation";
+import { isWindow, resolveScrollContainer, viewportSpan } from "./scrollTarget";
+import { measureIndicesForRows, visibleRowRange } from "./measureWindow";
+import type { MeasureRange } from "./measureWindow";
+import type { TabLayout } from "../../types/UI/tabLayout";
 import { buildSongTimeline } from "../timing/measureTimeline";
 import type { CursorGeometry } from "../../playback/cursorGeometry";
 import type { SnapMode } from "../timing/snapTime";
@@ -117,10 +121,73 @@ export class TabsRenderer {
     const layoutCalculation = new LayoutCalculation(track, config);
     const timeline = buildSongTimeline(this.song, track);
     this.songDurationMs = timeline.durationMs;
-    const render = () => {
+
+    const virtualize =
+      config.virtualize && typeof requestAnimationFrame === "function";
+    const scrollContainer = virtualize
+      ? resolveScrollContainer(svg, config.scrollContainer)
+      : undefined;
+
+    let layout: TabLayout | undefined;
+    let pass: RenderPass | undefined;
+    let container: SVGGElement | undefined;
+    let viewBoxHeight = 0;
+    let lastRange: MeasureRange;
+
+    const windowRange = (): MeasureRange => {
+      if (!layout) {
+        return undefined;
+      }
+      if (!virtualize || !scrollContainer) {
+        return measures.length > 0
+          ? { first: 0, last: measures.length - 1 }
+          : undefined;
+      }
+      const rows = visibleRowRange(
+        svg.getBoundingClientRect(),
+        viewportSpan(scrollContainer),
+        layout,
+        viewBoxHeight,
+        config.overscanRows,
+      );
+      return measureIndicesForRows(layout, rows);
+    };
+
+    const renderWindow = (force: boolean) => {
+      if (!layout || !pass || !container) {
+        return;
+      }
+      const range = windowRange();
+      if (!force && sameRange(range, lastRange)) {
+        return;
+      }
+      lastRange = range;
+
+      while (container.firstChild) {
+        container.firstChild.remove();
+      }
+      pass.previousMeasureIndex = undefined;
+      pass.previousMeasureRow = undefined;
+      pass.previousNotes = [];
+
+      if (!range) {
+        return;
+      }
+      for (let index = range.first; index <= range.last; index += 1) {
+        renderMeasure(
+          container,
+          measures[index],
+          index,
+          pass,
+          measures[index + 1],
+        );
+      }
+    };
+
+    const renderFrame = () => {
       const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
       const svgWidth = parentWidth || config.defaultMeasureWidth;
-      const layout = layoutCalculation.calculateLayout(svgWidth, measures);
+      layout = layoutCalculation.calculateLayout(svgWidth, measures);
 
       const rowCount = layout.rowCount;
       const width = layout.contentWidth + config.paddingX * 2;
@@ -128,13 +195,18 @@ export class TabsRenderer {
         rowCount * layout.measureHeight +
         (rowCount - 1) * config.rowGap +
         config.paddingY * 2;
+      viewBoxHeight = height;
 
       this.clearSvg(svg);
       this.applyThemeVariables(svg);
       this.renderBackground(svg, width, height);
       this.renderDefaultStyles(svg, config);
 
-      const pass: RenderPass = {
+      container = createSvgElement("g");
+      container.setAttribute("class", "measures");
+      svg.append(container);
+
+      pass = {
         song: this.song,
         stringByIndex: this.currentTheme.stringByIndex,
         layout,
@@ -154,14 +226,13 @@ export class TabsRenderer {
         previousNotes: [],
       };
 
-      measures.forEach((measureContext, index) => {
-        renderMeasure(svg, measureContext, index, pass, measures[index + 1]);
-      });
-
       svg.setAttribute("width", `${width}`);
       svg.setAttribute("height", `${height}`);
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       svg.setAttribute("role", "img");
+
+      lastRange = undefined;
+      renderWindow(true);
 
       this.interaction.update({
         svg,
@@ -172,14 +243,37 @@ export class TabsRenderer {
       });
     };
 
-    this.currentRender = render;
-    render();
+    this.currentRender = renderFrame;
 
-    const resizeObserver = new ResizeObserver(render);
+    const frameScheduler = rafScheduler(renderFrame);
+    const windowScheduler = rafScheduler(() => renderWindow(false));
+
+    renderFrame();
+
+    const resizeObserver = new ResizeObserver(frameScheduler.schedule);
     resizeObserver.observe(svg.parentElement ?? svg);
+
+    if (virtualize && scrollContainer) {
+      scrollContainer.addEventListener("scroll", windowScheduler.schedule, {
+        passive: true,
+      });
+      if (!isWindow(scrollContainer)) {
+        window.addEventListener("scroll", windowScheduler.schedule, {
+          passive: true,
+        });
+      }
+    }
 
     const cleanup = () => {
       resizeObserver.disconnect();
+      frameScheduler.cancel();
+      windowScheduler.cancel();
+      if (virtualize && scrollContainer) {
+        scrollContainer.removeEventListener("scroll", windowScheduler.schedule);
+        if (!isWindow(scrollContainer)) {
+          window.removeEventListener("scroll", windowScheduler.schedule);
+        }
+      }
       clearTheme(svg);
     };
     this.rendererCleanups.set(svg, cleanup);
@@ -335,4 +429,41 @@ export class TabsRenderer {
       index,
     }));
   }
+}
+
+type RafScheduler = { schedule: () => void; cancel: () => void };
+
+function rafScheduler(run: () => void): RafScheduler {
+  const hasRaf = typeof requestAnimationFrame === "function";
+  let handle: number | undefined;
+
+  const schedule = () => {
+    if (!hasRaf) {
+      run();
+      return;
+    }
+    if (handle !== undefined) {
+      return;
+    }
+    handle = requestAnimationFrame(() => {
+      handle = undefined;
+      run();
+    });
+  };
+
+  const cancel = () => {
+    if (handle !== undefined && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(handle);
+      handle = undefined;
+    }
+  };
+
+  return { schedule, cancel };
+}
+
+function sameRange(a: MeasureRange, b: MeasureRange): boolean {
+  if (a === undefined || b === undefined) {
+    return a === b;
+  }
+  return a.first === b.first && a.last === b.last;
 }
