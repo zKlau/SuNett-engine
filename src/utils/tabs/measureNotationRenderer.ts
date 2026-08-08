@@ -97,14 +97,18 @@ function renderBeatText(request: MeasureNotationRequest) {
     0,
     rightX - request.bounds.x - constants.MEASURE_CONTENT_PADDING_END,
   );
-  const glyphWidth =
-    constants.BEAT_TEXT_FONT_SIZE * constants.BEAT_TEXT_GLYPH_WIDTH_RATIO;
+  const fontSize = request.labelFontSize ?? constants.BEAT_TEXT_FONT_SIZE;
+  const glyphWidth = fontSize * constants.BEAT_TEXT_GLYPH_WIDTH_RATIO;
+  const lineHeight = fontSize * constants.BEAT_TEXT_LINE_HEIGHT_RATIO;
   const lines = wrapText(segments.join(" "), maxWidth, glyphWidth);
+
+  const blockHeight = (lines.length - 1) * lineHeight;
+  const topY = Math.max(baseY - blockHeight, fontSize);
 
   const text = createSvgElement("text");
   text.setAttribute("class", "beat-text");
   text.setAttribute("x", `${request.bounds.x}`);
-  text.setAttribute("y", `${baseY}`);
+  text.setAttribute("y", `${topY + blockHeight}`);
   applyMutedText(text);
   text.setAttribute("text-anchor", "start");
 
@@ -112,10 +116,7 @@ function renderBeatText(request: MeasureNotationRequest) {
     const isLastLine = index === lines.length - 1;
     const tspan = createSvgElement("tspan");
     tspan.setAttribute("x", `${request.bounds.x}`);
-    tspan.setAttribute(
-      "y",
-      `${baseY - (lines.length - 1 - index) * constants.BEAT_TEXT_LINE_HEIGHT}`,
-    );
+    tspan.setAttribute("y", `${topY + index * lineHeight}`);
     tspan.textContent = isLastLine ? line : `${line} `;
     text.append(tspan);
   });

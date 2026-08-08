@@ -19,4 +19,5 @@ export type MeasureNotationRequest = {
   showTimeSignature: boolean;
   lyrics: LyricSyllable[];
   rowRightX?: number;
+  labelFontSize?: number;
 };

@@ -24,4 +24,5 @@ export type MeasureContentRenderRequest = {
   showTimeSignature: boolean;
   lyrics: LyricSyllable[];
   rowRightX?: number;
+  labelFontSize?: number;
 };

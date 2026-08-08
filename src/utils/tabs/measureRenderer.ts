@@ -135,6 +135,7 @@ export function renderMeasure(
     showTimeSignature,
     lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
     rowRightX,
+    labelFontSize: pass.labelFontSize,
   });
 
   measureGroup.append(
