@@ -77,7 +77,12 @@ export function attachPlaybackFollow(
       options.container,
     );
     const view = viewportSpan(container);
-    const delta = followScrollDelta(rect, view, margin, align);
+    const delta = followScrollDelta(
+      rowSpan(rect, geometry),
+      view,
+      margin,
+      align,
+    );
     if (delta !== null) {
       container.scrollBy({ top: delta, behavior });
     }
@@ -107,4 +112,10 @@ export function followScrollDelta(
     return cursorCenter - viewCenter;
   }
   return cursor.top - (view.top + margin);
+}
+
+function rowSpan(cursorRect: DOMRect, geometry: CursorGeometry): Span {
+  const scale = geometry.height > 0 ? cursorRect.height / geometry.height : 1;
+  const top = cursorRect.top - (geometry.y - geometry.rowTop) * scale;
+  return { top, bottom: top + geometry.rowHeight * scale };
 }

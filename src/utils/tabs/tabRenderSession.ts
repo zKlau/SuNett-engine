@@ -45,11 +45,6 @@ export type TabRenderSessionParams = {
   activeTrackIndex: number;
 };
 
-/**
- * Owns one render lifecycle bound to a single `<svg>`: it draws the tab frame,
- * virtualizes the measures to the viewport, and re-renders on scroll and resize.
- * A fresh session is created per `generateMeasures` call.
- */
 export class TabRenderSession {
   private readonly params: TabRenderSessionParams;
   private readonly virtualize: boolean;
@@ -75,7 +70,6 @@ export class TabRenderSession {
     this.windowScheduler = rafScheduler(() => this.renderWindow(false));
   }
 
-  /** Draws the first frame and starts observing resize and scroll. */
   start(): () => void {
     this.renderFrame();
 
@@ -100,7 +94,6 @@ export class TabRenderSession {
     return () => this.stop();
   }
 
-  /** Redraws the whole frame, e.g. after selections change. */
   rerender(): void {
     this.renderFrame();
   }
