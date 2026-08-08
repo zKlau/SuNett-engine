@@ -32,6 +32,13 @@ export function visibleRowRange(
   };
 }
 
+export function sameRange(a: MeasureRange, b: MeasureRange): boolean {
+  if (a === undefined || b === undefined) {
+    return a === b;
+  }
+  return a.first === b.first && a.last === b.last;
+}
+
 export function measureIndicesForRows(
   layout: TabLayout,
   range: RowRange,
