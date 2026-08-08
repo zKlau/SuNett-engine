@@ -16,6 +16,8 @@ type LayoutInternals = {
   calculateMeasureWidths: (
     measures: MeasureContext[],
     baseMeasureWidth: number,
+    minWidth: number,
+    maxWidth: number,
   ) => number[];
   calculateWeights: (measureContext: MeasureContext) => number;
 };
@@ -72,7 +74,12 @@ describe("LayoutCalculation", () => {
         makeMeasureContext(makeMeasure(3), 1),
       ];
 
-      const widths = internals(layout).calculateMeasureWidths(measures, 200);
+      const widths = internals(layout).calculateMeasureWidths(
+        measures,
+        200,
+        constants.MIN_MEASURE_WIDTH,
+        constants.MAX_MEASURE_WIDTH,
+      );
 
       expect(widths).toHaveLength(2);
       expect(widths[0]).toBe(widths[1]);
@@ -88,6 +95,8 @@ describe("LayoutCalculation", () => {
       const widths = internals(layout).calculateMeasureWidths(
         measures,
         constants.MAX_MEASURE_WIDTH * 2,
+        constants.MIN_MEASURE_WIDTH,
+        constants.MAX_MEASURE_WIDTH,
       );
 
       expect(widths[0]).toBe(constants.MIN_MEASURE_WIDTH);
@@ -110,6 +119,36 @@ describe("LayoutCalculation", () => {
       const layout = layoutCalculation.calculateLayout(1000, measures);
 
       expect(layout.stringCount).toBe(6);
+    });
+
+    it("shrinks measures to fit a narrow container so the tab never overflows", () => {
+      const narrowWidth = 360;
+      const layout = layoutCalculation.calculateLayout(narrowWidth, measures);
+
+      const availableWidth =
+        narrowWidth - config.paddingX * 2 - layout.tuningGutter;
+
+      layout.measureLayouts.forEach((measureLayout) => {
+        expect(measureLayout.width).toBeLessThanOrEqual(availableWidth);
+      });
+      expect(layout.contentWidth + config.paddingX * 2).toBeLessThanOrEqual(
+        narrowWidth,
+      );
+    });
+
+    it("stretches a lone measure on a row to fill the available width", () => {
+      const wideWidth = 1200;
+      const single = [makeMeasureContext(makeMeasure(2), 0)];
+      const layout = new LayoutCalculation(track, config).calculateLayout(
+        wideWidth,
+        single,
+      );
+
+      const availableWidth =
+        wideWidth - config.paddingX * 2 - layout.tuningGutter;
+
+      expect(layout.measureLayouts).toHaveLength(1);
+      expect(layout.measureLayouts[0].width).toBeCloseTo(availableWidth);
     });
 
     describe("stringCount", () => {
