@@ -15,17 +15,17 @@ import {
 } from "./measureContentRenderer";
 
 export function renderMeasure(
-  svg: SVGSVGElement,
+  parent: Element,
   measureContext: MeasureContext,
   index: number,
   pass: RenderPass,
   nextMeasureContext?: MeasureContext,
-): void {
+): SVGGElement | undefined {
   const { layout, totalMeasures } = pass;
   const measureLayout = layout.measureLayouts[index];
 
   if (!measureLayout) {
-    return;
+    return undefined;
   }
 
   const previousLayout = layout.measureLayouts[index - 1];
@@ -146,9 +146,11 @@ export function renderMeasure(
     notationGroup,
     labelsGroup,
   );
-  svg.append(measureGroup);
+  parent.append(measureGroup);
 
   pass.previousMeasureIndex = measureContext.index;
   pass.previousMeasureRow = measureLayout.row;
   pass.previousNotes = positionedNotes;
+
+  return measureGroup;
 }

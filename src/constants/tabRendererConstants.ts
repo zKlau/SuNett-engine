@@ -11,6 +11,8 @@ export const TabsRendererConstants = {
   INVERT_STRINGS: false,
   SHOW_TUNING: true,
   HIDE_EMPTY_MEASURES: false,
+  VIRTUALIZE: true,
+  DEFAULT_OVERSCAN_ROWS: 3,
   TUNING_GUTTER: 20,
   TUNING_LABEL_OFFSET: 10,
   MEASURE_GAP: 0,

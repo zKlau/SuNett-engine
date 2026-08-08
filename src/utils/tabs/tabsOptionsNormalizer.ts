@@ -51,6 +51,12 @@ export function normalizeOptions(
 
     paddingY: options.paddingY ?? constants.TAB_PADDING_Y,
 
+    virtualize: options.virtualize ?? constants.VIRTUALIZE,
+
+    overscanRows: options.overscanRows ?? constants.DEFAULT_OVERSCAN_ROWS,
+
+    scrollContainer: options.scrollContainer,
+
     notes: normalizeNoteOptions(options.notes ?? {}, sizing),
   };
 }

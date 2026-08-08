@@ -16,5 +16,8 @@ export type NormalizedRendererOptions = {
   rowGap: number;
   paddingX: number;
   paddingY: number;
+  virtualize: boolean;
+  overscanRows: number;
+  scrollContainer?: Element | Window;
   notes: NoteRenderConfig;
 };
