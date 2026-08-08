@@ -25,7 +25,12 @@ import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 import type { Theme } from "../../theme/theme";
-import { applyTheme, clearTheme, mergeThemes } from "../../theme/theme";
+import {
+  applyTheme,
+  clearTheme,
+  mergeThemes,
+  resolveLabelFontSize,
+} from "../../theme/theme";
 import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
 
@@ -135,6 +140,9 @@ export class TabsRenderer {
         layout,
         config,
         metrics: resolveNoteMetrics(config.notes, layout.stringSpacing),
+        labelFontSize:
+          resolveLabelFontSize(this.currentTheme) ??
+          constants.BEAT_TEXT_FONT_SIZE,
         totalMeasures: measures.length,
         reverseStrings,
         tuningLabels,

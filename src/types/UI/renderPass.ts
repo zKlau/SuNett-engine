@@ -11,6 +11,7 @@ export type RenderPass = {
   layout: TabLayout;
   config: NormalizedRendererOptions;
   metrics: NoteMetrics;
+  labelFontSize: number;
   totalMeasures: number;
   reverseStrings: boolean;
   tuningLabels: string[];

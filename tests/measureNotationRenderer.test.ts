@@ -100,4 +100,54 @@ describe("renderMeasureNotation", () => {
       "Play rhythm parts with all downstrokes",
     );
   });
+
+  it("wraps beat text too wide for its row onto multiple lines", () => {
+    const parent = makeParent();
+    const bounds = makeBounds({ x: 0, width: 120 });
+    const value =
+      "Play rhythm parts with all downstrokes except when indicated";
+    const measure = makeMeasureFromVoices([[makeBeat({ text: value })]]);
+
+    renderMeasureNotation({
+      parent,
+      measureContext: { measure, index: 0 },
+      beatLayouts: [makeBeatLayout()],
+      bounds,
+      stringCount: 6,
+      showTimeSignature: false,
+      lyrics: [],
+    });
+
+    const beatText = parent.querySelector(".beat-text")!;
+    const tspans = beatText.querySelectorAll("tspan");
+    expect(tspans.length).toBeGreaterThan(1);
+    tspans.forEach((tspan) => {
+      expect(tspan.getAttribute("x")).toBe(`${bounds.x}`);
+    });
+    expect(beatText.textContent).toBe(value);
+  });
+
+  it("wraps into more lines as the label font size grows", () => {
+    const bounds = makeBounds({ x: 0, width: 200 });
+    const value =
+      "Play rhythm parts with all downstrokes except when indicated";
+    const measure = makeMeasureFromVoices([[makeBeat({ text: value })]]);
+
+    const lineCountFor = (labelFontSize: number): number => {
+      const parent = makeParent();
+      renderMeasureNotation({
+        parent,
+        measureContext: { measure, index: 0 },
+        beatLayouts: [makeBeatLayout()],
+        bounds,
+        stringCount: 6,
+        showTimeSignature: false,
+        lyrics: [],
+        labelFontSize,
+      });
+      return parent.querySelectorAll(".beat-text tspan").length;
+    };
+
+    expect(lineCountFor(22)).toBeGreaterThan(lineCountFor(8));
+  });
 });

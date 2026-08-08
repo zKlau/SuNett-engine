@@ -73,6 +73,8 @@ export function renderMeasureContent(request: MeasureContentRenderRequest) {
     stringCount: request.stringCount,
     showTimeSignature: request.showTimeSignature,
     lyrics: request.lyrics,
+    rowRightX: request.rowRightX,
+    labelFontSize: request.labelFontSize,
   });
 
   return positionedNotes;

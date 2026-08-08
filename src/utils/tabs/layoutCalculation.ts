@@ -18,6 +18,8 @@ export class LayoutCalculation {
   private calculateMeasureWidths(
     measures: MeasureContext[],
     baseMeasureWidth: number,
+    minWidth: number,
+    maxWidth: number,
   ): number[] {
     const measureWeights = measures.map((measureContext) =>
       this.calculateWeights(measureContext),
@@ -28,11 +30,7 @@ export class LayoutCalculation {
       Math.max(1, measureWeights.length);
 
     return measureWeights.map((weight) =>
-      clamp(
-        baseMeasureWidth * (weight / averageWeight),
-        this.config.minMeasureWidth,
-        this.config.maxMeasureWidth,
-      ),
+      clamp(baseMeasureWidth * (weight / averageWeight), minWidth, maxWidth),
     );
   }
 
@@ -98,13 +96,8 @@ export class LayoutCalculation {
     const measureLayouts = measureRows.flatMap((measureRow, row) => {
       const rowWidth = this.getRowWidth(measureRow, this.config.measureGap);
 
-      let extraMeasureWidth = 0;
-      if (measureRow.length === 1) {
-        extraMeasureWidth = 0;
-      } else {
-        extraMeasureWidth =
-          Math.max(0, availableWidth - rowWidth) / measureRow.length;
-      }
+      const extraMeasureWidth =
+        Math.max(0, availableWidth - rowWidth) / measureRow.length;
 
       let x = this.config.paddingX + tuningGutter;
       const y =
@@ -137,12 +130,21 @@ export class LayoutCalculation {
       svgWidth - this.config.paddingX * 2 - tuningGutter,
     );
 
+    const maxMeasureWidth: number = Math.min(
+      this.config.maxMeasureWidth,
+      availableWidth,
+    );
+    const minMeasureWidth: number = Math.min(
+      this.config.minMeasureWidth,
+      maxMeasureWidth,
+    );
+
     const measureWidth: number = clamp(
       this.config.measuresPerRow !== undefined
         ? Math.floor(availableWidth / this.config.measuresPerRow)
         : this.config.defaultMeasureWidth,
-      this.config.minMeasureWidth,
-      this.config.maxMeasureWidth,
+      minMeasureWidth,
+      maxMeasureWidth,
     );
 
     const stringSpacing: number = clamp(
@@ -162,6 +164,8 @@ export class LayoutCalculation {
     const totalMeasureWidths: number[] = this.calculateMeasureWidths(
       measures,
       measureWidth,
+      minMeasureWidth,
+      maxMeasureWidth,
     );
     const measureLayouts: MeasureLayout[] = this.calculateMeasureLayouts(
       totalMeasureWidths,

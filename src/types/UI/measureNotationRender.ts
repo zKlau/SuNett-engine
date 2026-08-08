@@ -18,4 +18,6 @@ export type MeasureNotationRequest = {
   stringCount: number;
   showTimeSignature: boolean;
   lyrics: LyricSyllable[];
+  rowRightX?: number;
+  labelFontSize?: number;
 };

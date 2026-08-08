@@ -6,6 +6,7 @@ import {
   clearTheme,
   defineTheme,
   mergeThemes,
+  resolveLabelFontSize,
 } from "../src/theme/theme";
 
 describe("defineTheme", () => {
@@ -135,6 +136,30 @@ describe("defineTheme", () => {
     expect(defineTheme({ sizing: { noteFontSize: 18 } }).sizing).toEqual({
       noteFontSize: 18,
     });
+  });
+});
+
+describe("resolveLabelFontSize", () => {
+  it("reads a plain px length as a number", () => {
+    expect(
+      resolveLabelFontSize(defineTheme({ fonts: { labelSize: 14 } })),
+    ).toBe(14);
+    expect(
+      resolveLabelFontSize(defineTheme({ fonts: { labelSize: "18px" } })),
+    ).toBe(18);
+  });
+
+  it("reads a unitless number", () => {
+    expect(
+      resolveLabelFontSize(defineTheme({ fonts: { labelSize: "12" } })),
+    ).toBe(12);
+  });
+
+  it("returns undefined for non-px lengths and unset sizes", () => {
+    expect(
+      resolveLabelFontSize(defineTheme({ fonts: { labelSize: "1rem" } })),
+    ).toBeUndefined();
+    expect(resolveLabelFontSize(defineTheme({}))).toBeUndefined();
   });
 });
 

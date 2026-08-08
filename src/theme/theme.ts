@@ -209,6 +209,16 @@ export function mergeThemes(...themes: Theme[]): Theme {
   return { variables, sizing, stringByIndex };
 }
 
+export function resolveLabelFontSize(theme: Theme): number | undefined {
+  const value = theme.variables[ThemeVariables.FONT_LABEL_SIZE];
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const match = /^\s*(\d+(?:\.\d+)?)(?:px)?\s*$/.exec(value);
+  return match ? Number(match[1]) : undefined;
+}
+
 export function applyTheme(theme: Theme, element: SVGElement | HTMLElement) {
   for (const [variable, value] of Object.entries(theme.variables)) {
     element.style.setProperty(variable, value);
