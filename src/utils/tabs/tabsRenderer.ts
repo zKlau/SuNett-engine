@@ -2,7 +2,6 @@ import { TabsRendererConstants as constants } from "../../constants/tabRendererC
 import type { Song } from "../../types/song";
 import type { Track } from "../../types/track";
 import type { MeasureContext } from "../../types/UI/measureContext";
-import type { RenderPass } from "../../types/UI/renderPass";
 import type {
   TabRendererOptions,
   TabsRendererConfig,
@@ -15,22 +14,13 @@ import { buildSongTimeline } from "../timing/measureTimeline";
 import type { CursorGeometry } from "../../playback/cursorGeometry";
 import type { SnapMode } from "../timing/snapTime";
 import { TabInteraction } from "./tabInteraction";
-import { renderMeasure } from "./measureRenderer";
-import { createSvgElement } from "./svg";
-import { buildLyricsByMeasure } from "./lyricsLayout";
-import { resolveNoteMetrics } from "./noteMetrics";
-import { buildNoteStyles } from "./notesStyles";
+import { findSvgTarget } from "./svgFrame";
+import { TabRenderSession } from "./tabRenderSession";
 import { visibleMeasureRange } from "./measureVisibility";
 import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
-import { ThemeVariables, themeVar } from "../../theme/variables";
 import type { Theme } from "../../theme/theme";
-import {
-  applyTheme,
-  clearTheme,
-  mergeThemes,
-  resolveLabelFontSize,
-} from "../../theme/theme";
+import { mergeThemes } from "../../theme/theme";
 import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
 
@@ -38,7 +28,7 @@ export class TabsRenderer {
   private song: Song;
   private currentTheme: Theme;
   private lastRequest?: { trackIndex: number; options: TabRendererOptions };
-  private currentRender?: () => void;
+  private currentSession?: TabRenderSession;
   private lastSvg?: SVGSVGElement;
   private songDurationMs = 0;
   private readonly interaction: TabInteraction;
@@ -78,7 +68,7 @@ export class TabsRenderer {
   }
 
   generateMeasures(trackIndex = 0, options: TabRendererOptions = {}) {
-    const svg = this.findSvgElement(options.target ?? constants.DEFAULT_TARGET);
+    const svg = findSvgTarget(options.target ?? constants.DEFAULT_TARGET);
 
     if (!svg) {
       return;
@@ -114,74 +104,26 @@ export class TabsRenderer {
       tuningLabels.reverse();
     }
 
-    const layoutCalculation = new LayoutCalculation(track, config);
     const timeline = buildSongTimeline(this.song, track);
     this.songDurationMs = timeline.durationMs;
-    const render = () => {
-      const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
-      const svgWidth = parentWidth || config.defaultMeasureWidth;
-      const layout = layoutCalculation.calculateLayout(svgWidth, measures);
 
-      const rowCount = layout.rowCount;
-      const width = layout.contentWidth + config.paddingX * 2;
-      const height =
-        rowCount * layout.measureHeight +
-        (rowCount - 1) * config.rowGap +
-        config.paddingY * 2;
+    this.currentSession = new TabRenderSession({
+      svg,
+      song: this.song,
+      track,
+      theme: this.currentTheme,
+      config,
+      measures,
+      layoutCalculation: new LayoutCalculation(track, config),
+      timeline,
+      interaction: this.interaction,
+      reverseStrings,
+      tuningLabels,
+      resolvedTrackIndex,
+      activeTrackIndex,
+    });
 
-      this.clearSvg(svg);
-      this.applyThemeVariables(svg);
-      this.renderBackground(svg, width, height);
-      this.renderDefaultStyles(svg, config);
-
-      const pass: RenderPass = {
-        song: this.song,
-        stringByIndex: this.currentTheme.stringByIndex,
-        layout,
-        config,
-        metrics: resolveNoteMetrics(config.notes, layout.stringSpacing),
-        labelFontSize:
-          resolveLabelFontSize(this.currentTheme) ??
-          constants.BEAT_TEXT_FONT_SIZE,
-        totalMeasures: measures.length,
-        reverseStrings,
-        tuningLabels,
-        lyricsByMeasure: buildLyricsByMeasure(
-          this.song,
-          track,
-          resolvedTrackIndex,
-        ),
-        previousNotes: [],
-      };
-
-      measures.forEach((measureContext, index) => {
-        renderMeasure(svg, measureContext, index, pass, measures[index + 1]);
-      });
-
-      svg.setAttribute("width", `${width}`);
-      svg.setAttribute("height", `${height}`);
-      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.setAttribute("role", "img");
-
-      this.interaction.update({
-        svg,
-        layout,
-        measures,
-        timeline,
-        trackIndex: activeTrackIndex,
-      });
-    };
-
-    this.currentRender = render;
-    render();
-
-    const resizeObserver = new ResizeObserver(render);
-    resizeObserver.observe(svg.parentElement ?? svg);
-
-    const cleanup = () => {
-      resizeObserver.disconnect();
-      clearTheme(svg);
-    };
+    const cleanup = this.currentSession.start();
     this.rendererCleanups.set(svg, cleanup);
 
     return cleanup;
@@ -189,7 +131,7 @@ export class TabsRenderer {
 
   /** Redraws the last rendered tab, e.g. after its selections change. */
   rerender(): void {
-    this.currentRender?.();
+    this.currentSession?.rerender();
   }
 
   /**
@@ -279,51 +221,6 @@ export class TabsRenderer {
       this.rendererCleanups.get(this.lastSvg)?.();
       this.rendererCleanups.delete(this.lastSvg);
     }
-  }
-
-  private applyThemeVariables(svg: SVGSVGElement) {
-    clearTheme(svg);
-    applyTheme(this.currentTheme, svg);
-  }
-
-  private renderBackground(svg: SVGSVGElement, width: number, height: number) {
-    const rect = createSvgElement("rect");
-    rect.setAttribute("class", "tab-background");
-    rect.setAttribute("x", "0");
-    rect.setAttribute("y", "0");
-    rect.setAttribute("width", `${width}`);
-    rect.setAttribute("height", `${height}`);
-    rect.setAttribute("fill", themeVar(ThemeVariables.COLOR_BG));
-    svg.append(rect);
-  }
-
-  private renderDefaultStyles(
-    svg: SVGSVGElement,
-    config: RenderPass["config"],
-  ) {
-    if (!config.notes.defaultStyles) {
-      return;
-    }
-
-    const style = createSvgElement("style");
-    style.textContent = buildNoteStyles(config.notes.classPrefix);
-    svg.append(style);
-  }
-
-  private clearSvg(svg: SVGSVGElement) {
-    while (svg.firstChild) {
-      svg.firstChild.remove();
-    }
-  }
-
-  private findSvgElement(target: string | SVGSVGElement) {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    const element =
-      typeof target === "string" ? document.querySelector(target) : target;
-    return element instanceof SVGSVGElement ? element : undefined;
   }
 
   private getMeasureContexts(track: Track): MeasureContext[] {

@@ -1,5 +1,9 @@
 import type { CursorGeometry } from "../playback/cursorGeometry";
 import type { PlaybackPositionEvent } from "../types/playback";
+import {
+  resolveScrollContainer,
+  viewportSpan,
+} from "../utils/tabs/scrollTarget";
 
 /** Where the followed row is placed in the viewport. */
 export const FollowAlign = {
@@ -68,12 +72,17 @@ export function attachPlaybackFollow(
     if (!rect) {
       return;
     }
-    const container = resolveContainer(
+    const container = resolveScrollContainer(
       source.getTabElement(),
       options.container,
     );
     const view = viewportSpan(container);
-    const delta = followScrollDelta(rect, view, margin, align);
+    const delta = followScrollDelta(
+      rowSpan(rect, geometry),
+      view,
+      margin,
+      align,
+    );
     if (delta !== null) {
       container.scrollBy({ top: delta, behavior });
     }
@@ -105,35 +114,8 @@ export function followScrollDelta(
   return cursor.top - (view.top + margin);
 }
 
-function viewportSpan(container: Element | Window): Span {
-  if (isWindow(container)) {
-    return { top: 0, bottom: container.innerHeight };
-  }
-  const rect = container.getBoundingClientRect();
-  return { top: rect.top, bottom: rect.bottom };
-}
-
-function resolveContainer(
-  tab: SVGSVGElement | undefined,
-  option: Element | Window | undefined,
-): Element | Window {
-  if (option) {
-    return option;
-  }
-  const view = tab?.ownerDocument?.defaultView;
-  let node = tab?.parentElement ?? null;
-  while (node && view) {
-    const overflowY = view.getComputedStyle(node).overflowY;
-    const scrollable =
-      overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay";
-    if (scrollable && node.scrollHeight > node.clientHeight) {
-      return node;
-    }
-    node = node.parentElement;
-  }
-  return view ?? window;
-}
-
-function isWindow(container: Element | Window): container is Window {
-  return typeof Window !== "undefined" && container instanceof Window;
+function rowSpan(cursorRect: DOMRect, geometry: CursorGeometry): Span {
+  const scale = geometry.height > 0 ? cursorRect.height / geometry.height : 1;
+  const top = cursorRect.top - (geometry.y - geometry.rowTop) * scale;
+  return { top, bottom: top + geometry.rowHeight * scale };
 }
