@@ -100,4 +100,30 @@ describe("renderMeasureNotation", () => {
       "Play rhythm parts with all downstrokes",
     );
   });
+
+  it("wraps beat text too wide for its row onto multiple lines", () => {
+    const parent = makeParent();
+    const bounds = makeBounds({ x: 0, width: 120 });
+    const value =
+      "Play rhythm parts with all downstrokes except when indicated";
+    const measure = makeMeasureFromVoices([[makeBeat({ text: value })]]);
+
+    renderMeasureNotation({
+      parent,
+      measureContext: { measure, index: 0 },
+      beatLayouts: [makeBeatLayout()],
+      bounds,
+      stringCount: 6,
+      showTimeSignature: false,
+      lyrics: [],
+    });
+
+    const beatText = parent.querySelector(".beat-text")!;
+    const tspans = beatText.querySelectorAll("tspan");
+    expect(tspans.length).toBeGreaterThan(1);
+    tspans.forEach((tspan) => {
+      expect(tspan.getAttribute("x")).toBe(`${bounds.x}`);
+    });
+    expect(beatText.textContent).toBe(value);
+  });
 });

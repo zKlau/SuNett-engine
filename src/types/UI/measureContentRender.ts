@@ -23,4 +23,5 @@ export type MeasureContentRenderRequest = {
   nextRowMeasure?: Measure;
   showTimeSignature: boolean;
   lyrics: LyricSyllable[];
+  rowRightX?: number;
 };

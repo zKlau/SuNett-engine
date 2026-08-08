@@ -99,6 +99,14 @@ export function renderMeasure(
     isFirstMeasure,
   });
 
+  const rowRightX = layout.measureLayouts.reduce(
+    (right, candidate) =>
+      candidate.row === measureLayout.row
+        ? Math.max(right, candidate.x + candidate.width)
+        : right,
+    0,
+  );
+
   const previousMeasureNotes =
     pass.previousMeasureIndex === measureContext.index - 1
       ? pass.previousNotes
@@ -126,6 +134,7 @@ export function renderMeasure(
       isRowEnd && nextMeasureContext ? nextMeasureContext.measure : undefined,
     showTimeSignature,
     lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
+    rowRightX,
   });
 
   measureGroup.append(
