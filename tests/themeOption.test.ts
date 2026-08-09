@@ -187,18 +187,32 @@ describe("TabsRenderer theme option", () => {
     expect(renderer.getTheme()).toBe(theme);
   });
 
-  it("setTheme merges onto the current theme and re-renders", () => {
+  it("setTheme replaces the current theme and re-renders", () => {
     const svg = setupSvg();
     const renderer = new TabsRenderer(makeSong([makeTrackWithNotes()]), {
       theme: "dark",
     });
     renderer.generateMeasures();
 
-    const merged = renderer.setTheme({ colors: { accent: "#f472b6" } });
+    const next = renderer.setTheme({ colors: { accent: "#f472b6" } });
 
     expect(svg.style.getPropertyValue("--sunett-color-accent")).toBe("#f472b6");
-    expect(svg.style.getPropertyValue("--sunett-color-fg")).toBe("#e5e7eb");
-    expect(merged.variables["--sunett-color-fg"]).toBe("#e5e7eb");
+    expect(svg.style.getPropertyValue("--sunett-color-fg")).toBe("");
+    expect(next.variables["--sunett-color-fg"]).toBeUndefined();
+  });
+
+  it("setTheme switching presets does not stack the previous theme", () => {
+    const svg = setupSvg();
+    const renderer = new TabsRenderer(makeSong([makeTrackWithNotes()]), {
+      theme: "dark",
+    });
+    renderer.generateMeasures();
+
+    renderer.setTheme("default");
+
+    expect(svg.style.getPropertyValue("--sunett-color-fg")).toBe("");
+    expect(svg.style.getPropertyValue("--sunett-color-note-bg")).toBe("");
+    expect(renderer.getTheme().variables).toEqual({});
   });
 
   it("setTheme changing sizing recomputes the layout", () => {

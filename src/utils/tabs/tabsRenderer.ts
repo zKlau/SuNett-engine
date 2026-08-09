@@ -20,7 +20,6 @@ import { visibleMeasureRange } from "./measureVisibility";
 import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
 import type { Theme } from "../../theme/theme";
-import { mergeThemes } from "../../theme/theme";
 import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
 
@@ -50,12 +49,14 @@ export class TabsRenderer {
   }
 
   /**
-   * Merges `theme` into the current theme and re-renders the last drawn tab.
-   * Accepts a preset name, a `ThemeInput`, or a `Theme`. Returns the merged
-   * theme. No-ops on the render if nothing has been drawn yet.
+   * Replaces the current theme with `theme` and re-renders the last drawn tab.
+   * Accepts a preset name, a `ThemeInput`, or a `Theme`. Switching themes fully
+   * resets the previous one - no variables carry over. To layer a tweak onto the
+   * current theme, merge it in yourself: `setTheme(mergeThemes(getTheme(), tweak))`.
+   * Returns the resolved theme. No-ops on the render if nothing has been drawn yet.
    */
   setTheme(theme: ThemeLike): Theme {
-    this.currentTheme = mergeThemes(this.currentTheme, coerceTheme(theme));
+    this.currentTheme = coerceTheme(theme);
 
     if (this.lastRequest) {
       this.generateMeasures(this.lastRequest.trackIndex, {
