@@ -1,97 +1,209 @@
-## Requierments
+# SuNett-engine
 
-Vite projects require [vite-plugin-wasm](https://github.com/Menci/vite-plugin-wasm) to be added to the vite config plugins
+Render guitar tablature as SVG in the browser from parsed Guitar Pro song data.
+
+## Install
 
 ```bash
-npm install -D vite-plugin-wasm
+npm install @zklau/sunett-engine
 ```
 
-## Theming
+## Song data
 
-The renderer never hardcodes colours. Every visual property is written as an SVG
-presentation attribute pointing at a `--sunett-*` CSS variable with a built-in
-fallback. Presentation attributes sit below every CSS rule in the cascade, so
-**your stylesheet always wins - no `!important` required.**
-
-There are three tiers. Pick the lowest one that does what you need.
-
-### 1. No setup
-
-Render and you are done. Colours resolve through `currentColor`, so the tab
-inherits the surrounding text colour and already reads correctly on light and
-dark pages.
+The engine renders a `Song` object, the parsed Guitar Pro model. It does not parse files itself, so bring your own parser; any source works as long as it produces the `Song` shape. Import the type to check your data against it:
 
 ```ts
-new TabsRenderer(song).generateMeasures(0);
+import type { Song } from "@zklau/sunett-engine";
 ```
 
-### 2. A preset
+## Quick start
 
-Either route works - pick one, not both.
+Add an `<svg>` with the target id (default `#tabs`):
 
-```ts
-// Scoped to this one tab.
-new TabsRenderer(song).generateMeasures(0, { theme: "dark" });
+```html
+<svg id="tabs"></svg>
 ```
 
+Load a `Song` and render a track:
+
 ```ts
-// Scoped to the whole page.
-import "@zklau/sunett-engine/themes/dark.css";
+import { SunettEngine } from "@zklau/sunett-engine";
+import type { Song } from "@zklau/sunett-engine";
+
+const song: Song = getYourParsedSong();
+
+const engine = new SunettEngine();
+await engine.loadSong(song);
+engine.render(0);
 ```
 
-| Preset          | Use it when                                                              |
-| --------------- | ------------------------------------------------------------------------ |
-| `default`       | Anything. Sets no colours; follows `currentColor`.                       |
-| `dark`          | You want an explicit dark palette regardless of the host page.           |
-| `high-contrast` | Accessibility. Built on CSS system colours; follows forced-colours mode. |
+`render(trackIndex)` draws a track. The tab is responsive and redraws on resize. Call `engine.dispose()` when you are done.
 
-`dark` deliberately ignores `prefers-color-scheme` - importing it or passing it
-is an explicit choice, so a page that intentionally runs inverted is never
-overridden.
-
-### 3. A custom theme
-
-`defineTheme` is sugar over the variables - everything it does, a stylesheet can
-do too. Every field is optional; whatever you omit keeps its fallback.
+Switch tracks by rendering another index; list them with `getTracks`:
 
 ```ts
-import { TabsRenderer, defineTheme } from "@zklau/sunett-engine";
+engine.getTracks().forEach((track, i) => console.log(i, track.name));
+engine.render(2);
+```
 
-const myTheme = defineTheme({
-  colors: { fg: "#111", background: "#fff", accent: "#c084fc" },
-  fonts: { noteFamily: "JetBrains Mono, ui-monospace, monospace" },
-  opacity: { string: 0.7 },
-  lines: { stringWidth: 2 },
-  sizing: { noteFontSize: 14, stringSpacing: 22, maxStringSpacing: 28 },
+## Playback
+
+```ts
+engine.play();
+engine.pause();
+engine.stop();
+engine.seek(4000);
+
+engine.on("playbackPositionChanged", ({ positionMs }) => {
+  console.log(positionMs);
 });
 
-new TabsRenderer(song).generateMeasures(0, { theme: myTheme });
+engine.enableAutoScroll();
 ```
 
-`colors.background` fills the whole tab canvas (defaults to transparent, so an
-unthemed tab shows the page behind it); `colors.noteBg` is only the pill behind
-each fret number.
+### Looping
 
-Use `colors.stringByIndex` to override individual displayed string rows while
-keeping `colors.string` as the fallback. Index `0` is the top row.
+Set a loop range and playback wraps within it, for practising a passage. Pass `null` to clear it:
 
 ```ts
-defineTheme({
-  colors: {
-    string: "#64748b",
-    stringByIndex: { 0: "#ef4444", 5: "#3b82f6" },
+engine.setLoop({ startMs: 4000, endMs: 12000 });
+engine.play();
+
+engine.setLoop(null);
+```
+
+## Cursor
+
+A playhead marker tracks the playback position. By default it is a built-in marker scaled to the staff height. Customise its artwork and CSS hooks through the `cursor` config:
+
+```ts
+new SunettEngine({
+  cursor: {
+    svg: `<svg viewBox="0 0 4 100"><rect width="4" height="100" /></svg>`,
+    className: "my-cursor",
   },
 });
 ```
 
-`sizing` is the exception to "everything a stylesheet can do too": note font
-size and string spacing feed the renderer's layout math, which a CSS variable
-cannot reach, so they are numeric fields resolved before layout. That also means
-**`sizing` works from `defineTheme` only - never from a preset CSS file.**
-Explicit `TabRendererOptions` (`notes.fontSize`, `stringSpacing`) still outrank a
-theme's `sizing`.
+`svg` takes SVG markup or a factory `(document) => SVGElement`; it is scaled to the staff and centred on the playhead. The cursor element always carries the `playback-cursor` class, and `className` adds your own, so both can be styled from a stylesheet:
 
-Start from a preset instead of restating it with `mergeThemes`:
+```css
+.playback-cursor {
+  fill: #ef4444;
+}
+```
+
+## Selections
+
+Attach the built-in pointer interaction, or manage selections directly:
+
+```ts
+engine.enableSelectionInput();
+engine.enablePlaybackInput();
+
+const selection = engine.addSelection({
+  startMs: 0,
+  endMs: 6000,
+  label: "intro",
+});
+
+engine.on("selectionsChanged", (selections) => console.log(selections));
+```
+
+`enableSelectionInput` lets a user drag to create, right-click to delete, and double-click to edit. Hooks decide what a new selection stores and confirm edits and deletes:
+
+```ts
+engine.enableSelectionInput({
+  onCreate: (range) => ({ label: "practice", color: "#22c55e" }),
+  onEdit: (selection) => ({ label: prompt("New label:") ?? selection.label }),
+  onDelete: (selection) => confirm(`Delete "${selection.label}"?`),
+});
+```
+
+`enablePlaybackInput` makes a click seek to that time while a drag still selects.
+
+### Snapping
+
+Both inputs, and `snapTime`, quantise times to the grid with `SnapMode` (`None`, `Beat`, `Measure`):
+
+```ts
+import { SnapMode } from "@zklau/sunett-engine";
+
+engine.enableSelectionInput({ snap: SnapMode.Beat });
+engine.enablePlaybackInput({ snap: SnapMode.Measure });
+
+engine.snapTime(4123, SnapMode.Beat);
+```
+
+Pass a `selectionStore` to persist selections across sessions. It is an adapter with `load` and `save`, keyed by song id, so you decide where selections live (localStorage, a database, an API):
+
+```ts
+import type { SelectionStore, Selection } from "@zklau/sunett-engine";
+
+const localStore: SelectionStore = {
+  async load(songId): Promise<Selection[]> {
+    return JSON.parse(localStorage.getItem(`sel:${songId}`) ?? "[]");
+  },
+  async save(songId, selections): Promise<void> {
+    localStorage.setItem(`sel:${songId}`, JSON.stringify(selections));
+  },
+};
+
+new SunettEngine({ selectionStore: localStore });
+```
+
+On `loadSong`, saved selections are restored; on every change, `save` runs fire-and-forget.
+
+## Theming
+
+Colours are never hardcoded. Every visual property is an SVG presentation attribute pointing at a `--sunett-*` CSS variable, so your stylesheet always wins without `!important`. Pick the lowest tier that fits.
+
+### No setup
+
+Colours follow `currentColor`, so the tab reads correctly on light and dark pages with no configuration.
+
+```ts
+engine.render(0);
+```
+
+### A preset
+
+Scope to one tab, or to the whole page. Pick one route, not both.
+
+```ts
+engine.setTheme("dark");
+```
+
+```ts
+import "@zklau/sunett-engine/themes/dark.css";
+```
+
+| Preset          | Use it when                                                    |
+| --------------- | -------------------------------------------------------------- |
+| `default`       | Anything. Sets no colours; follows `currentColor`.             |
+| `dark`          | You want an explicit dark palette regardless of the host page. |
+| `high-contrast` | Accessibility. Follows forced-colours mode.                    |
+
+`dark` ignores `prefers-color-scheme`; importing or passing it is an explicit choice.
+
+### A custom theme
+
+`defineTheme` is sugar over the variables. Every field is optional; omitted fields keep their fallback.
+
+```ts
+import { SunettEngine, defineTheme } from "@zklau/sunett-engine";
+
+const myTheme = defineTheme({
+  colors: { fg: "#111", background: "#fff", accent: "#c084fc" },
+  fonts: { noteFamily: "JetBrains Mono, monospace" },
+  lines: { stringWidth: 2 },
+  sizing: { noteFontSize: 14, stringSpacing: 22 },
+});
+
+new SunettEngine({ theme: myTheme });
+```
+
+Start from a preset instead of restating it:
 
 ```ts
 import { ThemePresets, defineTheme, mergeThemes } from "@zklau/sunett-engine";
@@ -102,7 +214,7 @@ const theme = mergeThemes(
 );
 ```
 
-Or skip the JS API entirely and set the variables in your own CSS:
+Or set the variables in your own CSS:
 
 ```css
 :root {
@@ -110,32 +222,6 @@ Or skip the JS API entirely and set the variables in your own CSS:
   --sunett-color-accent: #c084fc;
 }
 ```
-
-Import the baseline stylesheet if you want the variables declared on `:root`
-where devtools can see them. It is optional - it declares variables only, never
-element rules, so it can never outrank your CSS.
-
-```ts
-import "@zklau/sunett-engine/styles.css";
-```
-
-### Updating a theme at runtime
-
-The renderer holds its theme as state. Pass an initial one at construction, then
-mutate it with `setTheme` - it merges the new values over the current theme and
-re-renders the last-drawn tab. `getTheme()` returns the active theme.
-
-```ts
-const renderer = new TabsRenderer(song, { theme: "dark" });
-renderer.generateMeasures(0);
-
-renderer.setTheme({ colors: { accent: "#f472b6" } }); // merges + re-renders
-renderer.getTheme(); // the resolved Theme
-```
-
-Precedence: a `theme` passed to `generateMeasures` **replaces** the current
-theme; `setTheme` **merges**. `setTheme` takes the same shapes as `defineTheme`
-(a preset name, a `ThemeInput`, or a built `Theme`).
 
 ### Variables
 
@@ -156,65 +242,4 @@ theme; `setTheme` **merges**. `setTheme` takes the same shapes as `defineTheme`
 | `--sunett-barline-opacity` | `opacity.barline`   | `0.68`                    |
 | `--sunett-string-width`    | `lines.stringWidth` | `1`                       |
 
-`--sunett-string-width` is the stroke thickness of the string lines. It is a
-real CSS variable (stroke width does not feed layout math), so unlike `sizing`
-it also works from a stylesheet or preset, and a plain
-`.string { stroke-width: 2px }` rule still wins over it.
-
-`defineTheme` additionally takes a `sizing` section - `noteFontSize`,
-`maxNoteFontSize`, `stringSpacing`, `minStringSpacing`, `maxStringSpacing`, and
-`rowSpacing` - which has no CSS-variable equivalent; see
-[String spacing](#string-spacing) and [Note size](#note-size).
-
-Themes cover appearance and size. Other layout (widths, padding) stays in
-`TabRendererOptions`, and per-note styling belongs in the `render` / `onCreate`
-hooks on `TabNoteOptions`.
-
-### String spacing
-
-`sizing.stringSpacing` sets the vertical distance between string lines. It is
-clamped to `[minStringSpacing, maxStringSpacing]` (default `9`-`24`) and scaled
-with the measure width, so a value past the default ceiling is capped unless you
-raise it too:
-
-```ts
-defineTheme({ sizing: { stringSpacing: 40, maxStringSpacing: 40 } });
-```
-
-Like note font size, spacing feeds the SVG viewBox, so it is a numeric `sizing`
-field rather than a CSS variable (works from `defineTheme`, not a preset CSS
-file). An explicit `TabRendererOptions.stringSpacing` still outranks the theme.
-
-### Note size
-
-Note text is **not** a theme variable, because the renderer measures it in
-TypeScript to size each note's background - a CSS-only font size would leave the
-background sized for the old value and the text would overflow it.
-
-By default the note font size scales with the tab: it is derived from the string
-spacing, which itself grows with the measure width, so notes keep their
-proportions instead of shrinking away on wide screens. It is clamped to a
-readable 8–15px; raise `sizing.maxNoteFontSize` (or `notes.maxFontSize`) to let
-the auto-scaled size grow past the upper bound. The background height follows the
-font size, so the two can never fall out of step.
-
-To pin a fixed size, set it explicitly - it then overrides the scaling and stays
-put at every width. Either per call:
-
-```ts
-new TabsRenderer(song).generateMeasures(0, {
-  notes: { fontSize: 14 },
-  stringSpacing: 22,
-  maxStringSpacing: 28, // the default clamp of 24 would otherwise cap this
-});
-```
-
-…or bundled into a reusable theme via its `sizing` section:
-
-```ts
-const roomy = defineTheme({ sizing: { noteFontSize: 14, stringSpacing: 22 } });
-new TabsRenderer(song).generateMeasures(0, { theme: roomy });
-```
-
-Note `fonts.noteFamily` sets the note **typeface**, not its size - size lives in
-`sizing.noteFontSize` for the reason above.
+`sizing` fields (`noteFontSize`, `stringSpacing`, `rowSpacing`, and their clamps) feed layout math, so they are numeric and work from `defineTheme` only, never a preset CSS file. An explicit `TabRendererOptions` value (`notes.fontSize`, `stringSpacing`) outranks a theme's `sizing`.
