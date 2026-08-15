@@ -2,12 +2,11 @@
  * @jest-environment jsdom
  */
 import {
-  applyTheme,
-  clearTheme,
   defineTheme,
   mergeThemes,
   resolveLabelFontSize,
 } from "../src/theme/theme";
+import { applyTheme, clearTheme } from "../src/theme/themeDom";
 
 describe("defineTheme", () => {
   it("maps every supported field to its CSS variable", () => {
