@@ -2,7 +2,8 @@ import { TabsRendererConstants as constants } from "../../../constants/tabRender
 import { ThemeVariables, themeVar } from "../../../theme/variables";
 import type { RhythmBeat } from "../../../types/UI/rhythmRender";
 import { appendRhythmGroup, tupletKey } from "./rhythmGroups";
-import { createRhythmPath, createSvgElement } from "./rhythmSvg";
+import { createRhythmPath } from "./rhythmSvg";
+import { createSvgElement } from "../svg";
 
 export function renderTuplets(
   parent: SVGGElement,

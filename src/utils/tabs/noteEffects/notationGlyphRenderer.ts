@@ -1,7 +1,7 @@
 import { ThemeVariables, themeVar } from "../../../theme/variables";
 import type { ThemeVariable } from "../../../theme/variables";
 import type { NotationGlyph } from "../../../types/UI/notationGlyph";
-import { createSvgElement } from "./effectSvg";
+import { createSvgElement } from "../svg";
 
 export function createNotationGlyph(
   glyph: NotationGlyph,

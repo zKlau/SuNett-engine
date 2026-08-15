@@ -1,6 +1,7 @@
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 import type { MeasureNotationRequest } from "../../types/UI/measureNotationRender";
+import { createSvgElement } from "./svg";
 
 export function renderMeasureNotation(request: MeasureNotationRequest) {
   if (request.showTimeSignature) {
@@ -198,10 +199,4 @@ function applyMutedText(text: SVGTextElement) {
   text.setAttribute("font-family", themeVar(ThemeVariables.FONT_LABEL));
   text.setAttribute("font-size", themeVar(ThemeVariables.FONT_LABEL_SIZE));
   text.setAttribute("dominant-baseline", "central");
-}
-
-function createSvgElement<K extends keyof SVGElementTagNameMap>(
-  tag: K,
-): SVGElementTagNameMap[K] {
-  return document.createElementNS("http://www.w3.org/2000/svg", tag);
 }

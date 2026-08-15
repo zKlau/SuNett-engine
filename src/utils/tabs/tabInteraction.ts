@@ -35,11 +35,6 @@ export type InteractionUpdate = {
   trackIndex: number;
 };
 
-/**
- * Owns the spatial/temporal index of the last render and the selection overlay
- * drawn on top of it. Keeps the interaction concerns (hit-testing, time mapping,
- * snapping, overlay drawing) out of the renderer itself.
- */
 export class TabInteraction {
   private readonly selectionSource?: SelectionSource;
   private readonly cursorOptions?: CursorOptions;
@@ -103,7 +98,6 @@ export class TabInteraction {
     this.moveCursor();
   }
 
-  /** Removes the cursor overlay and unwraps the tab. */
   teardownCursor(): void {
     this.clearCursorLine();
     this.cursorOverlay?.remove();
@@ -145,12 +139,10 @@ export class TabInteraction {
     );
   }
 
-  /** The cursor's geometry in tab coordinates at its current position. */
   getCursorGeometry(): CursorGeometry | undefined {
     return this.cursorGeometry;
   }
 
-  /** The cursor's bounding rect in client space, or `undefined` if not drawn. */
   getCursorRect(): DOMRect | undefined {
     if (
       !this.cursorLine ||
@@ -161,7 +153,6 @@ export class TabInteraction {
     return this.cursorLine.getBoundingClientRect();
   }
 
-  /** The cursor's client-space position for a song time, mapped through the CTM. */
   pointAtTime(
     ms: number,
   ): { x: number; y: number; height: number } | undefined {

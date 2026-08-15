@@ -4,11 +4,6 @@ import type { CursorOptions } from "../../types/UI/cursorOptions";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 import { createSvgElement } from "./svg";
 
-/**
- * Wraps `svg` in a `position: relative` container so the cursor overlay can be
- * inset over it and stay aligned regardless of surrounding layout. Returns the
- * wrapper, reusing an existing one.
- */
 export function wrapForCursor(svg: SVGSVGElement): HTMLElement | undefined {
   const existing = svg.parentElement;
   if (existing?.dataset.sunettCursorWrap === "true") {
@@ -27,7 +22,6 @@ export function wrapForCursor(svg: SVGSVGElement): HTMLElement | undefined {
   return wrapper;
 }
 
-/** Removes the cursor wrapper, returning `svg` to its original parent. */
 export function unwrapCursor(wrapper: HTMLElement, svg: SVGSVGElement): void {
   wrapper.parentElement?.insertBefore(svg, wrapper);
   wrapper.remove();
@@ -54,11 +48,6 @@ const CURSOR_BARS = [
   { y: 723, height: 22, rx: 5 },
 ] as const;
 
-/**
- * Builds the playback cursor: the artwork (a consumer's or the built-in marker)
- * scaled to the staff height and horizontally centred on the playhead. Returns
- * the group moved by {@link positionCursorLine}.
- */
 export function createCursorLine(
   parent: SVGSVGElement,
   height: number,

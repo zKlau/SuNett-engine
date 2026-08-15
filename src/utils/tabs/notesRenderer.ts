@@ -12,7 +12,7 @@ import {
   resolveGlyphWidth,
 } from "./noteRendering/noteElementRenderer";
 import { resolveNoteContinuations } from "./noteRendering/noteContinuationResolver";
-import { createNoteSvgElement } from "./noteRendering/noteSvg";
+import { createSvgElement } from "./svg";
 import { stringDisplayRow } from "./stringOrder";
 
 export function renderMeasureNotes(request: NotesRenderRequest) {
@@ -143,7 +143,7 @@ function positionNote(request: NoteRenderRequest): PositionedNoteRender {
     x: beatLayout.x,
     y,
     fontSize: metrics.fontSize,
-    createElement: createNoteSvgElement,
+    createElement: createSvgElement,
   };
   const glyphWidth = resolveGlyphWidth(
     noteLabel(note),

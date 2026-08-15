@@ -6,7 +6,8 @@ import type {
   NoteEffectsRenderRequest,
 } from "../../../types/UI/noteEffectsRender";
 import { collectEffectBeats } from "./effectLayout";
-import { createEffectGroup, createSvgElement } from "./effectSvg";
+import { createEffectGroup } from "./effectSvg";
+import { createSvgElement } from "../svg";
 import { createNotationGlyph } from "./notationGlyphRenderer";
 
 export function renderBeatVibrato(request: NoteEffectsRenderRequest) {

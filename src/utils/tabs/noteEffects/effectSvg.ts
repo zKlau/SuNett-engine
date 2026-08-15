@@ -1,6 +1,7 @@
 import { TabsRendererConstants as constants } from "../../../constants/tabRendererConstants";
 import { ThemeVariables, themeVar } from "../../../theme/variables";
 import type { EffectRenderState } from "../../../types/UI/noteEffectsRender";
+import { createSvgElement } from "../svg";
 
 export function createEffectGroup(
   state: EffectRenderState,
@@ -94,10 +95,4 @@ export function effectFontSize(noteFontSize: number): number {
     constants.NOTE_EFFECT_MIN_FONT_SIZE,
     noteFontSize * constants.NOTE_EFFECT_FONT_RATIO,
   );
-}
-
-export function createSvgElement<K extends keyof SVGElementTagNameMap>(
-  tag: K,
-): SVGElementTagNameMap[K] {
-  return document.createElementNS("http://www.w3.org/2000/svg", tag);
 }

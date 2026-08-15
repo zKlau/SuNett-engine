@@ -2,9 +2,9 @@ export type BendEffect = {
   kind: keyof typeof BendType;
   value: number;
   points: BendPoint[];
-  semitone_length: number; // The note offset per bend point offset
-  max_position: number; // The max position of the bend points (x axis)
-  max_value: number; // The max value of the bend points (y axis)
+  semitone_length: number;
+  max_position: number;
+  max_value: number;
 };
 
 const BendType = {

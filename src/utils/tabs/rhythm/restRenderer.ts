@@ -2,7 +2,7 @@ import { RhythmRestGlyphs } from "../../../constants/restGlyphPaths";
 import { TabsRendererConstants as constants } from "../../../constants/tabRendererConstants";
 import { ThemeVariables, themeVar } from "../../../theme/variables";
 import type { Beat } from "../../../types/beats/beat";
-import { createSvgElement } from "./rhythmSvg";
+import { createSvgElement } from "../svg";
 
 export function renderRest(
   parent: SVGGElement,
