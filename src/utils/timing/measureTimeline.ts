@@ -13,9 +13,7 @@ export type MeasureTiming = {
   startMs: number;
   endMs: number;
   durationMs: number;
-  /** Number of beats in the measure (the time-signature numerator). */
   beatCount: number;
-  /** Duration of one beat in ms. */
   beatDurationMs: number;
 };
 

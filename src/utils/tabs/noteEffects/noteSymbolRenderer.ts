@@ -5,8 +5,8 @@ import {
   applyEffectPathDefaults,
   createEffectGroup,
   createEffectText,
-  createSvgElement,
 } from "./effectSvg";
+import { createSvgElement } from "../svg";
 import { renderBend } from "./bendRenderer";
 
 export function renderNoteSymbols(

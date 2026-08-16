@@ -7,7 +7,8 @@ import type {
 } from "../../types/UI/rhythmRender";
 import { renderRest } from "./rhythm/restRenderer";
 import { renderBeamGroups } from "./rhythm/rhythmBeamsRenderer";
-import { createRhythmPath, createSvgElement } from "./rhythm/rhythmSvg";
+import { createRhythmPath } from "./rhythm/rhythmSvg";
+import { createSvgElement } from "./svg";
 import { renderTuplets } from "./rhythm/rhythmTupletsRenderer";
 
 export function renderRhythm(request: RhythmRenderRequest) {

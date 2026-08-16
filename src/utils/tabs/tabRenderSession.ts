@@ -6,11 +6,8 @@ import type { NormalizedRendererOptions } from "../../types/UI/normalizedRendere
 import type { RenderPass } from "../../types/UI/renderPass";
 import type { TabLayout } from "../../types/UI/tabLayout";
 import type { Theme } from "../../theme/theme";
-import {
-  applyTheme,
-  clearTheme,
-  resolveLabelFontSize,
-} from "../../theme/theme";
+import { resolveLabelFontSize } from "../../theme/theme";
+import { applyTheme, clearTheme } from "../../theme/themeDom";
 import type { SongTimeline } from "../timing/measureTimeline";
 import type { LayoutCalculation } from "./layoutCalculation";
 import type { TabInteraction } from "./tabInteraction";

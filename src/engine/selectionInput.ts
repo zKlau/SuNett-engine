@@ -3,8 +3,16 @@ import type {
   SelectionDraftUpdate,
   SelectionUpdate,
 } from "../types/selection";
+import type { Point } from "../types/UI/point";
 import { SnapMode } from "../utils/timing/snapTime";
 import { createEdgeAutoScroll } from "./edgeAutoScroll";
+import {
+  applyInteractionStyles,
+  capturePointer,
+  labelSelectionId,
+  movedBeyondTolerance,
+  vibrate,
+} from "./pointerInteraction";
 
 type SelectionInputEngine = {
   timeAtPoint(clientX: number, clientY: number): number | undefined;
@@ -19,13 +27,6 @@ type SelectionInputEngine = {
   removeSelection(id: string): void;
   updateSelection(id: string, updates: SelectionUpdate): void;
 };
-
-type MutableStyle = CSSStyleDeclaration & {
-  webkitUserSelect?: string;
-  webkitTouchCallout?: string;
-};
-
-type Point = { x: number; y: number };
 
 /** A committed time range, passed to `onCreate`. */
 export type SelectionRange = {
@@ -92,7 +93,6 @@ export type SelectionInputOptions = {
 const DEFAULT_CREATE_BUTTON = 0;
 const DEFAULT_MIN_DURATION_MS = 40;
 const DEFAULT_HOLD_DURATION_MS = 400;
-const HOLD_MOVE_TOLERANCE_PX = 10;
 
 /**
  * Wires the default selection interaction onto an `<svg>`. Mouse and pen drag
@@ -366,68 +366,4 @@ export function attachSelectionInput(
     svg.removeEventListener("contextmenu", onContextMenu);
     svg.removeEventListener("dblclick", onDoubleClick);
   };
-}
-
-function applyInteractionStyles(
-  svg: SVGSVGElement,
-  blockTouchScroll: boolean,
-): () => void {
-  const style = svg.style as MutableStyle;
-  const previous = {
-    userSelect: style.userSelect,
-    webkitUserSelect: style.webkitUserSelect,
-    webkitTouchCallout: style.webkitTouchCallout,
-    touchAction: style.touchAction,
-  };
-  style.userSelect = "none";
-  style.webkitUserSelect = "none";
-  style.webkitTouchCallout = "none";
-  if (blockTouchScroll) {
-    style.touchAction = "none";
-  }
-  return () => {
-    style.userSelect = previous.userSelect;
-    style.webkitUserSelect = previous.webkitUserSelect ?? "";
-    style.webkitTouchCallout = previous.webkitTouchCallout ?? "";
-    style.touchAction = previous.touchAction;
-  };
-}
-
-function labelSelectionId(target: EventTarget | null): string | undefined {
-  if (!(target instanceof Element)) {
-    return undefined;
-  }
-  const label = target.closest(".selection-label");
-  if (!label) {
-    return undefined;
-  }
-  return (
-    label.closest("[selection-id]")?.getAttribute("selection-id") ?? undefined
-  );
-}
-
-function movedBeyondTolerance(origin: Point, event: PointerEvent): boolean {
-  const distance = Math.hypot(
-    event.clientX - origin.x,
-    event.clientY - origin.y,
-  );
-  return distance > HOLD_MOVE_TOLERANCE_PX;
-}
-
-function vibrate(): void {
-  if (
-    typeof navigator !== "undefined" &&
-    typeof navigator.vibrate === "function"
-  ) {
-    navigator.vibrate(10);
-  }
-}
-
-function capturePointer(svg: SVGSVGElement, event: PointerEvent): void {
-  if (
-    typeof svg.setPointerCapture === "function" &&
-    event.pointerId !== undefined
-  ) {
-    svg.setPointerCapture(event.pointerId);
-  }
 }

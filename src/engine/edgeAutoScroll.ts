@@ -4,30 +4,14 @@ type Scrollable = {
   scrollBy(delta: number): void;
 };
 
-/** Drives the viewport while a selection drag rests against a screen edge. */
 export type EdgeAutoScroll = {
-  /**
-   * Reports the pointer's viewport y. Starts scrolling while it sits within the
-   * edge zone and stops once it moves back inside.
-   */
   track(clientY: number): void;
-  /** Stops any in-progress scrolling. */
   stop(): void;
 };
 
 const DEFAULT_ZONE_PX = 56;
 const DEFAULT_MAX_STEP_PX = 14;
 
-/**
- * Auto-scrolls the tab's scroll container when a selection drag reaches the top
- * or bottom of the screen, so a drag can extend onto measures that wrapped off
- * screen without the page scrolling on its own.
- * @param element The rendered tab element, used to find its scroll container.
- * @param onScroll Called after each scroll step, to re-extend the draft.
- * @param zonePx Distance from an edge, in px, that arms scrolling. Default `56`.
- * @param maxStepPx Fastest scroll step per frame, in px. Default `14`.
- * @returns A controller to feed pointer positions and to stop scrolling.
- */
 export function createEdgeAutoScroll(
   element: Element,
   onScroll: () => void,

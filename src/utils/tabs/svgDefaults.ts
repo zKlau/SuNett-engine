@@ -19,3 +19,8 @@ export function applyLabelDefaults(text: SVGTextElement): void {
   text.setAttribute("font-family", themeVar(ThemeVariables.FONT_LABEL));
   text.setAttribute("font-size", themeVar(ThemeVariables.FONT_LABEL_SIZE));
 }
+
+export function applyMutedText(text: SVGTextElement): void {
+  applyLabelDefaults(text);
+  text.setAttribute("dominant-baseline", "central");
+}

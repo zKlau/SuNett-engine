@@ -19,13 +19,7 @@ import { visibleSelections } from "../../selection/selectionVisibility";
 import { renderSelections } from "./selectionRenderer";
 import type { CursorGeometry } from "../../playback/cursorGeometry";
 import { cursorGeometryAt } from "../../playback/cursorGeometry";
-import {
-  createCursorLine,
-  createCursorOverlay,
-  positionCursorLine,
-  unwrapCursor,
-  wrapForCursor,
-} from "./cursorRenderer";
+import { CursorLayer } from "./cursorLayer";
 
 export type InteractionUpdate = {
   svg: SVGSVGElement;
@@ -35,37 +29,28 @@ export type InteractionUpdate = {
   trackIndex: number;
 };
 
-/**
- * Owns the spatial/temporal index of the last render and the selection overlay
- * drawn on top of it. Keeps the interaction concerns (hit-testing, time mapping,
- * snapping, overlay drawing) out of the renderer itself.
- */
 export class TabInteraction {
   private readonly selectionSource?: SelectionSource;
-  private readonly cursorOptions?: CursorOptions;
+  private readonly cursorLayer: CursorLayer;
   private svg?: SVGSVGElement;
   private timeline?: SongTimeline;
   private trackIndex = 0;
   private context?: SelectionLayoutContext;
-  private cursorMs?: number;
-  private cursorWrapper?: HTMLElement;
-  private cursorOverlay?: SVGSVGElement;
-  private cursorLine?: SVGGElement;
-  private cursorGeometry?: CursorGeometry;
 
   constructor(
     selectionSource?: SelectionSource,
     cursorOptions?: CursorOptions,
   ) {
     this.selectionSource = selectionSource;
-    this.cursorOptions = cursorOptions;
+    this.cursorLayer = new CursorLayer(cursorOptions);
   }
 
   update(input: InteractionUpdate): void {
+    const context = buildContext(input);
     this.svg = input.svg;
     this.timeline = input.timeline;
     this.trackIndex = input.trackIndex;
-    this.context = buildContext(input);
+    this.context = context;
 
     if (this.selectionSource) {
       const regions = computeSelectionRegions(
@@ -73,11 +58,11 @@ export class TabInteraction {
           this.selectionSource.getSelections(),
           this.trackIndex,
         ),
-        this.context,
+        context,
       );
       const draft = this.selectionSource.getDraftSelection?.();
       const draftRegions = draft
-        ? computeSelectionRegions([draft], this.context).map((region) => ({
+        ? computeSelectionRegions([draft], context).map((region) => ({
             ...region,
             draft: true,
           }))
@@ -86,32 +71,15 @@ export class TabInteraction {
       renderSelections(input.svg, [...regions, ...draftRegions]);
     }
 
-    this.refreshCursorLayer();
+    this.cursorLayer.sync(input.svg, context);
   }
 
   setCursor(ms: number | undefined): void {
-    this.cursorMs = ms;
-
-    if (ms === undefined) {
-      this.teardownCursor();
-      return;
-    }
-
-    if (!this.cursorOverlay) {
-      this.mountCursorLayer();
-    }
-    this.moveCursor();
+    this.cursorLayer.setCursor(ms);
   }
 
-  /** Removes the cursor overlay and unwraps the tab. */
   teardownCursor(): void {
-    this.clearCursorLine();
-    this.cursorOverlay?.remove();
-    this.cursorOverlay = undefined;
-    if (this.cursorWrapper && this.svg) {
-      unwrapCursor(this.cursorWrapper, this.svg);
-    }
-    this.cursorWrapper = undefined;
+    this.cursorLayer.teardown();
   }
 
   getActiveTrackIndex(): number {
@@ -145,23 +113,14 @@ export class TabInteraction {
     );
   }
 
-  /** The cursor's geometry in tab coordinates at its current position. */
   getCursorGeometry(): CursorGeometry | undefined {
-    return this.cursorGeometry;
+    return this.cursorLayer.getGeometry();
   }
 
-  /** The cursor's bounding rect in client space, or `undefined` if not drawn. */
   getCursorRect(): DOMRect | undefined {
-    if (
-      !this.cursorLine ||
-      typeof this.cursorLine.getBoundingClientRect !== "function"
-    ) {
-      return undefined;
-    }
-    return this.cursorLine.getBoundingClientRect();
+    return this.cursorLayer.getRect();
   }
 
-  /** The cursor's client-space position for a song time, mapped through the CTM. */
   pointAtTime(
     ms: number,
   ): { x: number; y: number; height: number } | undefined {
@@ -188,80 +147,6 @@ export class TabInteraction {
       y: topScreen.y,
       height: bottomScreen.y - topScreen.y,
     };
-  }
-
-  private refreshCursorLayer(): void {
-    if (!this.cursorOverlay) {
-      return;
-    }
-    if (!this.mountCursorLayer()) {
-      return;
-    }
-    this.cursorLine?.remove();
-    this.cursorLine = undefined;
-    this.moveCursor();
-  }
-
-  private mountCursorLayer(): boolean {
-    const svg = this.svg;
-    if (!svg) {
-      this.teardownCursor();
-      return false;
-    }
-
-    const wrapper = wrapForCursor(svg);
-    if (!wrapper) {
-      this.teardownCursor();
-      return false;
-    }
-    this.cursorWrapper = wrapper;
-
-    if (!this.cursorOverlay || this.cursorOverlay.parentNode !== wrapper) {
-      this.cursorLine?.remove();
-      this.cursorLine = undefined;
-      this.cursorOverlay?.remove();
-      this.cursorOverlay = createCursorOverlay(wrapper);
-    }
-
-    const viewBox = svg.getAttribute("viewBox");
-    if (viewBox) {
-      this.cursorOverlay.setAttribute("viewBox", viewBox);
-    }
-    this.cursorOverlay.setAttribute(
-      "preserveAspectRatio",
-      svg.getAttribute("preserveAspectRatio") ?? "xMidYMid meet",
-    );
-    return true;
-  }
-
-  private moveCursor(): void {
-    const overlay = this.cursorOverlay;
-    if (!overlay || !this.context || this.cursorMs === undefined) {
-      this.clearCursorLine();
-      return;
-    }
-
-    const geometry = cursorGeometryAt(this.cursorMs, this.context);
-    if (!geometry) {
-      this.clearCursorLine();
-      return;
-    }
-
-    if (!this.cursorLine) {
-      this.cursorLine = createCursorLine(
-        overlay,
-        geometry.height,
-        this.cursorOptions,
-      );
-    }
-    positionCursorLine(this.cursorLine, geometry);
-    this.cursorGeometry = geometry;
-  }
-
-  private clearCursorLine(): void {
-    this.cursorLine?.remove();
-    this.cursorLine = undefined;
-    this.cursorGeometry = undefined;
   }
 
   private toUserSpace(

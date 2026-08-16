@@ -219,18 +219,6 @@ export function resolveLabelFontSize(theme: Theme): number | undefined {
   return match ? Number(match[1]) : undefined;
 }
 
-export function applyTheme(theme: Theme, element: SVGElement | HTMLElement) {
-  for (const [variable, value] of Object.entries(theme.variables)) {
-    element.style.setProperty(variable, value);
-  }
-}
-
-export function clearTheme(element: SVGElement | HTMLElement) {
-  for (const variable of Object.values(ThemeVariables)) {
-    element.style.removeProperty(variable);
-  }
-}
-
 function collectSection<TSection extends Record<string, unknown>>(
   variables: Partial<Record<ThemeVariable, string>>,
   mapping: Record<keyof TSection, ThemeVariable>,
