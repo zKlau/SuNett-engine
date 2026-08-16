@@ -46,6 +46,23 @@ engine.getTracks().forEach((track, i) => console.log(i, track.name));
 engine.render(2);
 ```
 
+## Virtualization
+
+By default only the measures near the viewport are drawn, added and removed as the tab scrolls, so long songs stay fast. Turn it off to draw every measure up front:
+
+```ts
+engine.render(0, { virtualize: false });
+```
+
+It follows the nearest scrollable ancestor of the `<svg>` (falling back to `window`). Point it at a specific container, and tune how many extra rows stay rendered past each edge, when a wrapper owns the scroll:
+
+```ts
+engine.render(0, {
+  scrollContainer: document.getElementById("tab-scroll")!,
+  overscanRows: 5,
+});
+```
+
 ## Playback
 
 ```ts
