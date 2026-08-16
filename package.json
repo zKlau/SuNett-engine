@@ -54,6 +54,9 @@
     "music-notation"
   ],
   "author": "Claudiu Padure",
+  "contributors": [
+    "Denis Feri Marian"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=20"
