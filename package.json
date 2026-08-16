@@ -24,9 +24,13 @@
     "type": "git",
     "url": "git+https://github.com/zKlau/SuNett-engine.git"
   },
+  "homepage": "https://github.com/zKlau/SuNett-engine#readme",
+  "bugs": {
+    "url": "https://github.com/zKlau/SuNett-engine/issues"
+  },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "scripts": {
     "build": "tsup",
@@ -41,9 +45,22 @@
     "lint-staged": "lint-staged",
     "test": "jest --passWithNoTests"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "guitar-tab",
+    "tablature",
+    "guitar-pro",
+    "svg",
+    "guitar",
+    "music-notation"
+  ],
+  "author": "Claudiu Padure",
+  "contributors": [
+    "Denis Feri Marian"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-env": "^7.29.2",
