@@ -1,0 +1,47 @@
+{
+  "name": "@zklau/sunett-react",
+  "version": "0.0.0",
+  "description": "React adapter for @zklau/sunett-engine - render guitar tablature as an SVG component.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "guitar-tab",
+    "tablature",
+    "guitar-pro",
+    "svg",
+    "react"
+  ],
+  "author": "Claudiu Padure",
+  "license": "MIT",
+  "peerDependencies": {
+    "@zklau/sunett-engine": "^1.0.0",
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "react": "^18.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  }
+}
