@@ -1,6 +1,6 @@
 {
   "name": "@zklau/sunett-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React adapter for @zklau/sunett-engine - render guitar tablature as an SVG component.",
   "type": "module",
   "sideEffects": false,
