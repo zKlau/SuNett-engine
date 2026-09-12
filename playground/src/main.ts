@@ -2,11 +2,11 @@
 import "./style.css";
 
 import { parse_guitar_pro } from "sunett-parser";
-import type { Song } from "../../src/types/song.ts";
-import { SunettEngine } from "../../src/engine/sunettEngine.ts";
-import { SnapMode } from "../../src/utils/timing/snapTime.ts";
-import { ThemePresets } from "../../src/theme/presets/index.ts";
-import type { PresetTheme } from "../../src/theme/presets/index.ts";
+import type { Song } from "../../packages/engine/src/types/song.ts";
+import { SunettEngine } from "../../packages/engine/src/engine/sunettEngine.ts";
+import { SnapMode } from "../../packages/engine/src/utils/timing/snapTime.ts";
+import { ThemePresets } from "../../packages/engine/src/theme/presets/index.ts";
+import type { PresetTheme } from "../../packages/engine/src/theme/presets/index.ts";
 
 const TRACK_INDEX = 5;
 

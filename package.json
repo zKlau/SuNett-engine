@@ -1,24 +1,26 @@
 {
-  "name": "@zklau/sunett-engine",
-  "version": "1.0.0",
-  "description": "Render guitar tablature as SVG in the browser from parsed Guitar Pro song data.",
+  "name": "sunett",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "THIRD_PARTY_LICENSES"
+  "workspaces": [
+    "packages/*"
   ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./styles.css": "./dist/base.css",
-    "./themes/dark.css": "./dist/themes/dark.css",
-    "./themes/high-contrast.css": "./dist/themes/high-contrast.css"
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspace @zklau/sunett-engine",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "knip": "npm run knip --workspace @zklau/sunett-engine",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "prettier:check": "prettier --check .",
+    "prettier:write": "prettier --write .",
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "repository": {
     "type": "git",
@@ -28,55 +30,16 @@
   "bugs": {
     "url": "https://github.com/zKlau/SuNett-engine/issues"
   },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org",
-    "access": "public"
-  },
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit",
-    "knip": "knip --production",
-    "prettier:check": "prettier --check .",
-    "prettier:write": "prettier --write .",
-    "lint": "oxlint",
-    "lint:fix": "oxlint --fix",
-    "prepare": "husky",
-    "lint-staged": "lint-staged",
-    "test": "jest --passWithNoTests"
-  },
-  "keywords": [
-    "guitar-tab",
-    "tablature",
-    "guitar-pro",
-    "svg",
-    "guitar",
-    "music-notation"
-  ],
   "author": "Claudiu Padure",
-  "contributors": [
-    "Denis Feri Marian"
-  ],
   "license": "MIT",
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@babel/preset-env": "^7.29.2",
-    "@babel/preset-typescript": "^7.28.5",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^25.6.0",
-    "babel-jest": "^30.3.0",
+    "@changesets/cli": "^3.0.2",
     "husky": "^9.1.7",
-    "jest": "^30.3.0",
-    "jest-environment-jsdom": "^30.4.1",
-    "knip": "^6.7.0",
     "lint-staged": "^16.4.0",
     "oxlint": "^1.62.0",
-    "prettier": "3.8.3",
-    "ts-jest": "^29.4.9",
-    "tsup": "^8.5.1",
-    "typescript": "^6.0.3"
+    "prettier": "3.8.3"
   }
 }
