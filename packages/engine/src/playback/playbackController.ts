@@ -30,6 +30,7 @@ export class PlaybackController {
   private state: PlaybackState = State.Stopped;
   private positionMs = 0;
   private durationMs = 0;
+  private rate = 1;
   private loop?: LoopRange;
   private frameHandle?: number;
   private lastFrameMs?: number;
@@ -62,6 +63,23 @@ export class PlaybackController {
 
   getLoop(): LoopRange | undefined {
     return this.loop;
+  }
+
+  /** The speed multiplier applied to elapsed time; `1` is real time. */
+  getRate(): number {
+    return this.rate;
+  }
+
+  /**
+   * Sets how fast song time advances relative to wall-clock time, e.g. `0.5`
+   * for half speed. Ignores values that are not finite and positive.
+   * @param rate The speed multiplier.
+   */
+  setRate(rate: number): void {
+    if (!Number.isFinite(rate) || rate <= 0) {
+      return;
+    }
+    this.rate = rate;
   }
 
   /** Sets the song length; the transport pauses on reaching it. */
@@ -148,7 +166,7 @@ export class PlaybackController {
   }
 
   private advance(deltaMs: number): void {
-    const next = this.positionMs + Math.max(0, deltaMs);
+    const next = this.positionMs + Math.max(0, deltaMs) * this.rate;
 
     if (this.loop && next >= this.loop.endMs) {
       this.positionMs = wrapIntoLoop(next, this.loop);

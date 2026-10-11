@@ -161,4 +161,26 @@ describe("PlaybackController", () => {
 
     expect(controller.getPosition()).toBe(4000);
   });
+
+  it("scales elapsed time by the playback rate", () => {
+    const { controller, flush } = makeController();
+    controller.setRate(0.5);
+
+    controller.play();
+    flush(0);
+    flush(1000);
+
+    expect(controller.getRate()).toBe(0.5);
+    expect(controller.getPosition()).toBe(500);
+  });
+
+  it("ignores rates that are not finite and positive", () => {
+    const { controller } = makeController();
+
+    controller.setRate(0);
+    controller.setRate(-1);
+    controller.setRate(Number.NaN);
+
+    expect(controller.getRate()).toBe(1);
+  });
 });

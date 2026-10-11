@@ -49,6 +49,16 @@ export function buildSongTimeline(song: Song, track: Track): SongTimeline {
   return { measures, durationMs: cursorMs };
 }
 
+/**
+ * The length of a measure's time signature as a fraction of a whole note, e.g.
+ * `0.75` for 3/4 and `1` for 4/4. Missing or invalid signatures count as 4/4.
+ * @param measure The measure to inspect.
+ * @returns The measure length in whole notes.
+ */
+export function measureLengthInWholeNotes(measure: Measure): number {
+  return numeratorOf(measure) / denominatorOf(measure);
+}
+
 function resolveTempo(
   headerTempo: number | undefined,
   songTempo: number,

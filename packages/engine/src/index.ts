@@ -10,8 +10,27 @@ export type {
 export type { PlaybackInputOptions } from "./engine/playbackInput";
 export { FollowAlign } from "./engine/playbackFollow";
 export type { AutoScrollOptions } from "./engine/playbackFollow";
+export type { NoteRef } from "./engine/noteClasses";
 export { SnapMode } from "./utils/timing/snapTime";
 export { computeSongHash } from "./utils/song/songHash";
+export { Emitter } from "./utils/events/emitter";
+export {
+  buildSongTimeline,
+  measureLengthInWholeNotes,
+} from "./utils/timing/measureTimeline";
+export type {
+  MeasureTiming,
+  SongTimeline,
+} from "./utils/timing/measureTimeline";
+export {
+  beatsAt,
+  buildBeatTimeline,
+  nextBeatStart,
+  previousBeatStart,
+} from "./utils/timing/beatTimeline";
+export type { BeatTiming, BeatTimeline } from "./utils/timing/beatTimeline";
+export { durationInWholeNotes } from "./utils/timing/durationLength";
+export { BeatTracker } from "./playback/beatTracker";
 
 export { PlaybackController } from "./playback/playbackController";
 export type {
@@ -23,6 +42,8 @@ export type {
   LoopRange,
   PlaybackPositionEvent,
   PlaybackEventMap,
+  BeatChangedEvent,
+  BeatEventMap,
   EngineEventMap,
 } from "./types/playback";
 export type {
@@ -66,3 +87,5 @@ export type { Measure, MeasureHeader } from "./types/measure";
 export type { Voice } from "./types/voice";
 export type { Beat } from "./types/beats/beat";
 export type { Note } from "./types/note";
+export type { Duration, TimeSignature } from "./types/duration";
+export type { Chord } from "./types/chords/chord";
