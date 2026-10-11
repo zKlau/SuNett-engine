@@ -25,6 +25,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     stringCount,
     invertStrings = false,
     reverseStrings = false,
+    stringOffset = 0,
     config,
     metrics,
     previousNotes = [],
@@ -50,6 +51,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
         stringCount,
         invertStrings,
         reverseStrings,
+        stringOffset,
         config,
         metrics,
       };
@@ -126,7 +128,7 @@ function positionNote(request: NoteRenderRequest): PositionedNoteRender {
     metrics,
   } = request;
   const stringRow = stringDisplayRow(
-    note.string,
+    note.string - request.stringOffset,
     stringCount,
     reverseStrings,
     invertStrings,
@@ -182,6 +184,7 @@ function isInternalTie(
 }
 
 function isRenderableNote(request: NoteRenderRequest): boolean {
-  const { note, stringCount } = request;
-  return note.kind !== "Rest" && note.string >= 0 && note.string < stringCount;
+  const { note, stringCount, stringOffset } = request;
+  const index = note.string - stringOffset;
+  return note.kind !== "Rest" && index >= 0 && index < stringCount;
 }

@@ -122,6 +122,7 @@ export function renderMeasure(
     stringCount: layout.stringCount,
     invertStrings: pass.config.invertStrings,
     reverseStrings: pass.reverseStrings,
+    stringOffset: pass.stringOffset,
     noteConfig: pass.config.notes,
     noteMetrics: pass.metrics,
     previousNotes,

@@ -19,6 +19,7 @@ import { TabRenderSession } from "./tabRenderSession";
 import { visibleMeasureRange } from "./measureVisibility";
 import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
+import { noteStringOffset } from "../song/stringIndex";
 import type { Theme } from "../../theme/theme";
 import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
@@ -119,6 +120,7 @@ export class TabsRenderer {
       timeline,
       interaction: this.interaction,
       reverseStrings,
+      stringOffset: noteStringOffset(this.song, track),
       tuningLabels,
       resolvedTrackIndex,
       activeTrackIndex,

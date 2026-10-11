@@ -13,6 +13,11 @@ export type { AutoScrollOptions } from "./engine/playbackFollow";
 export type { NoteRef } from "./engine/noteClasses";
 export { SnapMode } from "./utils/timing/snapTime";
 export { computeSongHash } from "./utils/song/songHash";
+export {
+  noteStringIndex,
+  noteStringOffset,
+  openStringPitch,
+} from "./utils/song/stringIndex";
 export { Emitter } from "./utils/events/emitter";
 export {
   buildSongTimeline,

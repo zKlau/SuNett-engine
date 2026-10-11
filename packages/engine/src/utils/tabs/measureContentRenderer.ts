@@ -47,6 +47,7 @@ export function renderMeasureContent(request: MeasureContentRenderRequest) {
     stringCount: request.stringCount,
     invertStrings: request.invertStrings,
     reverseStrings: request.reverseStrings,
+    stringOffset: request.stringOffset,
     config: request.noteConfig,
     metrics: request.noteMetrics,
     previousNotes: request.previousNotes,
