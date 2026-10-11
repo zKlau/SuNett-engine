@@ -31,7 +31,6 @@ export type NotesRenderRequest = {
   stringCount: number;
   invertStrings?: boolean;
   reverseStrings?: boolean;
-  /** Subtracted from `note.string` to index `track.strings`. Default `0`. */
   stringOffset?: number;
   config: NoteRenderConfig;
   metrics: NoteMetrics;
