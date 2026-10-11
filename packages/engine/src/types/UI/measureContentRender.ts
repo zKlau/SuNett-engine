@@ -15,6 +15,7 @@ export type MeasureContentRenderRequest = {
   stringCount: number;
   invertStrings: boolean;
   reverseStrings: boolean;
+  stringOffset: number;
   noteConfig: NoteRenderConfig;
   noteMetrics: NoteMetrics;
   previousNotes: PositionedNote[];

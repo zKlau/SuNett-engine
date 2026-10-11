@@ -37,6 +37,7 @@ export type TabRenderSessionParams = {
   timeline: SongTimeline;
   interaction: TabInteraction;
   reverseStrings: boolean;
+  stringOffset: number;
   tuningLabels: string[];
   resolvedTrackIndex: number;
   activeTrackIndex: number;
@@ -224,6 +225,7 @@ export class TabRenderSession {
         resolveLabelFontSize(theme) ?? constants.BEAT_TEXT_FONT_SIZE,
       totalMeasures: measures.length,
       reverseStrings: this.params.reverseStrings,
+      stringOffset: this.params.stringOffset,
       tuningLabels: this.params.tuningLabels,
       lyricsByMeasure: buildLyricsByMeasure(song, track, resolvedTrackIndex),
       previousNotes: [],

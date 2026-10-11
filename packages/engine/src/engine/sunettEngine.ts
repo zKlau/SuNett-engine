@@ -11,6 +11,7 @@ import type {
 import type { TabRendererOptions } from "../types/UI/rendererOptions";
 import type { CursorOptions } from "../types/UI/cursorOptions";
 import type {
+  BeatEventMap,
   EngineEventMap,
   LoopRange,
   PlaybackEventMap,
@@ -27,6 +28,17 @@ import { attachPlaybackFollow } from "./playbackFollow";
 import type { SnapMode } from "../utils/timing/snapTime";
 import { SelectionManager } from "../selection/selectionManager";
 import { PlaybackController } from "../playback/playbackController";
+import { BeatTracker } from "../playback/beatTracker";
+import type { BeatTiming } from "../utils/timing/beatTimeline";
+import {
+  beatsAt,
+  buildBeatTimeline,
+  nextBeatStart,
+  previousBeatStart,
+} from "../utils/timing/beatTimeline";
+import { buildSongTimeline } from "../utils/timing/measureTimeline";
+import type { NoteRef } from "./noteClasses";
+import { NoteClassRegistry } from "./noteClasses";
 import { TabsRenderer } from "../utils/tabs/tabsRenderer";
 import { computeSongHash } from "../utils/song/songHash";
 
@@ -37,10 +49,16 @@ const PLAYBACK_EVENTS = new Set<keyof PlaybackEventMap>([
   "playbackPositionChanged",
 ]);
 
+const BEAT_EVENTS = new Set<keyof BeatEventMap>(["beatChanged"]);
+
 function isPlaybackEvent(
   event: keyof EngineEventMap,
 ): event is keyof PlaybackEventMap {
   return PLAYBACK_EVENTS.has(event as keyof PlaybackEventMap);
+}
+
+function isBeatEvent(event: keyof EngineEventMap): event is keyof BeatEventMap {
+  return BEAT_EVENTS.has(event as keyof BeatEventMap);
 }
 
 export type SunettEngineConfig = {
@@ -61,6 +79,8 @@ export type SunettEngineConfig = {
 export class SunettEngine {
   private readonly selections = new SelectionManager();
   private readonly playback = new PlaybackController();
+  private readonly beats = new BeatTracker();
+  private readonly noteClasses = new NoteClassRegistry();
   private readonly store?: SelectionStore;
   private readonly theme?: ThemeLike;
   private readonly cursorOptions?: CursorOptions;
@@ -83,7 +103,10 @@ export class SunettEngine {
     );
     this.unsubscribePlayback = this.playback.on(
       "playbackPositionChanged",
-      ({ positionMs }) => this.renderer?.setCursor(positionMs),
+      ({ positionMs }) => {
+        this.renderer?.setCursor(positionMs);
+        this.beats.update(positionMs);
+      },
     );
   }
 
@@ -99,6 +122,7 @@ export class SunettEngine {
     this.playback.setLoop(undefined);
     this.playback.stop();
     this.renderer?.dispose();
+    this.noteClasses.clear();
     this.song = song;
     this.renderer = new TabsRenderer(song, {
       theme: this.theme,
@@ -134,9 +158,13 @@ export class SunettEngine {
    * @param options Renderer options forwarded to `TabsRenderer`.
    */
   render(trackIndex = 0, options: TabRendererOptions = {}): void {
-    this.renderer?.generateMeasures(trackIndex, options);
+    this.renderer?.generateMeasures(trackIndex, {
+      ...options,
+      notes: this.noteClasses.wrap(options.notes),
+    });
     this.playback.setDuration(this.renderer?.getSongDurationMs() ?? 0);
     this.renderer?.setCursor(this.playback.getPosition());
+    this.refreshBeatTimeline();
   }
 
   /** Redraws the current tab without recomputing the song setup. */
@@ -195,6 +223,84 @@ export class SunettEngine {
   /** The current playback position in milliseconds. */
   getCurrentPosition(): number {
     return this.playback.getPosition();
+  }
+
+  /** The speed multiplier playback advances at; `1` is real time. */
+  getPlaybackRate(): number {
+    return this.playback.getRate();
+  }
+
+  /**
+   * Sets how fast playback advances, e.g. `0.5` for half speed. Song times
+   * and positions stay in song milliseconds. Non-positive values are ignored.
+   * @param rate The speed multiplier.
+   */
+  setPlaybackRate(rate: number): void {
+    this.playback.setRate(rate);
+  }
+
+  /**
+   * Every beat of the rendered track in song time, ordered by start time.
+   * Empty before the first `render`.
+   */
+  getBeatTimeline(): BeatTiming[] {
+    return this.beats.getTimeline().beats;
+  }
+
+  /**
+   * The beats sounding at a song time, at most one per voice.
+   * @param ms The song time in milliseconds.
+   * @returns The beats whose span contains `ms`.
+   */
+  getBeatsAt(ms: number): BeatTiming[] {
+    return beatsAt(this.beats.getTimeline(), ms);
+  }
+
+  /** The beats under the current playback position. */
+  getCurrentBeats(): BeatTiming[] {
+    return this.beats.getCurrentBeats();
+  }
+
+  /**
+   * The start of the first beat after a song time, in any voice.
+   * @param ms The song time in milliseconds.
+   * @returns The next beat start, or `undefined` past the last beat.
+   */
+  getNextBeatTime(ms: number): number | undefined {
+    return nextBeatStart(this.beats.getTimeline(), ms);
+  }
+
+  /**
+   * The start of the last beat before a song time, in any voice.
+   * @param ms The song time in milliseconds.
+   * @returns The previous beat start, or `undefined` before the first beat.
+   */
+  getPreviousBeatTime(ms: number): number | undefined {
+    return previousBeatStart(this.beats.getTimeline(), ms);
+  }
+
+  /**
+   * Applies caller-defined CSS classes to one note, replacing any it had. The
+   * classes survive re-renders and virtualization; the engine attaches no
+   * meaning to them.
+   * @param ref The note's measure, voice and beat index and string number.
+   * @param classNames The classes to apply; an empty array removes them.
+   */
+  setNoteClasses(ref: NoteRef, classNames: string[]): void {
+    this.noteClasses.set(ref, classNames, this.renderer?.getElement());
+  }
+
+  /**
+   * The classes applied to a note through {@link setNoteClasses}.
+   * @param ref The note to look up.
+   */
+  getNoteClasses(ref: NoteRef): string[] {
+    return this.noteClasses.get(ref);
+  }
+
+  /** Removes every class applied through {@link setNoteClasses}. */
+  clearNoteClasses(): void {
+    this.noteClasses.clear(this.renderer?.getElement());
   }
 
   /**
@@ -409,6 +515,12 @@ export class SunettEngine {
     event: Key,
     listener: (payload: EngineEventMap[Key]) => void,
   ): () => void {
+    if (isBeatEvent(event)) {
+      return this.beats.on(
+        event,
+        listener as (payload: BeatEventMap[keyof BeatEventMap]) => void,
+      );
+    }
     if (isPlaybackEvent(event)) {
       return this.playback.on(
         event,
@@ -430,6 +542,13 @@ export class SunettEngine {
     event: Key,
     listener: (payload: EngineEventMap[Key]) => void,
   ): void {
+    if (isBeatEvent(event)) {
+      this.beats.off(
+        event,
+        listener as (payload: BeatEventMap[keyof BeatEventMap]) => void,
+      );
+      return;
+    }
     if (isPlaybackEvent(event)) {
       this.playback.off(
         event,
@@ -505,6 +624,17 @@ export class SunettEngine {
     this.renderer = undefined;
     this.unsubscribe();
     this.unsubscribePlayback();
+  }
+
+  private refreshBeatTimeline(): void {
+    const track = this.song?.tracks[this.getActiveTrackIndex()];
+    if (!this.song || !track) {
+      return;
+    }
+    this.beats.setTimeline(
+      buildBeatTimeline(track, buildSongTimeline(this.song, track)),
+    );
+    this.beats.update(this.playback.getPosition());
   }
 
   private onSelectionsChanged(selections: Selection[]): void {

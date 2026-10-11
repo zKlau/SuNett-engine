@@ -14,6 +14,7 @@ export type RenderPass = {
   labelFontSize: number;
   totalMeasures: number;
   reverseStrings: boolean;
+  stringOffset: number;
   tuningLabels: string[];
   lyricsByMeasure: LyricsByMeasure;
   previousMeasureIndex?: number;

@@ -1,4 +1,5 @@
 import type { SelectionEventMap } from "./selection";
+import type { BeatTiming } from "../utils/timing/beatTimeline";
 
 /** Whether the transport is advancing, held, or reset to the start. */
 export const PlaybackState = {
@@ -30,5 +31,20 @@ export type PlaybackEventMap = {
   playbackPositionChanged: PlaybackPositionEvent;
 };
 
-/** Every event the engine surfaces: selection and playback lifecycles. */
-export type EngineEventMap = SelectionEventMap & PlaybackEventMap;
+/** Payload emitted when the set of beats under the playback position changes. */
+export type BeatChangedEvent = {
+  /** Current position in milliseconds from the song's beginning. */
+  positionMs: number;
+  /** The beats sounding at `positionMs`, at most one per voice. */
+  beats: BeatTiming[];
+};
+
+/** Payloads emitted as playback crosses beat boundaries. */
+export type BeatEventMap = {
+  beatChanged: BeatChangedEvent;
+};
+
+/** Every event the engine surfaces: selection, playback and beat lifecycles. */
+export type EngineEventMap = SelectionEventMap &
+  PlaybackEventMap &
+  BeatEventMap;

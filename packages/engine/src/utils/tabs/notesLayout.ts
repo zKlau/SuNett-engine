@@ -1,7 +1,7 @@
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
-import type { Duration } from "../../types/duration";
 import type { Measure } from "../../types/measure";
 import type { BeatLayout } from "../../types/UI/noteLayout";
+import { durationInWholeNotes } from "../timing/durationLength";
 
 export function calculateBeatLayouts(
   measure: Measure,
@@ -17,7 +17,9 @@ export function calculateBeatLayouts(
       return [];
     }
 
-    const lengths = voice.beats.map((beat) => beatLength(beat.duration));
+    const lengths = voice.beats.map((beat) =>
+      durationInWholeNotes(beat.duration),
+    );
     const totalLength = lengths.reduce((sum, length) => sum + length, 0) || 1;
 
     const layouts: BeatLayout[] = [];
@@ -40,20 +42,4 @@ export function calculateBeatLayouts(
     });
     return layouts;
   });
-}
-
-function beatLength(duration: Duration): number {
-  const base = 1 / Math.max(1, duration.value);
-
-  let multiplier = 1;
-  if (duration.dotted) {
-    multiplier *= 1.5;
-  }
-  if (duration.double_dotted) {
-    multiplier *= 1.75;
-  }
-
-  const tupletEnters = Math.max(1, duration.tuplet_enters);
-  const tupletTimes = Math.max(1, duration.tuplet_times);
-  return base * multiplier * (tupletTimes / tupletEnters);
 }
