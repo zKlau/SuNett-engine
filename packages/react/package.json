@@ -1,6 +1,6 @@
 {
   "name": "@zklau/sunett-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React adapter for @zklau/sunett-engine - render guitar tablature as an SVG component.",
   "type": "module",
   "sideEffects": false,
@@ -46,7 +46,7 @@
   "author": "Claudiu Padure",
   "license": "MIT",
   "peerDependencies": {
-    "@zklau/sunett-engine": "^1.0.0",
+    "@zklau/sunett-engine": "^1.1.0",
     "react": ">=18.0.0"
   },
   "devDependencies": {
