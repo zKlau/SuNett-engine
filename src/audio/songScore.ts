@@ -221,12 +221,18 @@ export function compileSynthScore(song: Song): SynthScore {
             if (strokeIndex >= 0 && strokeOrder.length > 1) {
               const spread = Math.min(
                 length * 0.5,
+                (event.endMs - event.startMs) * 0.5,
                 (quarterMs * 4) / positive(beat.effect.stroke.value, 64),
               );
               event.startMs +=
                 (spread * strokeIndex) / (strokeOrder.length - 1);
             }
-            const performance = realizeTechniques(event, note, quarterMs);
+            const performance = realizeTechniques(
+              event,
+              note,
+              quarterMs,
+              endMs,
+            );
             notes.push(...performance);
             previous.set(key, performance[performance.length - 1]);
           });
@@ -259,6 +265,7 @@ function realizeTechniques(
   event: SynthNote,
   note: Note,
   quarterMs: number,
+  writtenEndMs: number,
 ): SynthNote[] {
   const result: SynthNote[] = [];
   const effect = note.effect;
@@ -266,7 +273,7 @@ function realizeTechniques(
   if (grace && !event.percussion && Number.isFinite(grace.fret)) {
     const duration = Math.min(
       (quarterMs * 4) / positive(grace.duration, 32),
-      (event.endMs - event.startMs) * 0.5,
+      (Math.min(event.endMs, writtenEndMs) - event.startMs) * 0.5,
     );
     const onBeat = grace.is_on_beat || event.startMs < duration;
     const start = onBeat ? event.startMs : event.startMs - duration;
@@ -301,7 +308,8 @@ function realizeTechniques(
     return result;
   }
   const step = Math.max(1, durationInQuarters(repetition) * quarterMs);
-  const count = Math.min(1024, Math.ceil((event.endMs - event.startMs) / step));
+  const repeatEndMs = Math.min(event.endMs, writtenEndMs);
+  const count = Math.min(1024, Math.ceil((repeatEndMs - event.startMs) / step));
   for (let index = 0; index < count; index++) {
     const midi =
       effect?.trill && index % 2
@@ -314,7 +322,7 @@ function realizeTechniques(
       ...event,
       midi,
       startMs: event.startMs + index * step,
-      endMs: Math.min(event.endMs, event.startMs + (index + 1) * step),
+      endMs: Math.min(repeatEndMs, event.startMs + (index + 1) * step),
       articulation: effect?.trill && index > 0 ? "hammer" : event.articulation,
       letRing: false,
     });

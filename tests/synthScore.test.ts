@@ -258,3 +258,41 @@ it("keeps explicit GPIF and channel program zero instead of guessing from the na
   track.midi_program_gpif = 33;
   expect(compileSynthScore(song).notes[0].instrument).toBe(33);
 });
+
+it("never moves a short strummed note after its note-off", () => {
+  const { song, measure, note } = fixture();
+  note.duration_percent = 0.05;
+  const beat = measure.voices[0].beats[0];
+  beat.notes = [note, makeNote({ string: 1, value: 5 })];
+  beat.effect = {
+    ...beat.effect,
+    stroke: { direction: "Down", value: 4, swap: false },
+  };
+  expect(compileSynthScore(song).notes.every((n) => n.endMs > n.startMs)).toBe(
+    true,
+  );
+});
+
+it("does not repeat a let-ring trill beyond its written duration", () => {
+  const { song, note } = fixture();
+  note.effect.let_ring = true;
+  note.effect.trill = { fret: 7, duration: makeDuration({ value: 16 }) };
+  const notes = compileSynthScore(song).notes;
+  expect(notes).toHaveLength(4);
+  expect(notes[3].endMs).toBe(500);
+});
+
+it("is deterministic and does not mutate the source score", () => {
+  const { song, note } = fixture();
+  note.effect.grace = {
+    fret: 3,
+    duration: 32,
+    velocity: 80,
+    is_dead: false,
+    is_on_beat: true,
+    transition: "Hammer",
+  };
+  const original = JSON.stringify(song);
+  expect(compileSynthScore(song)).toEqual(compileSynthScore(song));
+  expect(JSON.stringify(song)).toBe(original);
+});
