@@ -49,3 +49,7 @@ export type { Measure, MeasureHeader } from "./types/measure";
 export type { Voice } from "./types/voice";
 export type { Beat } from "./types/beats/beat";
 export type { Note } from "./types/note";
+
+export { compileSynthScore, durationInQuarters } from "./audio/songScore";
+export type { SynthScore, SynthNote } from "./audio/songScore";
+export { resolveTrackProgram } from "./audio/trackInstrument";

@@ -18,6 +18,7 @@ export type Track = {
   number: number;
   offset: number;
   channel_index: number;
+  midi_program_gpif?: number | null;
   solo: boolean;
   mute: boolean;
   visible: boolean;

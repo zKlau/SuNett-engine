@@ -27,11 +27,12 @@ export type SongTimeline = {
 export function buildSongTimeline(song: Song, track: Track): SongTimeline {
   const measures: MeasureTiming[] = [];
   let cursorMs = 0;
+  let tempo = resolveTempo(undefined, song.tempo);
 
   track.measures.forEach((measure, index) => {
     const header =
       song.measure_headers[index] ?? song.measure_headers[measure.header_index];
-    const tempo = resolveTempo(header?.tempo, song.tempo);
+    tempo = resolveTempo(header?.tempo, tempo);
     const beatCount = numeratorOf(measure);
     const durationMs = measureDurationMs(measure, tempo);
     const startMs = cursorMs;

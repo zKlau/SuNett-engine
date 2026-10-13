@@ -90,3 +90,18 @@ describe("buildSongTimeline", () => {
     expect(timeline.measures[1].durationMs).toBe(4000);
   });
 });
+
+it("retains the last valid tempo through missing or invalid headers", () => {
+  const track = makeTrack([
+    makeMeasure(),
+    makeMeasure(),
+    makeMeasure(),
+    makeMeasure(),
+  ]);
+  const song = makeSong({
+    measure_headers: [{ tempo: 60 }, {}, { tempo: 0 }, { tempo: 120 }],
+  } as unknown as Partial<Song>);
+  expect(
+    buildSongTimeline(song, track).measures.map((m) => m.durationMs),
+  ).toEqual([4000, 4000, 4000, 2000]);
+});
