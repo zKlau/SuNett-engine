@@ -103,7 +103,7 @@ function slidePath(
   notes: PositionedNote[],
 ): string | undefined {
   const { context, width } = state.entry;
-  const height =
+  const nominalHeight =
     constants.NOTE_EFFECT_SLIDE_HEIGHT +
     index * constants.NOTE_EFFECT_STROKE_WIDTH;
   const entering = slide === "IntoFromAbove" || slide === "IntoFromBelow";
@@ -124,6 +124,8 @@ function slidePath(
     0,
     Math.min(constants.NOTE_EFFECT_LINE_LENGTH, width / 2, gap / 2),
   );
+  const height =
+    nominalHeight * Math.min(1, length / constants.NOTE_EFFECT_LINE_LENGTH);
   const leftEdge = noteEdgeX(state.entry, -1);
   const rightEdge = noteEdgeX(state.entry, 1);
 
