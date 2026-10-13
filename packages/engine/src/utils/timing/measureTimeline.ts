@@ -67,7 +67,10 @@ function resolveTempo(
   if (isPositive(headerTempo)) {
     return headerTempo;
   }
-  return isPositive(songTempo) ? songTempo : DEFAULT_TEMPO;
+  if (isPositive(songTempo)) {
+    return songTempo;
+  }
+  return DEFAULT_TEMPO;
 }
 
 function measureDurationMs(measure: Measure, tempo: number): number {
@@ -79,12 +82,18 @@ function measureDurationMs(measure: Measure, tempo: number): number {
 
 function numeratorOf(measure: Measure): number {
   const numerator = measure.time_signature?.numerator;
-  return isPositive(numerator) ? numerator : DEFAULT_NUMERATOR;
+  if (isPositive(numerator)) {
+    return numerator;
+  }
+  return DEFAULT_NUMERATOR;
 }
 
 function denominatorOf(measure: Measure): number {
   const denominator = measure.time_signature?.denominator?.value;
-  return isPositive(denominator) ? denominator : DEFAULT_DENOMINATOR;
+  if (isPositive(denominator)) {
+    return denominator;
+  }
+  return DEFAULT_DENOMINATOR;
 }
 
 function isPositive(value: number | undefined): value is number {

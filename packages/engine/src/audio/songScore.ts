@@ -1,9 +1,51 @@
-import { resolveTrackProgram } from "./trackInstrument";
-import type { Song } from "../types/song";
-import type { Note } from "../types/note";
 import type { Beat } from "../types/beats/beat";
 import type { Duration } from "../types/duration";
+import type { Note } from "../types/note";
+import type { Song } from "../types/song";
+import type { Track } from "../types/track";
+import type { Voice } from "../types/voice";
+import type {
+  MeasureTiming,
+  SongTimeline,
+} from "../utils/timing/measureTimeline";
 import { buildSongTimeline } from "../utils/timing/measureTimeline";
+import { resolveTrackProgram } from "./trackInstrument";
+
+const TICKS_PER_QUARTER = 960;
+const DEFAULT_MIDI_VELOCITY = 95;
+const MAX_MIDI_VELOCITY = 127;
+const MIN_MIDI_NOTE = 0;
+const MAX_MIDI_NOTE = 127;
+const MAX_REPETITION_COUNT = 1024;
+const DEFAULT_BEND_MAX_POSITION = 12;
+const DEFAULT_BEND_SEMITONE_LENGTH = 1;
+const MAX_BEND_CENTS = 2400;
+const MIN_BEND_CENTS = -2400;
+const SLIDE_INTO_CENTS = 300;
+const SLIDE_OUT_CENTS = 500;
+const DEFAULT_STRUM_VALUE = 64;
+const DEFAULT_GRACE_VALUE = 32;
+
+const NATURAL_HARMONIC_INTERVALS: Record<number, number> = {
+  12: 12,
+  7: 19,
+  5: 24,
+  4: 28,
+  9: 28,
+  3: 31,
+};
+
+export type SynthArticulation =
+  | "sustain"
+  | "palm-mute"
+  | "dead"
+  | "staccato"
+  | "hammer";
+
+export type SynthPitchPoint = {
+  offsetMs: number;
+  cents: number;
+};
 
 export type SynthNote = {
   trackIndex: number;
@@ -14,253 +56,427 @@ export type SynthNote = {
   instrument: number;
   percussion: boolean;
   muted: boolean;
-  articulation?: "sustain" | "palm-mute" | "dead" | "staccato" | "hammer";
+  articulation?: SynthArticulation;
   vibrato?: boolean;
-  pitch?: { offsetMs: number; cents: number }[];
+  pitch?: SynthPitchPoint[];
   slideTo?: boolean;
   hammerTo?: boolean;
   letRing?: boolean;
   stringIndex?: number;
 };
 
-export type SynthScore = { notes: SynthNote[]; durationMs: number };
+export type SynthScore = {
+  notes: SynthNote[];
+  durationMs: number;
+};
+
+type VoiceCompilationContext = {
+  song: Song;
+  track: Track;
+  trackIndex: number;
+  timeline: SongTimeline;
+  timing: MeasureTiming;
+  quarterMs: number;
+  measureStart?: number;
+  voice: Voice;
+  voiceIndex: number;
+  previousNotes: Map<string, SynthNote>;
+  outNotes: SynthNote[];
+};
+
+type NoteCompilationContext = {
+  context: VoiceCompilationContext;
+  beat: Beat;
+  note: Note;
+  startMs: number;
+  endMs: number;
+  length: number;
+  strokeOrder: number[];
+};
 
 /** Musical length in quarter notes. Double dots supersede a single dot. */
 export function durationInQuarters(duration: Duration): number {
   const value = positive(duration?.value, 4);
-  const dots = duration?.double_dotted ? 1.75 : duration?.dotted ? 1.5 : 1;
-  return (
-    (4 / value) *
-    dots *
-    (positive(duration?.tuplet_times, 1) / positive(duration?.tuplet_enters, 1))
-  );
+  let dots = 1;
+  if (duration?.double_dotted) {
+    dots = 1.75;
+  } else if (duration?.dotted) {
+    dots = 1.5;
+  }
+  const times = positive(duration?.tuplet_times, 1);
+  const enters = positive(duration?.tuplet_enters, 1);
+  return (4 / value) * dots * (times / enters);
 }
 
 /** Compiles the written score in the same linear measure order as the renderer. */
 export function compileSynthScore(song: Song): SynthScore {
   const notes: SynthNote[] = [];
   let durationMs = 0;
-  song.tracks.forEach((track, trackIndex) => {
+
+  for (let trackIndex = 0; trackIndex < song.tracks.length; trackIndex++) {
+    const track = song.tracks[trackIndex];
     const timeline = buildSongTimeline(song, track);
-    durationMs = Math.max(durationMs, timeline.durationMs);
-    const previous = new Map<string, SynthNote>();
-    track.measures.forEach((measure, index) => {
-      const timing = timeline.measures[index];
-      const denominator = positive(
-        measure.time_signature?.denominator?.value,
-        4,
-      );
-      const quarterMs = (timing.beatDurationMs * denominator) / 4;
-      measure.voices.forEach((voice, voiceIndex) => {
-        let cursor = timing.startMs;
-        voice.beats.forEach((beat) => {
-          if (beat.status === "Empty") {
-            return;
-          }
-          const length = durationInQuarters(beat.duration) * quarterMs;
-          if (
-            Number.isFinite(beat.start) &&
-            Number.isFinite(measure.start) &&
-            beat.start! >= measure.start
-          ) {
-            cursor =
-              timing.startMs +
-              ((beat.start! - measure.start) / 960) * quarterMs;
-          }
-          const startMs = cursor;
-          cursor += length;
-          if (beat.status === "Rest" || startMs >= timing.endMs) {
-            return;
-          }
-          const strokeOrder = strokeStrings(beat);
-          beat.notes.forEach((note) => {
-            const key = `${voiceIndex}:${note.string}`;
-            const endMs = Math.min(timing.endMs, startMs + length);
-            if (note.kind === "Tie") {
-              const prior = previous.get(key);
-              if (prior && Math.abs(prior.endMs - startMs) < 1) {
-                prior.endMs = endMs;
-              }
-              return;
-            }
-            if (note.kind === "Rest") {
-              return;
-            }
-            /** Parser string indices are zero-based; tuple labels are one-based. */
-            const tuning = track.strings[note.string]?.[1];
-            let midi = track.percussion_track
-              ? note.value
-              : (tuning ?? NaN) + note.value + (track.offset ?? 0);
-            if (!Number.isFinite(midi) || midi < 0 || midi > 127) {
-              return;
-            }
-            const effect = note.effect;
-            if (
-              !track.percussion_track &&
-              effect?.harmonic?.kind === "Natural"
-            ) {
-              const interval = (
-                { 12: 12, 7: 19, 5: 24, 4: 28, 9: 28, 3: 31 } as Record<
-                  number,
-                  number
-                >
-              )[note.value];
-              if (interval !== undefined) {
-                midi = tuning + (track.offset ?? 0) + interval;
-              }
-            }
-            const prior = previous.get(key);
-            const contiguous = prior && Math.abs(prior.endMs - startMs) < 1;
-            if (prior?.slideTo && contiguous && !prior.pitch?.length) {
-              const length = prior.endMs - prior.startMs;
-              prior.pitch = [
-                { offsetMs: 0, cents: 0 },
-                { offsetMs: length * 0.6, cents: 0 },
-                { offsetMs: length, cents: (midi - prior.midi) * 100 },
-              ];
-            }
-            if (prior?.letRing) {
-              prior.endMs = startMs;
-            }
-            const pitch =
-              effect?.bend?.points
-                ?.filter(
-                  (p) =>
-                    Number.isFinite(p.position) && Number.isFinite(p.value),
-                )
-                .map((p) => ({
-                  offsetMs:
-                    Math.max(
-                      0,
-                      Math.min(
-                        1,
-                        p.position / (effect.bend!.max_position || 12),
-                      ),
-                    ) * length,
-                  cents: Math.max(
-                    -2400,
-                    Math.min(
-                      2400,
-                      (p.value * 50) / (effect.bend!.semitone_length || 1),
-                    ),
-                  ),
-                }))
-                .sort((a, b) => a.offsetMs - b.offsetMs) ?? [];
-            if (
-              !pitch.length &&
-              effect?.slides?.some(
-                (s) => s === "IntoFromAbove" || s === "IntoFromBelow",
-              )
-            ) {
-              pitch.push(
-                {
-                  offsetMs: 0,
-                  cents: effect.slides.includes("IntoFromAbove") ? 300 : -300,
-                },
-                { offsetMs: Math.min(length * 0.3, 120), cents: 0 },
-              );
-            }
-            if (
-              !pitch.length &&
-              effect?.slides?.some(
-                (s) => s === "OutDownwards" || s === "OutUpWards",
-              )
-            ) {
-              pitch.push(
-                { offsetMs: 0, cents: 0 },
-                { offsetMs: length * 0.6, cents: 0 },
-                {
-                  offsetMs: length,
-                  cents: effect.slides.includes("OutDownwards") ? -500 : 500,
-                },
-              );
-            }
-            const gate =
-              positive(note.duration_percent, 1) * (effect?.staccato ? 0.5 : 1);
-            const event: SynthNote = {
-              trackIndex,
-              startMs,
-              endMs:
-                effect?.let_ring && !track.percussion_track
-                  ? timeline.durationMs
-                  : Math.min(timing.endMs, startMs + length * gate),
-              midi,
-              velocity:
-                Math.min(1, Math.max(0, (note.velocity ?? 95) / 127)) *
-                (effect?.ghost_note ? 0.5 : 1) *
-                (effect?.heavy_accentuated_note
-                  ? 1.2
-                  : effect?.accentuated_note
-                    ? 1.1
-                    : 1),
-              articulation:
-                note.kind === "Dead"
-                  ? "dead"
-                  : effect?.palm_mute
-                    ? "palm-mute"
-                    : effect?.staccato
-                      ? "staccato"
-                      : contiguous && prior?.hammerTo
-                        ? "hammer"
-                        : "sustain",
-              pitch: track.percussion_track ? undefined : pitch,
-              slideTo: effect?.slides?.some(
-                (s) => s === "ShiftSlideTo" || s === "LegatoSlideTo",
-              ),
-              hammerTo:
-                !!effect?.hammer || !!effect?.slides?.includes("LegatoSlideTo"),
-              letRing: !!effect?.let_ring,
-              vibrato: !!effect?.vibrato || !!beat.effect?.vibrato,
-              stringIndex: note.string,
-              instrument: resolveTrackProgram(song, track),
-              percussion: !!track.percussion_track,
-              muted: !!effect?.palm_mute || note.kind === "Dead",
-            };
-            event.velocity = Math.min(1, Math.max(0, event.velocity));
-            const strokeIndex = strokeOrder.indexOf(note.string);
-            if (strokeIndex >= 0 && strokeOrder.length > 1) {
-              const spread = Math.min(
-                length * 0.5,
-                (event.endMs - event.startMs) * 0.5,
-                (quarterMs * 4) / positive(beat.effect.stroke.value, 64),
-              );
-              event.startMs +=
-                (spread * strokeIndex) / (strokeOrder.length - 1);
-            }
-            const performance = realizeTechniques(
-              event,
-              note,
-              quarterMs,
-              endMs,
-            );
-            notes.push(...performance);
-            previous.set(key, performance[performance.length - 1]);
-          });
-        });
-      });
-    });
-  });
+    if (timeline.durationMs > durationMs) {
+      durationMs = timeline.durationMs;
+    }
+    compileTrackNotes(song, track, trackIndex, timeline, notes);
+  }
+
   notes.sort((a, b) => a.startMs - b.startMs);
   return { notes, durationMs };
 }
 
-function positive(value: number | undefined, fallback: number): number {
-  return Number.isFinite(value) && value! > 0 ? value! : fallback;
+function compileTrackNotes(
+  song: Song,
+  track: Track,
+  trackIndex: number,
+  timeline: SongTimeline,
+  outNotes: SynthNote[],
+): void {
+  const previousNotes = new Map<string, SynthNote>();
+
+  for (
+    let measureIndex = 0;
+    measureIndex < track.measures.length;
+    measureIndex++
+  ) {
+    const measure = track.measures[measureIndex];
+    const timing = timeline.measures[measureIndex];
+    const denominator = positive(measure.time_signature?.denominator?.value, 4);
+    const quarterMs = (timing.beatDurationMs * denominator) / 4;
+
+    for (let voiceIndex = 0; voiceIndex < measure.voices.length; voiceIndex++) {
+      const voice = measure.voices[voiceIndex];
+      compileVoiceNotes({
+        song,
+        track,
+        trackIndex,
+        timeline,
+        timing,
+        quarterMs,
+        measureStart: measure.start,
+        voice,
+        voiceIndex,
+        previousNotes,
+        outNotes,
+      });
+    }
+  }
 }
 
-/** Orders physical strings for a brush stroke; a pick-direction label alone is not a strum. */
-function strokeStrings(beat: Beat): number[] {
+function compileVoiceNotes(context: VoiceCompilationContext): void {
+  const { voice, timing, quarterMs, measureStart } = context;
+  let cursor = timing.startMs;
+
+  for (const beat of voice.beats) {
+    if (beat.status === "Empty") {
+      continue;
+    }
+
+    const length = durationInQuarters(beat.duration) * quarterMs;
+    if (
+      Number.isFinite(beat.start) &&
+      Number.isFinite(measureStart) &&
+      beat.start! >= measureStart!
+    ) {
+      cursor =
+        timing.startMs +
+        ((beat.start! - measureStart!) / TICKS_PER_QUARTER) * quarterMs;
+    }
+
+    const startMs = cursor;
+    cursor += length;
+
+    if (beat.status === "Rest" || startMs >= timing.endMs) {
+      continue;
+    }
+
+    compileBeatNotes(context, beat, startMs, length);
+  }
+}
+
+function compileBeatNotes(
+  context: VoiceCompilationContext,
+  beat: Beat,
+  startMs: number,
+  length: number,
+): void {
+  const strokeOrder = getStrokeStrings(beat);
+  const endMs = Math.min(context.timing.endMs, startMs + length);
+
+  for (const note of beat.notes) {
+    compileNoteEvent({
+      context,
+      beat,
+      note,
+      startMs,
+      endMs,
+      length,
+      strokeOrder,
+    });
+  }
+}
+
+function compileNoteEvent(params: NoteCompilationContext): void {
+  const { context, beat, note, startMs, endMs, length, strokeOrder } = params;
+  const {
+    track,
+    trackIndex,
+    timeline,
+    timing,
+    voiceIndex,
+    previousNotes,
+    song,
+  } = context;
+  const key = `${voiceIndex}:${note.string}`;
+
+  if (note.kind === "Tie") {
+    const prior = previousNotes.get(key);
+    if (prior && Math.abs(prior.endMs - startMs) < 1) {
+      prior.endMs = endMs;
+    }
+    return;
+  }
+
+  if (note.kind === "Rest") {
+    return;
+  }
+
+  const midi = resolveNoteMidi(track, note);
+  if (!Number.isFinite(midi) || midi < MIN_MIDI_NOTE || midi > MAX_MIDI_NOTE) {
+    return;
+  }
+
+  const effect = note.effect;
+  const prior = previousNotes.get(key);
+  const contiguous = prior !== undefined && Math.abs(prior.endMs - startMs) < 1;
+
+  if (
+    prior?.slideTo &&
+    contiguous &&
+    (!prior.pitch || prior.pitch.length === 0)
+  ) {
+    const priorLength = prior.endMs - prior.startMs;
+    prior.pitch = [
+      { offsetMs: 0, cents: 0 },
+      { offsetMs: priorLength * 0.6, cents: 0 },
+      { offsetMs: priorLength, cents: (midi - prior.midi) * 100 },
+    ];
+  }
+
+  if (prior?.letRing) {
+    prior.endMs = startMs;
+  }
+
+  const pitch = resolvePitchCurve(
+    effect,
+    length,
+    Boolean(track.percussion_track),
+  );
+  let gate = positive(note.duration_percent, 1);
+  if (effect?.staccato) {
+    gate *= 0.5;
+  }
+
+  let eventEndMs = Math.min(timing.endMs, startMs + length * gate);
+  if (effect?.let_ring && !track.percussion_track) {
+    eventEndMs = timeline.durationMs;
+  }
+
+  const event: SynthNote = {
+    trackIndex,
+    startMs,
+    endMs: eventEndMs,
+    midi,
+    velocity: resolveVelocity(note, effect),
+    instrument: resolveTrackProgram(song, track),
+    percussion: Boolean(track.percussion_track),
+    muted: Boolean(effect?.palm_mute || note.kind === "Dead"),
+    articulation: resolveArticulation(note, effect, contiguous, prior),
+    pitch,
+    slideTo: Boolean(
+      effect?.slides?.some(
+        (s) => s === "ShiftSlideTo" || s === "LegatoSlideTo",
+      ),
+    ),
+    hammerTo:
+      Boolean(effect?.hammer) ||
+      Boolean(effect?.slides?.includes("LegatoSlideTo")),
+    letRing: Boolean(effect?.let_ring),
+    vibrato: Boolean(effect?.vibrato || beat.effect?.vibrato),
+    stringIndex: note.string,
+  };
+
+  const strokeIndex = strokeOrder.indexOf(note.string);
+  if (strokeIndex >= 0 && strokeOrder.length > 1) {
+    const strokeValue = positive(
+      beat.effect?.stroke?.value,
+      DEFAULT_STRUM_VALUE,
+    );
+    const maxSpread = (context.quarterMs * 4) / strokeValue;
+    const spread = Math.min(
+      length * 0.5,
+      (event.endMs - event.startMs) * 0.5,
+      maxSpread,
+    );
+    event.startMs += (spread * strokeIndex) / (strokeOrder.length - 1);
+  }
+
+  const performance = realizeTechniques(event, note, context.quarterMs, endMs);
+  context.outNotes.push(...performance);
+  previousNotes.set(key, performance[performance.length - 1]);
+}
+
+function resolveNoteMidi(track: Track, note: Note): number {
+  if (track.percussion_track) {
+    return note.value;
+  }
+  const tuning = track.strings[note.string]?.[1];
+  if (typeof tuning !== "number") {
+    return NaN;
+  }
+  const trackOffset = track.offset ?? 0;
+  if (note.effect?.harmonic?.kind === "Natural") {
+    const interval = NATURAL_HARMONIC_INTERVALS[note.value];
+    if (interval !== undefined) {
+      return tuning + trackOffset + interval;
+    }
+  }
+  return tuning + note.value + trackOffset;
+}
+
+function resolvePitchCurve(
+  effect: Note["effect"] | undefined,
+  length: number,
+  isPercussion: boolean,
+): SynthPitchPoint[] | undefined {
+  if (isPercussion) {
+    return undefined;
+  }
+  const bendPoints = resolveBendPoints(effect?.bend, length);
+  if (bendPoints.length > 0) {
+    return bendPoints;
+  }
+  const slidePoints = resolveSlidePoints(effect?.slides, length);
+  if (slidePoints.length > 0) {
+    return slidePoints;
+  }
+  return [];
+}
+
+function resolveBendPoints(
+  bend: Note["effect"]["bend"] | undefined,
+  length: number,
+): SynthPitchPoint[] {
+  if (!bend?.points) {
+    return [];
+  }
+  const maxPosition = bend.max_position || DEFAULT_BEND_MAX_POSITION;
+  const semitoneLength = bend.semitone_length || DEFAULT_BEND_SEMITONE_LENGTH;
+
+  return bend.points
+    .filter((p) => Number.isFinite(p.position) && Number.isFinite(p.value))
+    .map((p) => {
+      const positionRatio = Math.max(0, Math.min(1, p.position / maxPosition));
+      const rawCents = (p.value * 50) / semitoneLength;
+      return {
+        offsetMs: positionRatio * length,
+        cents: Math.max(MIN_BEND_CENTS, Math.min(MAX_BEND_CENTS, rawCents)),
+      };
+    })
+    .sort((a, b) => a.offsetMs - b.offsetMs);
+}
+
+function resolveSlidePoints(
+  slides: string[] | undefined,
+  length: number,
+): SynthPitchPoint[] {
+  if (!slides || slides.length === 0) {
+    return [];
+  }
+  const hasIntoAbove = slides.includes("IntoFromAbove");
+  const hasIntoBelow = slides.includes("IntoFromBelow");
+  if (hasIntoAbove || hasIntoBelow) {
+    let cents = -SLIDE_INTO_CENTS;
+    if (hasIntoAbove) {
+      cents = SLIDE_INTO_CENTS;
+    }
+    return [
+      { offsetMs: 0, cents },
+      { offsetMs: Math.min(length * 0.3, 120), cents: 0 },
+    ];
+  }
+
+  const hasOutDown = slides.includes("OutDownwards");
+  const hasOutUp = slides.includes("OutUpWards");
+  if (hasOutDown || hasOutUp) {
+    let cents = SLIDE_OUT_CENTS;
+    if (hasOutDown) {
+      cents = -SLIDE_OUT_CENTS;
+    }
+    return [
+      { offsetMs: 0, cents: 0 },
+      { offsetMs: length * 0.6, cents: 0 },
+      { offsetMs: length, cents },
+    ];
+  }
+
+  return [];
+}
+
+function resolveVelocity(
+  note: Note,
+  effect: Note["effect"] | undefined,
+): number {
+  const noteVelocity = note.velocity ?? DEFAULT_MIDI_VELOCITY;
+  let normalized = noteVelocity / MAX_MIDI_VELOCITY;
+  if (effect?.ghost_note) {
+    normalized *= 0.5;
+  }
+  if (effect?.heavy_accentuated_note) {
+    normalized *= 1.2;
+  } else if (effect?.accentuated_note) {
+    normalized *= 1.1;
+  }
+  return Math.min(1, Math.max(0, normalized));
+}
+
+function resolveArticulation(
+  note: Note,
+  effect: Note["effect"] | undefined,
+  contiguous: boolean,
+  prior: SynthNote | undefined,
+): SynthArticulation {
+  if (note.kind === "Dead") {
+    return "dead";
+  }
+  if (effect?.palm_mute) {
+    return "palm-mute";
+  }
+  if (effect?.staccato) {
+    return "staccato";
+  }
+  if (contiguous && prior?.hammerTo) {
+    return "hammer";
+  }
+  return "sustain";
+}
+
+function getStrokeStrings(beat: Beat): number[] {
   const stroke = beat.effect?.stroke;
   if (!stroke || stroke.direction === "None") {
     return [];
   }
-  const ascending = (stroke.direction === "Up") !== !!stroke.swap;
-  return [...new Set(beat.notes.map((note) => note.string))].sort((a, b) =>
-    ascending ? a - b : b - a,
-  );
+  const ascending = (stroke.direction === "Up") !== Boolean(stroke.swap);
+  const uniqueStrings = [...new Set(beat.notes.map((note) => note.string))];
+  return uniqueStrings.sort((a, b) => {
+    if (ascending) {
+      return a - b;
+    }
+    return b - a;
+  });
 }
 
-/** Realizes discrete ornaments while preserving the containing beat's endpoint. */
 function realizeTechniques(
   event: SynthNote,
   note: Note,
@@ -270,29 +486,46 @@ function realizeTechniques(
   const result: SynthNote[] = [];
   const effect = note.effect;
   const grace = effect?.grace;
+
   if (grace && !event.percussion && Number.isFinite(grace.fret)) {
-    const duration = Math.min(
-      (quarterMs * 4) / positive(grace.duration, 32),
-      (Math.min(event.endMs, writtenEndMs) - event.startMs) * 0.5,
-    );
-    const onBeat = grace.is_on_beat || event.startMs < duration;
-    const start = onBeat ? event.startMs : event.startMs - duration;
-    const graceMidi = grace.is_dead
-      ? event.midi
-      : event.midi - note.value + grace.fret;
-    if (graceMidi >= 0 && graceMidi <= 127 && duration > 0) {
+    const graceDivisor = positive(grace.duration, DEFAULT_GRACE_VALUE);
+    const maxGraceDuration =
+      (Math.min(event.endMs, writtenEndMs) - event.startMs) * 0.5;
+    const duration = Math.min((quarterMs * 4) / graceDivisor, maxGraceDuration);
+    const onBeat = Boolean(grace.is_on_beat) || event.startMs < duration;
+    let start = event.startMs - duration;
+    if (onBeat) {
+      start = event.startMs;
+    }
+
+    let graceMidi = event.midi;
+    if (!grace.is_dead) {
+      graceMidi = event.midi - note.value + grace.fret;
+    }
+
+    if (
+      graceMidi >= MIN_MIDI_NOTE &&
+      graceMidi <= MAX_MIDI_NOTE &&
+      duration > 0
+    ) {
+      let articulation: SynthArticulation = "sustain";
+      if (grace.is_dead) {
+        articulation = "dead";
+      }
+
       result.push({
         ...event,
         midi: graceMidi,
         startMs: start,
         endMs: start + duration,
-        velocity: Math.min(1, Math.max(0, grace.velocity / 127)),
-        articulation: grace.is_dead ? "dead" : "sustain",
+        velocity: Math.min(1, Math.max(0, grace.velocity / MAX_MIDI_VELOCITY)),
+        articulation,
         pitch: undefined,
         letRing: false,
         hammerTo: grace.transition === "Hammer",
         slideTo: false,
       });
+
       if (onBeat) {
         event.startMs += duration;
       }
@@ -301,31 +534,62 @@ function realizeTechniques(
       }
     }
   }
+
   const repetition =
     effect?.trill?.duration ?? effect?.tremolo_picking?.duration;
-  if (!repetition || event.pitch?.length || event.percussion) {
+  if (
+    !repetition ||
+    (event.pitch && event.pitch.length > 0) ||
+    event.percussion
+  ) {
     result.push(event);
     return result;
   }
+
   const step = Math.max(1, durationInQuarters(repetition) * quarterMs);
   const repeatEndMs = Math.min(event.endMs, writtenEndMs);
-  const count = Math.min(1024, Math.ceil((repeatEndMs - event.startMs) / step));
+  const count = Math.min(
+    MAX_REPETITION_COUNT,
+    Math.ceil((repeatEndMs - event.startMs) / step),
+  );
+
   for (let index = 0; index < count; index++) {
-    const midi =
-      effect?.trill && index % 2
-        ? event.midi - note.value + effect.trill.fret
-        : event.midi;
-    if (!Number.isFinite(midi) || midi < 0 || midi > 127) {
+    let midi = event.midi;
+    if (effect?.trill && index % 2 !== 0) {
+      midi = event.midi - note.value + effect.trill.fret;
+    }
+    if (
+      !Number.isFinite(midi) ||
+      midi < MIN_MIDI_NOTE ||
+      midi > MAX_MIDI_NOTE
+    ) {
       continue;
     }
+
+    let articulation = event.articulation;
+    if (effect?.trill && index > 0) {
+      articulation = "hammer";
+    }
+
     result.push({
       ...event,
       midi,
       startMs: event.startMs + index * step,
       endMs: Math.min(repeatEndMs, event.startMs + (index + 1) * step),
-      articulation: effect?.trill && index > 0 ? "hammer" : event.articulation,
+      articulation,
       letRing: false,
     });
   }
-  return result.length ? result : [event];
+
+  if (result.length > 0) {
+    return result;
+  }
+  return [event];
+}
+
+function positive(value: number | undefined, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  return fallback;
 }
