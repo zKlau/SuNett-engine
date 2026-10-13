@@ -1,5 +1,11 @@
 # @zklau/sunett-engine
 
+## 1.2.0
+
+### Minor Changes
+
+- c8c8965: Expose score compilation with expressive guitar events and preserve saved playback metadata.
+
 ## 1.1.0
 
 ### Minor Changes
