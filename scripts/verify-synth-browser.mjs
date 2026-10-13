@@ -172,7 +172,13 @@ try {
       .locator("#file")
       .setInputFiles(path.resolve(corpusArg, filename));
     await page.waitForFunction(() =>
-      document.querySelector("#message").textContent.includes("Ready"),
+      /Ready|Could not|supported/i.test(
+        document.querySelector("#message").textContent,
+      ),
+    );
+    assert.ok(
+      (await page.locator("#message").textContent()).includes("Ready"),
+      `${filename}: ${await page.locator("#message").textContent()}`,
     );
     await page.locator("#play").click();
     await page.waitForFunction(

@@ -9,6 +9,7 @@ The `codex/playback-fidelity` branches were verified together without publishing
 - Parser WASM to built engine: all 248 repository fixtures (14 GP3, 34 GP4, 52 GP5, 74 GPX and 74 GP) compiled successfully. Checked 25,209 note events for finite valid intervals, pitch and velocity, as well as deterministic output and unchanged source data.
 - Browser integration: an isolated build of the existing synth player substitutes the local parser WASM and local engine compiler. Edge checks the showcase's finite, non-silent audio and imports/playback/pause/stop for fixtures in all five formats. It does not replace the installed player's packages or modify sample assets.
 - Added failing-before-fix regressions for strum offsets exceeding a short note's gate and let-ring trills repeating beyond their written duration.
+- The five-format browser sequence exposed stale tone assignments when changing to a song with fewer tracks. The synth player now resets assignments before applying the new mixer (`49b97fd` on its local `codex/local-verification` branch). The same sequence passes after the fix. That repository previously had no commits; only the player file was checkpointed and changed here, and other existing files remain untracked.
 
 ## Reproduce integration checks
 
