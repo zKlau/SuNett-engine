@@ -34,7 +34,7 @@ const result = await build({
           (args) => ({
             path: path.join(
               engine,
-              "src/audio",
+              "packages/engine/src/audio",
               path.basename(args.path) + ".ts",
             ),
           }),

@@ -72,8 +72,10 @@ playground/                      # separate Vite app for manual visual testing
   `!important` and an unstyled tab still renders. Consumers override via a plain
   stylesheet, a shipped preset (`styles/` → `dist/`, exposed through the `exports` map),
   or `defineTheme()`. The renderer holds the theme as **state**: `new TabsRenderer(song,
-{ theme })` seeds it, `setTheme(themeLike)` merges + re-renders the last draw, `getTheme()`
-  reads it, and a `theme` on `generateMeasures` _replaces_ it. Any accepted shape (preset name,
+{ theme })` seeds it, `setTheme(themeLike)` _replaces_ it + re-renders the last draw (switching
+  themes fully resets the previous one - no vars carry over; layer a tweak with
+  `setTheme(mergeThemes(getTheme(), tweak))`), `getTheme()` reads it, and a `theme` on
+  `generateMeasures` also _replaces_ it. Any accepted shape (preset name,
   `ThemeInput`, or built `Theme`) is normalised by `coerceTheme` (`src/theme/resolveTheme.ts`).
   Vars are applied inline on the target `<svg>` each render (`clearTheme` then `applyTheme`),
   scoping them to that tab. Themes cover **appearance plus a small `sizing` section**

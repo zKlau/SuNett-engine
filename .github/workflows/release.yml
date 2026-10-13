@@ -1,19 +1,23 @@
 name: Release
 
-# Publishes the package to GitHub Packages when a GitHub Release is published.
-# Create a release whose tag matches the package version (e.g. v1.0.0) to trigger it.
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish to GitHub Packages
+  release:
+    name: Version or Publish
     runs-on: ubuntu-latest
 
+    environment: release
+
     permissions:
-      contents: read
-      packages: write
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout
@@ -24,7 +28,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          registry-url: https://npm.pkg.github.com
+          registry-url: https://registry.npmjs.org
           scope: "@zklau"
 
       - name: Pin npm
@@ -33,19 +37,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm run test
-
-      - name: Build
-        run: npm run build
-
-      - name: Publish
-        run: npm publish
+      - name: Create Release Pull Request or publish
+        uses: changesets/action@v1
+        with:
+          version: npm run version
+          publish: npm run release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

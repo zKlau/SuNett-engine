@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { compileSynthScore } from "../dist/index.js";
+import { compileSynthScore } from "../packages/engine/dist/index.js";
 
 const [parserPath, corpusPath] = process.argv.slice(2);
 assert.ok(

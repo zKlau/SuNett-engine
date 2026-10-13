@@ -1,5 +1,5 @@
 import "./presentation.css";
-import { SunettEngine, SnapMode } from "../../src/index.ts";
+import { SunettEngine, SnapMode } from "../../packages/engine/src/index.ts";
 import { createPresentationSong } from "./presentationSong.ts";
 
 const TRACK_DESCRIPTIONS = [

@@ -1,5 +1,5 @@
-import type { Beat, Measure, Note, Song, Track } from "../../src/index.ts";
-import type { Duration, TimeSignature } from "../../src/types/duration.ts";
+import type { Beat, Measure, Note, Song, Track } from "../../packages/engine/src/index.ts";
+import type { Duration, TimeSignature } from "../../packages/engine/src/types/duration.ts";
 
 const TEMPO = 96;
 const TICKS_PER_MEASURE = 3840;
