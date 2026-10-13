@@ -35,6 +35,8 @@ export const TabsRendererConstants = {
   NOTE_BACKGROUND_RATIO: 1.2,
   NOTE_GLYPH_WIDTH_RATIO: 0.62,
   NOTE_PADDING_X: 3,
+  MIN_BEAT_WIDTH: 32,
+  DEFAULT_CURSOR_WIDTH: 4,
   NOTE_CLASS_PREFIX: "tab-note",
   NOTE_TRANSFORM_BOX: "fill-box",
   NOTE_TRANSFORM_ORIGIN: "center",

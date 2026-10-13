@@ -127,15 +127,21 @@ function createBendArrow(points: Point[]): SVGPathElement {
 }
 
 function bendLabel(bend: BendEffect): string {
-  const semitones = Math.abs(bend.value) / 100;
-  if (Math.abs(semitones - 0.5) < 0.01) {
+  const peak = Math.max(
+    0,
+    ...bend.points.map((point) => Math.abs(point.value)),
+  );
+  const tones = bend.points.length
+    ? peak / (4 * Math.max(1, bend.semitone_length))
+    : Math.abs(bend.value) / 100;
+  if (Math.abs(tones - 0.5) < 0.01) {
     return "1/2";
   }
-  if (Math.abs(semitones - 1) < 0.01) {
+  if (Math.abs(tones - 1) < 0.01) {
     return "full";
   }
-  if (semitones > 0) {
-    return `${Number(semitones.toFixed(2))}`;
+  if (tones > 0) {
+    return `${Number(tones.toFixed(2))}`;
   }
   return "B";
 }

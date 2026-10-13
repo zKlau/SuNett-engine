@@ -154,3 +154,27 @@ describe("calculateBeatLayouts", () => {
     ]);
   });
 });
+
+it("keeps short triplet frets readable beside a dotted quarter", () => {
+  const measure = makeMeasureFromVoices([
+    [
+      makeBeat({ duration: makeDuration({ value: 4, dotted: true }) }),
+      ...Array.from({ length: 3 }, () =>
+        makeBeat({
+          notes: [makeNote({ value: 11 })],
+          duration: makeDuration({
+            value: 32,
+            tuplet_enters: 3,
+            tuplet_times: 2,
+          }),
+        }),
+      ),
+    ],
+  ]);
+  const layouts = calculateBeatLayouts(measure, 10, 240);
+  expect(Math.min(...layouts.map((beat) => beat.width))).toBeGreaterThanOrEqual(
+    32,
+  );
+  expect(layouts.reduce((sum, beat) => sum + beat.width, 0)).toBeCloseTo(240);
+  expect(layouts[0].width).toBeGreaterThan(layouts[1].width);
+});

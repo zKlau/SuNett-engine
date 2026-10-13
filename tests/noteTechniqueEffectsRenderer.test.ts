@@ -193,12 +193,12 @@ describe("note technique effects", () => {
         bend: {
           kind: "BendRelease",
           value: 100,
-          semitone_length: 100,
+          semitone_length: 1,
           max_position: 60,
           max_value: 100,
           points: [
             { position: 0, value: 0, vibrato: false },
-            { position: 30, value: 100, vibrato: false },
+            { position: 30, value: 4, vibrato: false },
             { position: 60, value: 0, vibrato: false },
           ],
         },
@@ -230,20 +230,24 @@ describe("note technique effects", () => {
     expect(paths[1].getAttribute("stroke")).toContain("--sunett-color-note-fg");
   });
 
-  it("renders parser bend values as a full-height full bend", () => {
+  it.each([
+    [100, 4, "full"],
+    [8, 4, "full"],
+    [4, 2, "1/2"],
+  ])("renders parser bend %s with peak %s as %s", (value, peak, label) => {
     const note = makeNote({
       effect: {
         ...makeNote().effect,
         bend: {
           kind: "Bend",
-          value: 100,
+          value: value as number,
           semitone_length: 1,
           max_position: 12,
           max_value: 12,
           points: [
             { position: 0, value: 0, vibrato: false },
-            { position: 3, value: 4, vibrato: false },
-            { position: 12, value: 4, vibrato: false },
+            { position: 3, value: peak as number, vibrato: false },
+            { position: 12, value: peak as number, vibrato: false },
           ],
         },
       },
@@ -266,7 +270,7 @@ describe("note technique effects", () => {
     const bendPath = paths[0].getAttribute("d")!.split(" ");
     const background = parent.querySelector(".tab-note-bg")!;
 
-    expect(effect.querySelector("text")!.textContent).toBe("full");
+    expect(effect.querySelector("text")!.textContent).toBe(label);
     expect(Number(bendPath[1])).toBe(
       Number(background.getAttribute("x")) +
         Number(background.getAttribute("width")) +

@@ -20,10 +20,22 @@ export function calculateBeatLayouts(
     const lengths = voice.beats.map((beat) => beatLength(beat.duration));
     const totalLength = lengths.reduce((sum, length) => sum + length, 0) || 1;
 
+    const proportionalWidths = lengths.map(
+      (length) => (length / totalLength) * availableWidth,
+    );
+    const equalWidth = availableWidth / lengths.length;
+    const smallestWidth = Math.min(...proportionalWidths);
+    const minimumWidth = Math.min(constants.MIN_BEAT_WIDTH, equalWidth);
+    const spacingBlend =
+      smallestWidth < minimumWidth && equalWidth > smallestWidth
+        ? (minimumWidth - smallestWidth) / (equalWidth - smallestWidth)
+        : 0;
     const layouts: BeatLayout[] = [];
     let cursor = 0;
     voice.beats.forEach((beat, beatIndex) => {
-      const width = (lengths[beatIndex] / totalLength) * availableWidth;
+      const width =
+        proportionalWidths[beatIndex] * (1 - spacingBlend) +
+        equalWidth * spacingBlend;
       const beatStartX = startX + cursor;
       const isSingleTie =
         voice.beats.length === 1 &&
