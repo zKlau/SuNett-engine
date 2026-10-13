@@ -94,7 +94,6 @@ type NoteCompilationContext = {
   strokeOrder: number[];
 };
 
-/** Musical length in quarter notes. Double dots supersede a single dot. */
 export function durationInQuarters(duration: Duration): number {
   const value = positive(duration?.value, 4);
   let dots = 1;
@@ -108,7 +107,6 @@ export function durationInQuarters(duration: Duration): number {
   return (4 / value) * dots * (times / enters);
 }
 
-/** Compiles the written score in the same linear measure order as the renderer. */
 export function compileSynthScore(song: Song): SynthScore {
   const notes: SynthNote[] = [];
   let durationMs = 0;

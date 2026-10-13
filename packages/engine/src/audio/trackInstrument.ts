@@ -19,7 +19,6 @@ const INSTRUMENT_NAME_PATTERNS = [
   { pattern: /guitar|guitare|guitarra/, program: ELECTRIC_GUITAR_PROGRAM },
 ];
 
-/** Prefer explicit MIDI metadata; infer only when the parser omitted it. */
 export function resolveTrackProgram(song: Song, track: Track): number {
   const explicit =
     track.midi_program_gpif ?? song.channels?.[track.channel_index]?.instrument;
