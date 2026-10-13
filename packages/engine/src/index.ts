@@ -92,5 +92,14 @@ export type { Measure, MeasureHeader } from "./types/measure";
 export type { Voice } from "./types/voice";
 export type { Beat } from "./types/beats/beat";
 export type { Note } from "./types/note";
+
+export { compileSynthScore, durationInQuarters } from "./audio/songScore";
+export type {
+  SynthScore,
+  SynthNote,
+  SynthArticulation,
+  SynthPitchPoint,
+} from "./audio/songScore";
+export { resolveTrackProgram } from "./audio/trackInstrument";
 export type { Duration, TimeSignature } from "./types/duration";
 export type { Chord } from "./types/chords/chord";
