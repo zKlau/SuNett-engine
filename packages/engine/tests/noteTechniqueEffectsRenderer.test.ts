@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
+import { BravuraNotationGlyphs } from "../src/constants/notationGlyphPaths";
 import { renderMeasureNotes } from "../src/utils/tabs/notesRenderer";
 import {
   makeBeat,
@@ -17,25 +18,6 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 function makeParent(): SVGGElement {
   return document.createElementNS(SVG_NS, "g");
-}
-
-function expectCustomArrow(path: SVGPathElement, direction: -1 | 1) {
-  const values = path.getAttribute("d")!.split(" ");
-  const endX = Number(values[4]);
-  const endY = Number(values[5]);
-
-  expect(values[0]).toBe("M");
-  expect(values[3]).toBe("L");
-  expect(values[6]).toBe("L");
-  expect(Number(values[1])).toBe(endX - constants.NOTE_EFFECT_ARROW_SIZE);
-  expect(Number(values[2])).toBe(
-    endY + direction * constants.NOTE_EFFECT_ARROW_SIZE,
-  );
-  expect(Number(values[7])).toBe(endX + constants.NOTE_EFFECT_ARROW_SIZE);
-  expect(Number(values[8])).toBe(
-    endY + direction * constants.NOTE_EFFECT_ARROW_SIZE,
-  );
-  expect(path.getAttribute("transform")).toBeNull();
 }
 
 describe("note technique effects", () => {
@@ -111,7 +93,7 @@ describe("note technique effects", () => {
     );
   });
 
-  it("renders a custom vibrato path across an affected chord beat", () => {
+  it("renders Bravura guitar-shake glyphs across an affected chord beat", () => {
     const parent = makeParent();
     const bounds = makeBounds({ y: 20 });
     const vibratoEffect = {
@@ -140,24 +122,15 @@ describe("note technique effects", () => {
     });
 
     const vibrato = parent.querySelectorAll(".tab-note-effect--vibrato path");
-    const noteBackground = parent.querySelector(".tab-note-bg")!;
-    const expectedY =
-      bounds.y +
-      constants.MEASURE_TOP_PADDING -
-      constants.NOTE_EFFECT_VIBRATO_OFFSET;
-    const path = vibrato[0].getAttribute("d")!;
-
-    expect(vibrato).toHaveLength(1);
-    expect(path).toMatch(
-      new RegExp(`^M ${noteBackground.getAttribute("x")} ${expectedY} `),
-    );
-    expect(path).toContain(
-      `L ${100 + 90 - constants.NOTE_EFFECT_NOTE_GAP} ${expectedY}`,
-    );
-    expect(path.match(/L /g)!.length).toBeGreaterThan(10);
-    expect(vibrato[0].getAttribute("stroke")).toContain("--sunett-color-muted");
-    expect(vibrato[0].getAttribute("fill")).toBe("none");
-    expect(vibrato[0].getAttribute("transform")).toBeNull();
+    expect(vibrato.length).toBeGreaterThan(1);
+    vibrato.forEach((path) => {
+      expect(path.getAttribute("d")).toBe(
+        BravuraNotationGlyphs.GUITAR_SHAKE.path,
+      );
+      expect(path.getAttribute("fill")).toContain("--sunett-color-muted");
+      expect(path.getAttribute("stroke")).toBe("none");
+      expect(path.getAttribute("transform")).toContain("scale(");
+    });
   });
 
   it("omits linked techniques when no following note exists", () => {
@@ -193,12 +166,12 @@ describe("note technique effects", () => {
         bend: {
           kind: "BendRelease",
           value: 100,
-          semitone_length: 1,
+          semitone_length: 100,
           max_position: 60,
           max_value: 100,
           points: [
             { position: 0, value: 0, vibrato: false },
-            { position: 30, value: 4, vibrato: false },
+            { position: 30, value: 100, vibrato: false },
             { position: 60, value: 0, vibrato: false },
           ],
         },
@@ -225,29 +198,27 @@ describe("note technique effects", () => {
     const paths = effect.querySelectorAll("path");
     expect(paths[0].getAttribute("d")).toContain("C");
     expect(paths[0].getAttribute("stroke")).toContain("--sunett-color-note-fg");
-    expectCustomArrow(paths[1], -1);
-    expect(paths[1].getAttribute("fill")).toBe("none");
-    expect(paths[1].getAttribute("stroke")).toContain("--sunett-color-note-fg");
+    expect(paths[1].getAttribute("d")).toBe(
+      BravuraNotationGlyphs.BEND_ARROW_DOWN.path,
+    );
+    expect(paths[1].getAttribute("fill")).toContain("--sunett-color-note-fg");
+    expect(paths[1].getAttribute("stroke")).toBe("none");
   });
 
-  it.each([
-    [100, 4, "full"],
-    [8, 4, "full"],
-    [4, 2, "1/2"],
-  ])("renders parser bend %s with peak %s as %s", (value, peak, label) => {
+  it("renders parser bend values as a full-height full bend", () => {
     const note = makeNote({
       effect: {
         ...makeNote().effect,
         bend: {
           kind: "Bend",
-          value: value as number,
+          value: 100,
           semitone_length: 1,
           max_position: 12,
           max_value: 12,
           points: [
             { position: 0, value: 0, vibrato: false },
-            { position: 3, value: peak as number, vibrato: false },
-            { position: 12, value: peak as number, vibrato: false },
+            { position: 3, value: 4, vibrato: false },
+            { position: 12, value: 4, vibrato: false },
           ],
         },
       },
@@ -270,7 +241,7 @@ describe("note technique effects", () => {
     const bendPath = paths[0].getAttribute("d")!.split(" ");
     const background = parent.querySelector(".tab-note-bg")!;
 
-    expect(effect.querySelector("text")!.textContent).toBe(label);
+    expect(effect.querySelector("text")!.textContent).toBe("full");
     expect(Number(bendPath[1])).toBe(
       Number(background.getAttribute("x")) +
         Number(background.getAttribute("width")) +
@@ -282,7 +253,9 @@ describe("note technique effects", () => {
     expect(Number(bendPath[2]) - Number(bendPath[16])).toBe(
       constants.NOTE_EFFECT_BEND_HEIGHT,
     );
-    expectCustomArrow(paths[1], 1);
+    expect(paths[1].getAttribute("d")).toBe(
+      BravuraNotationGlyphs.BEND_ARROW_UP.path,
+    );
   });
 
   it("groups consecutive palm-muted beats into P.M. notation spans", () => {

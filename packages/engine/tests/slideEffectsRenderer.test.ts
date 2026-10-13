@@ -165,39 +165,3 @@ describe("slide effects", () => {
     expect(parent.querySelector(".tab-note-effect--legato-slide")).toBeNull();
   });
 });
-
-it.each([36, 60, 100])(
-  "keeps outgoing and incoming slides separated at %spx",
-  (spacing) => {
-    const source = makeNote({
-      value: 10,
-      effect: { ...makeNote().effect, slides: ["OutDownwards"] },
-    });
-    const target = makeNote({
-      value: 10,
-      effect: { ...makeNote().effect, slides: ["IntoFromBelow"] },
-    });
-    const parent = makeParent();
-    renderMeasureNotes({
-      parent,
-      measure: makeMeasureFromVoices([
-        [makeBeat({ notes: [source] }), makeBeat({ notes: [target] })],
-      ]),
-      measureIndex: 12,
-      beatLayouts: [
-        makeBeatLayout({ beatIndex: 0, x: 50, width: spacing }),
-        makeBeatLayout({ beatIndex: 1, x: 50 + spacing, width: spacing }),
-      ],
-      bounds: makeBounds(),
-      stringCount: 6,
-      config: makeNoteConfig(),
-      metrics: makeNoteMetrics(),
-    });
-    const paths = [
-      ...parent.querySelectorAll(".tab-note-effect--slide path"),
-    ].map((path) => path.getAttribute("d")!.split(/\s+/));
-    expect(Number(paths[0][4])).toBeLessThanOrEqual(Number(paths[1][1]));
-    expect(Number(paths[0][1])).toBeLessThanOrEqual(Number(paths[0][4]));
-    expect(Number(paths[1][1])).toBeLessThanOrEqual(Number(paths[1][4]));
-  },
-);

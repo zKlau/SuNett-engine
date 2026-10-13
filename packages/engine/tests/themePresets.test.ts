@@ -48,8 +48,6 @@ describe("theme preset registry", () => {
   it("recognises preset names and rejects anything else", () => {
     expect(isPresetTheme("dark")).toBe(true);
     expect(isPresetTheme("high-contrast")).toBe(true);
-    expect(isPresetTheme("paper")).toBe(true);
-    expect(isPresetTheme("midnight")).toBe(true);
     expect(isPresetTheme("nope")).toBe(false);
     expect(isPresetTheme(undefined)).toBe(false);
     expect(isPresetTheme({ variables: {} })).toBe(false);
@@ -60,8 +58,6 @@ describe("preset CSS files match their JS presets", () => {
   it.each([
     ["dark", "themes/dark.css"],
     ["high-contrast", "themes/high-contrast.css"],
-    ["paper", "themes/paper.css"],
-    ["midnight", "themes/midnight.css"],
   ] as const)("%s", (name, file) => {
     expect(readThemeCss(file)).toEqual(ThemePresets[name].variables);
   });

@@ -2,7 +2,6 @@ import { TabsRendererConstants as constants } from "../../../constants/tabRender
 import type {
   EffectRenderState,
   NoteEffectsRenderRequest,
-  PositionedNote,
 } from "../../../types/UI/noteEffectsRender";
 import {
   collectEffectBeats,
@@ -79,12 +78,9 @@ export function renderLegatoSlideSlurs(request: NoteEffectsRenderRequest) {
   });
 }
 
-export function renderSlides(
-  state: EffectRenderState,
-  notes: PositionedNote[],
-) {
+export function renderSlides(state: EffectRenderState) {
   state.entry.context.note.effect.slides.forEach((slide, index) => {
-    const pathData = slidePath(state, slide, index, notes);
+    const pathData = slidePath(state, slide, index);
     if (!pathData) {
       return;
     }
@@ -100,32 +96,12 @@ function slidePath(
   state: EffectRenderState,
   slide: string,
   index: number,
-  notes: PositionedNote[],
 ): string | undefined {
   const { context, width } = state.entry;
-  const nominalHeight =
+  const height =
     constants.NOTE_EFFECT_SLIDE_HEIGHT +
     index * constants.NOTE_EFFECT_STROKE_WIDTH;
-  const entering = slide === "IntoFromAbove" || slide === "IntoFromBelow";
-  const neighbors = notes.filter(
-    ({ context: candidate }) =>
-      candidate.voiceIndex === context.voiceIndex &&
-      (entering
-        ? candidate.beatIndex < context.beatIndex
-        : candidate.beatIndex > context.beatIndex),
-  );
-  const neighbor = entering ? neighbors[neighbors.length - 1] : neighbors[0];
-  const gap = neighbor
-    ? entering
-      ? noteEdgeX(state.entry, -1) - noteEdgeX(neighbor, 1)
-      : noteEdgeX(neighbor, -1) - noteEdgeX(state.entry, 1)
-    : width;
-  const length = Math.max(
-    0,
-    Math.min(constants.NOTE_EFFECT_LINE_LENGTH, width / 2, gap / 2),
-  );
-  const height =
-    nominalHeight * Math.min(1, length / constants.NOTE_EFFECT_LINE_LENGTH);
+  const length = Math.min(constants.NOTE_EFFECT_LINE_LENGTH, width / 2);
   const leftEdge = noteEdgeX(state.entry, -1);
   const rightEdge = noteEdgeX(state.entry, 1);
 

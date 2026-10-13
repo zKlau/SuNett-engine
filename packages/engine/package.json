@@ -18,9 +18,7 @@
     },
     "./styles.css": "./dist/base.css",
     "./themes/dark.css": "./dist/themes/dark.css",
-    "./themes/high-contrast.css": "./dist/themes/high-contrast.css",
-    "./themes/paper.css": "./dist/themes/paper.css",
-    "./themes/midnight.css": "./dist/themes/midnight.css"
+    "./themes/high-contrast.css": "./dist/themes/high-contrast.css"
   },
   "repository": {
     "type": "git",

@@ -30,4 +30,4 @@ Passing tests do not establish perfect fidelity to Guitar Pro or to studio recor
 
 ## Merge preparation update
 
-The engine passes 450 tests, typecheck, lint, knip and ESM/CJS/declaration builds after incorporating current main. The parser passes 254 tests after incorporating current master. Both branches include their default branch ancestry so GitHub can merge them without the previous migration conflicts. The synth now has a complete source commit; fresh-checkout setup and separate repository integration are documented in its MERGE_READINESS.md. Slide marks are bounded to neighboring note edges and keep their slope as the score resizes.
+The engine passes 436 tests, typecheck, lint, knip and ESM/CJS/declaration builds after incorporating current main. The parser passes 254 tests after incorporating current master. Both branches include their default branch ancestry so GitHub can merge them without the previous migration conflicts. The synth now has a complete source commit; fresh-checkout setup and separate repository integration are documented in its MERGE_READINESS.md.
