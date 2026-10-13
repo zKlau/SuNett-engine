@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { TabsRenderer } from "../src/utils/tabs/tabsRenderer";
+import { SunettEngine } from "../src/engine/sunettEngine";
 import { normalizeOptions } from "../src/utils/tabs/tabsOptionsNormalizer";
 import { defineTheme } from "../src/theme/theme";
 import { ThemePresets } from "../src/theme/presets";
@@ -135,6 +136,36 @@ describe("TabsRenderer theme option", () => {
 
     expect(svg.style.getPropertyValue("--sunett-color-accent")).toBe("#c084fc");
   });
+
+  it.each([
+    ["paper", "midnight"],
+    ["midnight", "paper"],
+  ] as const)(
+    "renders %s and switches to %s through the engine",
+    async (initial, next) => {
+      const svg = setupSvg();
+      const engine = new SunettEngine({ theme: initial });
+      await engine.loadSong(makeSong([makeTrackWithNotes()]));
+      engine.render();
+
+      for (const [variable, value] of Object.entries(
+        ThemePresets[initial].variables,
+      )) {
+        expect(svg.style.getPropertyValue(variable)).toBe(value);
+      }
+
+      engine.setTheme(next);
+
+      for (const [variable, value] of Object.entries(
+        ThemePresets[next].variables,
+      )) {
+        expect(svg.style.getPropertyValue(variable)).toBe(value);
+      }
+      expect(svg.querySelector(".tab-background")).not.toBeNull();
+      expect(svg.querySelector(".string")).not.toBeNull();
+      engine.dispose();
+    },
+  );
 
   it("sets no variables when no theme is given", () => {
     const svg = setupSvg();

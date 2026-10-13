@@ -1,4 +1,3 @@
-import { BravuraNotationGlyphs } from "../../../constants/notationGlyphPaths";
 import { TabsRendererConstants as constants } from "../../../constants/tabRendererConstants";
 import type { BendEffect } from "../../../types/notes/effects/bend";
 import type { EffectRenderState } from "../../../types/UI/noteEffectsRender";
@@ -9,7 +8,6 @@ import {
   createEffectPath,
   createEffectText,
 } from "./effectSvg";
-import { createNotationGlyph } from "./notationGlyphRenderer";
 
 export function renderBend(
   state: EffectRenderState,
@@ -32,14 +30,13 @@ export function renderBend(
   const labelPoint = points.reduce((highest, point) => {
     return point.y <= highest.y ? point : highest;
   }, points[0]);
-  const arrowHeight =
-    BravuraNotationGlyphs.BEND_ARROW_UP.height *
-    constants.NOTE_EFFECT_BEND_ARROW_SCALE;
   const label = createEffectText(
     state,
     bendLabel(bend),
     labelPoint.x,
-    labelPoint.y - arrowHeight - constants.NOTE_EFFECT_BEND_LABEL_GAP,
+    labelPoint.y -
+      constants.NOTE_EFFECT_ARROW_SIZE -
+      constants.NOTE_EFFECT_BEND_LABEL_GAP,
   );
 
   group.setAttribute("data-bend-kind", bend.kind);
@@ -120,17 +117,12 @@ function createBendArrow(points: Point[]): SVGPathElement {
     x: end.x,
     y: end.y + 1,
   };
-  const pointsUp = end.y <= previous.y;
-  const glyph = pointsUp
-    ? BravuraNotationGlyphs.BEND_ARROW_UP
-    : BravuraNotationGlyphs.BEND_ARROW_DOWN;
-  const scale = constants.NOTE_EFFECT_BEND_ARROW_SCALE;
-  const height = glyph.height * scale;
-  return createNotationGlyph(
-    glyph,
-    end.x,
-    end.y + (pointsUp ? -height / 2 : height / 2),
-    scale,
+  const direction = end.y <= previous.y ? 1 : -1;
+  const size = constants.NOTE_EFFECT_ARROW_SIZE;
+  return createEffectPath(
+    `M ${end.x - size} ${end.y + direction * size} L ${end.x} ${
+      end.y
+    } L ${end.x + size} ${end.y + direction * size}`,
   );
 }
 

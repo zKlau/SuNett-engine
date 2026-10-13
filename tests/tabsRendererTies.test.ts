@@ -1,7 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-import { BravuraNotationGlyphs } from "../src/constants/notationGlyphPaths";
 import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
 import type { Track } from "../src/types/track";
 import { TabsRenderer } from "../src/utils/tabs/tabsRenderer";
@@ -201,9 +200,14 @@ describe("TabsRenderer cross-measure ties", () => {
       Number(background.getAttribute("y")) - constants.NOTE_EFFECT_NOTE_GAP,
     );
     expect(Number(path[8])).toBeGreaterThan(Number(path[1]));
-    expect(paths[1].getAttribute("d")).toBe(
-      BravuraNotationGlyphs.BEND_ARROW_UP.path,
+    const arrow = paths[1].getAttribute("d")!.split(" ");
+    expect(Number(arrow[1])).toBe(
+      Number(arrow[4]) - constants.NOTE_EFFECT_ARROW_SIZE,
     );
+    expect(Number(arrow[2])).toBe(
+      Number(arrow[5]) + constants.NOTE_EFFECT_ARROW_SIZE,
+    );
+    expect(paths[1].getAttribute("transform")).toBeNull();
     expect(bend.querySelector("text")!.textContent).toBe("full");
   });
 

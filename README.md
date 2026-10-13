@@ -1,3 +1,35 @@
+# SuNett Engine
+
+A TypeScript engine for responsive SVG guitar tablature, custom themes, and
+interactive practice selections.
+
+## Presentation page and playground
+
+```bash
+cd playground
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite. `/` is the development playground, which
+loads the Guitar Pro song configured in `playground/src/main.ts` (currently
+`/tabs/sandman.gp`). Use the track and theme pickers to explore the score. To try
+another song, change the active `main("/tabs/...")` call at the bottom of that
+file to one of the local fixtures in `playground/public/tabs/`.
+
+The presentation page is available separately at `/presentation.html`. Its
+original four-measure demo supports acoustic and electric tracks, themes, and
+practice highlights. On desktop, drag across the score to select; on touch, hold
+a measure and tap an endpoint. The highlight button also provides a
+keyboard-accessible selection example.
+
+The development playground uses local Guitar Pro fixtures in
+`playground/public/tabs/`, which are not tracked in Git. The presentation demo
+does not require those files or the WASM parser.
+
+`npm run build` inside `playground/` builds both pages to `playground/dist/`.
+Use `npm run preview` to inspect that production build locally.
+
 ## Requierments
 
 Vite projects require [vite-plugin-wasm](https://github.com/Menci/vite-plugin-wasm) to be added to the vite config plugins
@@ -44,10 +76,31 @@ import "@zklau/sunett-engine/themes/dark.css";
 | `default`       | Anything. Sets no colours; follows `currentColor`.                       |
 | `dark`          | You want an explicit dark palette regardless of the host page.           |
 | `high-contrast` | Accessibility. Built on CSS system colours; follows forced-colours mode. |
+| `paper`         | A warm off-white canvas, burgundy notes, and soft taupe strings.         |
+| `midnight`      | A charcoal canvas, warm peach notes, and muted sage strings.             |
 
 `dark` deliberately ignores `prefers-color-scheme` - importing it or passing it
 is an explicit choice, so a page that intentionally runs inverted is never
 overridden.
+
+Paper and Midnight are the built-in presets used by the presentation demo.
+They work with `SunettEngine`, `TabsRenderer`, and `ThemePresets`:
+
+```ts
+import { SunettEngine } from "@zklau/sunett-engine";
+
+const engine = new SunettEngine({ theme: "paper" });
+await engine.loadSong(song);
+engine.render();
+engine.setTheme("midnight");
+```
+
+For the CSS-only route, import either
+`@zklau/sunett-engine/themes/paper.css` or
+`@zklau/sunett-engine/themes/midnight.css`. Both palettes are explicit choices,
+independent of `prefers-color-scheme`. Their labels use DM Sans when available,
+falling back to sans-serif; the presets do not download fonts. Note size and
+string spacing still follow your renderer options.
 
 ### 3. A custom theme
 

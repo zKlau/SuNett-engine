@@ -1,0 +1,20 @@
+:root {
+  --sunett-color-fg: #4b463e;
+  --sunett-color-muted: #8b8173;
+  --sunett-color-bg: #fffefa;
+  --sunett-color-note-bg: #fffefa;
+  --sunett-color-note-fg: #5c2938;
+  --sunett-color-string: #b8ada0;
+  --sunett-color-barline: #988b7b;
+  --sunett-color-rest: #8b8173;
+  --sunett-color-accent: #782d3e;
+  --sunett-color-selection: #8b976a;
+
+  --sunett-font-note: Consolas, monospace;
+  --sunett-font-label: DM Sans, sans-serif;
+  --sunett-font-label-size: 9px;
+
+  --sunett-string-opacity: 0.65;
+  --sunett-barline-opacity: 0.65;
+  --sunett-selection-opacity: 0.15;
+}
