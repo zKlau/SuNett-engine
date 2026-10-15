@@ -115,4 +115,39 @@ describe("attachPlaybackFollow", () => {
 
     expect(scrolls).toEqual([202]);
   });
+
+  it("follows a dense bar horizontally within the same row and resets on the next row", () => {
+    const geometry = { x: 0, y: 100, height: 100, rowTop: 50, rowHeight: 300 };
+    const rect = {
+      top: 150,
+      bottom: 250,
+      height: 100,
+      left: 500,
+      right: 504,
+    } as DOMRect;
+    const { source, fire } = makeSource(geometry, rect);
+    const scroller = {
+      scrollWidth: 1200,
+      clientWidth: 300,
+      scrollLeft: 0,
+      getBoundingClientRect: () => ({ left: 0, right: 300 }),
+    };
+    source.getTabElement = () =>
+      ({
+        parentElement: scroller,
+        ownerDocument: {
+          defaultView: { getComputedStyle: () => ({ overflowX: "auto" }) },
+        },
+      }) as unknown as SVGSVGElement;
+    attachPlaybackFollow(source, { container: makeContainer([]) });
+    fire();
+    expect(scroller.scrollLeft).toBe(252);
+    Object.assign(rect, { left: 270, right: 274 });
+    fire();
+    expect(scroller.scrollLeft).toBe(274);
+    Object.assign(rect, { left: -226, right: -222 });
+    geometry.y += 300;
+    fire();
+    expect(scroller.scrollLeft).toBe(0);
+  });
 });

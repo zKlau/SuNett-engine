@@ -46,6 +46,30 @@ engine.getTracks().forEach((track, i) => console.log(i, track.name));
 engine.render(2);
 ```
 
+## Narrow containers
+
+Notes keep enough horizontal space for their fret numbers, including short notes after a long note. Measures wrap to the next row; `measuresPerRow` limits how many bars share a row. A particularly dense bar can exceed `maxMeasureWidth` and the container width to preserve readability.
+
+Keep the SVG at its rendered width inside a scrollable wrapper so a dense bar can be panned without shrinking the notes:
+
+```html
+<div class="tab-scroll"><svg id="tabs"></svg></div>
+```
+
+```css
+.tab-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.tab-scroll > svg {
+  display: block;
+  width: auto;
+  min-width: 100%;
+}
+```
+
+`engine.enableAutoScroll()` also follows the cursor horizontally within this wrapper.
+
 ## Virtualization
 
 By default only the measures near the viewport are drawn, added and removed as the tab scrolls, so long songs stay fast. Turn it off to draw every measure up front:

@@ -1,5 +1,10 @@
 import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
-import { calculateBeatLayouts } from "../src/utils/tabs/notesLayout";
+import {
+  calculateBeatLayouts,
+  measureBeatMinimumWidths,
+} from "../src/utils/tabs/notesLayout";
+import { normalizeOptions } from "../src/utils/tabs/tabsOptionsNormalizer";
+import { resolveNoteMetrics } from "../src/utils/tabs/noteMetrics";
 import {
   makeBeat,
   makeDuration,
@@ -8,6 +13,37 @@ import {
 } from "./fixtures";
 
 describe("calculateBeatLayouts", () => {
+  it("keeps two-digit frets and ghost notes apart after a long dotted note", () => {
+    const measure = makeMeasureFromVoices([
+      [
+        makeBeat({
+          duration: makeDuration({ value: 2, dotted: true }),
+          notes: [makeNote({ value: 15 })],
+        }),
+        ...[13, 15, 16].map((value) =>
+          makeBeat({
+            duration: makeDuration({ value: 32 }),
+            notes: [
+              makeNote({
+                value,
+                effect: { ...makeNote().effect, ghost_note: true },
+              }),
+            ],
+          }),
+        ),
+      ],
+    ]);
+    const config = normalizeOptions({ notes: { fontSize: 15 } }).notes;
+    const metrics = resolveNoteMetrics(config, 22);
+    const minimums = measureBeatMinimumWidths(measure, config, metrics);
+    const layouts = calculateBeatLayouts(measure, 0, 270, minimums);
+    expect(layouts.reduce((sum, beat) => sum + beat.width, 0)).toBeCloseTo(270);
+    layouts.forEach((beat, index) =>
+      expect(beat.width).toBeGreaterThanOrEqual(minimums[0][index]),
+    );
+    expect(layouts[2].x - layouts[1].x).toBeGreaterThan(40);
+    expect(layouts[0].width).toBeGreaterThan(layouts[1].width);
+  });
   it("returns an empty array when available width is not positive", () => {
     const measure = makeMeasureFromVoices([[makeBeat()]]);
 

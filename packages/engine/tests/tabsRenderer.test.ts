@@ -8,6 +8,10 @@ import {
   makeMeasureContext,
   makeSong,
   makeTrack,
+  makeBeat,
+  makeNote,
+  makeDuration,
+  makeMeasureFromVoices,
 } from "./fixtures";
 
 // LayoutCalculation exposes only calculateLayout; the weighting and width math
@@ -86,7 +90,7 @@ describe("LayoutCalculation", () => {
       expect(widths[0]).toBe(200);
     });
 
-    it("clamps widths to the configured min and max", () => {
+    it("uses the configured max as a preference while preserving readable dense bars", () => {
       const measures = [
         makeMeasureContext(makeMeasure(1), 0),
         makeMeasureContext(makeMeasure(1000), 1),
@@ -100,7 +104,7 @@ describe("LayoutCalculation", () => {
       );
 
       expect(widths[0]).toBe(constants.MIN_MEASURE_WIDTH);
-      expect(widths[1]).toBe(constants.MAX_MEASURE_WIDTH);
+      expect(widths[1]).toBeGreaterThan(constants.MAX_MEASURE_WIDTH);
     });
   });
 
@@ -149,6 +153,39 @@ describe("LayoutCalculation", () => {
 
       expect(layout.measureLayouts).toHaveLength(1);
       expect(layout.measureLayouts[0].width).toBeCloseTo(availableWidth);
+    });
+
+    it("keeps a dense bar readable instead of shrinking its notes on phones", () => {
+      const dense = makeMeasureFromVoices([
+        Array.from({ length: 32 }, () =>
+          makeBeat({
+            notes: [makeNote({ value: 12 })],
+            duration: makeDuration({ value: 32 }),
+          }),
+        ),
+      ]);
+      const track = makeTrack(6, [dense]);
+      const layout = new LayoutCalculation(
+        track,
+        normalizeOptions({ notes: { fontSize: 15 } }),
+      ).calculateLayout(320, [makeMeasureContext(dense, 0)]);
+      expect(layout.measureLayouts[0].width).toBeGreaterThan(32 * 24);
+      expect(layout.contentWidth + config.paddingX * 2).toBeGreaterThan(320);
+    });
+
+    it("honors one measure per row even when adjacent bars are light", () => {
+      const contexts = [
+        makeMeasureContext(makeMeasure(1), 0),
+        makeMeasureContext(makeMeasure(1), 1),
+        makeMeasureContext(makeMeasure(12), 2),
+      ];
+      const layout = new LayoutCalculation(
+        track,
+        normalizeOptions({ measuresPerRow: 1 }),
+      ).calculateLayout(390, contexts);
+      expect(layout.measureLayouts.map((measure) => measure.row)).toEqual([
+        0, 1, 2,
+      ]);
     });
 
     describe("stringCount", () => {
