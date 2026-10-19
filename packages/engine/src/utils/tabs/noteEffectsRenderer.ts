@@ -26,7 +26,6 @@ import { renderOutgoingRowTies, renderTie } from "./noteEffects/tieRenderer";
 export function renderNoteEffects(request: NoteEffectsRenderRequest) {
   renderTechniqueSpans(request);
   renderBeatStaccato(request);
-  renderBeatVibrato(request);
   renderLegatoSlideSlurs(request);
   const phraseHammerSources = renderHammerPhrases(request);
 
@@ -56,5 +55,6 @@ export function renderNoteEffects(request: NoteEffectsRenderRequest) {
     renderNoteSymbols(state, inheritedBend);
     renderSlides(state, request);
   });
+  renderBeatVibrato(request);
   renderOutgoingRowTies(request);
 }

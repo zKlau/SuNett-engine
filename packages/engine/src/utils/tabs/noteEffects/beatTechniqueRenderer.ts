@@ -29,7 +29,7 @@ export function renderBeatVibrato(request: NoteEffectsRenderRequest) {
       return;
     }
 
-    const y = request.staffTop - constants.NOTE_EFFECT_VIBRATO_OFFSET;
+    const y = vibratoY(request, beat.beatIndex);
     const state: EffectRenderState = {
       parent: request.parent,
       entry: affectedNotes[0],
@@ -39,6 +39,28 @@ export function renderBeatVibrato(request: NoteEffectsRenderRequest) {
     appendGuitarShake(group, startX, endX, y);
     request.parent.append(group);
   });
+}
+
+function vibratoY(
+  request: NoteEffectsRenderRequest,
+  beatIndex: number,
+): number {
+  const labels = request.parent.querySelectorAll<SVGTextElement>(
+    `[data-effect="bend"][data-beat-index="${beatIndex}"] text`,
+  );
+  const halfHeight =
+    (BravuraNotationGlyphs.GUITAR_SHAKE.height *
+      constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE) /
+    2;
+  return Array.from(labels).reduce((y, label) => {
+    const labelTop =
+      Number(label.getAttribute("y")) -
+      Number(label.getAttribute("font-size")) / 2;
+    return Math.min(
+      y,
+      labelTop - constants.MEASURE_NOTATION_CLEARANCE - halfHeight,
+    );
+  }, request.staffTop - constants.NOTE_EFFECT_VIBRATO_OFFSET);
 }
 
 function appendGuitarShake(

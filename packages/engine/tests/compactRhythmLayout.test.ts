@@ -1,6 +1,8 @@
 /**
  * @jest-environment jsdom
  */
+import { BravuraNotationGlyphs } from "../src/constants/notationGlyphPaths";
+import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
 import { TabsRenderer } from "../src/utils/tabs/tabsRenderer";
 import type { TabRendererOptions } from "../src/types/UI/rendererOptions";
 import {
@@ -80,48 +82,72 @@ describe("compact rhythm layout", () => {
     renderer.dispose();
   });
 
-  it("keeps triplet brackets clear of a bend above the next row", () => {
-    const svg = setupSvg();
-    const triplets = makeMeasureFromVoices([
-      Array.from({ length: 3 }, () =>
-        makeBeat({
-          notes: [makeNote({ value: 8 })],
-          duration: makeDuration({
-            value: 16,
-            tuplet_enters: 3,
-            tuplet_times: 2,
+  it.each([8, -62, -92])(
+    "keeps full bends and vibrato clear of the preceding row with a %ipx gap",
+    (rowGap) => {
+      const svg = setupSvg();
+      const triplets = makeMeasureFromVoices([
+        Array.from({ length: 3 }, () =>
+          makeBeat({
+            notes: [makeNote({ value: 8 })],
+            duration: makeDuration({
+              value: 16,
+              tuplet_enters: 3,
+              tuplet_times: 2,
+            }),
           }),
-        }),
-      ),
-    ]);
-    const bend = quarterMeasure();
-    bend.voices[0].beats[0].notes[0].effect.bend = {
-      kind: "Bend",
-      value: 8,
-      semitone_length: 1,
-      max_position: 12,
-      max_value: 12,
-      points: [
-        { position: 0, value: 0, vibrato: false },
-        { position: 12, value: 4, vibrato: false },
-      ],
-    };
-    const renderer = new TabsRenderer(
-      makeSong([makeTrack(6, [triplets, bend])]),
-    );
-    renderer.generateMeasures(0, compact);
-    const measures = svg.querySelectorAll(".measure");
-    const tuplet = measures[0].querySelector(".rhythm-tuplet-number")!;
-    const bendLabel = measures[1].querySelector('[data-effect="bend"] text')!;
-    const tupletBottom =
-      Number(tuplet.getAttribute("y")) +
-      Number(tuplet.getAttribute("font-size")) / 2;
-    const bendTop =
-      Number(bendLabel.getAttribute("y")) -
-      Number(bendLabel.getAttribute("font-size")) / 2;
-    expect(bendTop - tupletBottom).toBeGreaterThanOrEqual(8);
-    renderer.dispose();
-  });
+        ),
+      ]);
+      const bend = quarterMeasure();
+      bend.voices[0].beats[0].notes[0].effect.vibrato = true;
+      bend.voices[0].beats[0].notes[0].effect.bend = {
+        kind: "Bend",
+        value: 8,
+        semitone_length: 1,
+        max_position: 12,
+        max_value: 12,
+        points: [
+          { position: 0, value: 0, vibrato: false },
+          { position: 12, value: 4, vibrato: false },
+        ],
+      };
+      const renderer = new TabsRenderer(
+        makeSong([makeTrack(6, [triplets, bend])]),
+      );
+      renderer.generateMeasures(0, { ...compact, rowGap });
+      const measures = svg.querySelectorAll(".measure");
+      const tuplet = measures[0].querySelector(".rhythm-tuplet-number")!;
+      const bendLabel = measures[1].querySelector('[data-effect="bend"] text')!;
+      const tupletBottom =
+        Number(tuplet.getAttribute("y")) +
+        Number(tuplet.getAttribute("font-size")) / 2;
+      const bendTop =
+        Number(bendLabel.getAttribute("y")) -
+        Number(bendLabel.getAttribute("font-size")) / 2;
+      const vibrato = measures[1].querySelector(
+        '[data-effect="vibrato"] path',
+      )!;
+      const translateY = Number(
+        vibrato
+          .getAttribute("transform")!
+          .match(/translate\([^ ]+ ([^)]+)\)/)![1],
+      );
+      const vibratoTop =
+        translateY -
+        BravuraNotationGlyphs.GUITAR_SHAKE.height *
+          constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE;
+      const vibratoBottom =
+        vibratoTop +
+        BravuraNotationGlyphs.GUITAR_SHAKE.height *
+          constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE;
+      expect(vibratoTop - tupletBottom).toBeGreaterThanOrEqual(8);
+      expect(bendTop - vibratoBottom).toBeGreaterThanOrEqual(8);
+      const path = measures[1].querySelector('[data-effect="bend"] path')!;
+      const coordinates = path.getAttribute("d")!.split(" ");
+      expect(Number(coordinates[2]) - Number(coordinates.at(-1))).toBe(32);
+      renderer.dispose();
+    },
+  );
 
   it("expands a compact footer for multiple lyric lines, including the final row", () => {
     const svg = setupSvg();

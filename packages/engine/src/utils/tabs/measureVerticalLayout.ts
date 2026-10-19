@@ -5,10 +5,12 @@ import type { LyricsByMeasure } from "../../types/UI/measureNotationRender";
 import type { NormalizedRendererOptions } from "../../types/UI/normalizedRendererOptions";
 import { clamp } from "../functions/clamp";
 import { resolveNoteMetrics } from "./noteMetrics";
+import { shouldReverseStrings, stringDisplayRow } from "./stringOrder";
 
 export type MeasureAnnotations = {
   lyricsByMeasure?: LyricsByMeasure;
   labelFontSize?: number;
+  stringOffset?: number;
 };
 
 export function resolveMeasureBottomPadding(
@@ -31,8 +33,19 @@ export function resolveMeasureBottomPadding(
     constants.NOTE_EFFECT_MIN_FONT_SIZE,
     metrics.fontSize * constants.NOTE_EFFECT_FONT_RATIO,
   );
+  const labelFontSize =
+    annotations.labelFontSize ?? constants.BEAT_TEXT_FONT_SIZE;
+  const stringSpacing = clamp(
+    config.stringSpacing,
+    config.minStringSpacing,
+    config.maxStringSpacing,
+  );
+  const vibratoHeight =
+    BravuraNotationGlyphs.GUITAR_SHAKE.height *
+    constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE;
+  const reverseStrings = shouldReverseStrings(track);
   let lowerExtent = 0;
-  let upperOverflow = 0;
+  let upperExtent = constants.MEASURE_INDEX_OFFSET + labelFontSize;
 
   track.measures.forEach((measure) => {
     measure.voices.forEach((voice, voiceIndex) => {
@@ -59,20 +72,53 @@ export function resolveMeasureBottomPadding(
             Math.max(beams, tuplet, constants.RHYTHM_DOT_RADIUS),
         );
 
+        if (beat.text) {
+          upperExtent = Math.max(
+            upperExtent,
+            constants.BEAT_TEXT_OFFSET + labelFontSize / 2,
+          );
+        }
+        const vibrato = beat.notes.some((note) => note.effect?.vibrato);
+        if (vibrato) {
+          upperExtent = Math.max(
+            upperExtent,
+            constants.NOTE_EFFECT_VIBRATO_OFFSET + vibratoHeight / 2,
+          );
+        }
         beat.notes.forEach((note) => {
+          if (note.effect?.palm_mute || note.effect?.let_ring) {
+            upperExtent = Math.max(
+              upperExtent,
+              constants.NOTE_EFFECT_SPAN_OFFSET +
+                (note.effect.let_ring
+                  ? constants.NOTE_EFFECT_TEXT_OFFSET +
+                    constants.NOTE_EFFECT_SPAN_END_CAP_HEIGHT
+                  : 0) +
+                effectFontSize / 2,
+            );
+          }
           const bend = note.effect?.bend;
           if (!bend || bend.kind === "None") {
             return;
           }
-          upperOverflow = Math.max(
-            upperOverflow,
+          const stringRow = stringDisplayRow(
+            note.string - (annotations.stringOffset ?? 0),
+            track.strings.length || constants.DEFAULT_STRING_COUNT,
+            reverseStrings,
+            config.invertStrings,
+          );
+          upperExtent = Math.max(
+            upperExtent,
             metrics.backgroundHeight / 2 +
               constants.NOTE_EFFECT_NOTE_GAP +
               constants.NOTE_EFFECT_BEND_HEIGHT +
               arrowHeight +
               constants.NOTE_EFFECT_BEND_LABEL_GAP +
               effectFontSize / 2 -
-              constants.MEASURE_TOP_PADDING,
+              Math.max(0, stringRow) * stringSpacing +
+              (vibrato
+                ? vibratoHeight + constants.MEASURE_NOTATION_CLEARANCE
+                : 0),
           );
           if (bend.points.some((point) => point.value < 0)) {
             lowerExtent = Math.max(
@@ -103,9 +149,10 @@ export function resolveMeasureBottomPadding(
       config.measureBottomPadding,
       lowerExtent + constants.MEASURE_NOTATION_CLEARANCE,
       lowerExtent +
-        upperOverflow +
+        upperExtent +
         constants.MEASURE_NOTATION_CLEARANCE -
-        Math.max(0, config.rowGap),
+        constants.MEASURE_TOP_PADDING -
+        config.rowGap,
     ),
   );
 }

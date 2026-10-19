@@ -125,6 +125,7 @@ export class TabsRenderer {
           resolvedTrackIndex,
         ),
         labelFontSize: resolveLabelFontSize(this.currentTheme),
+        stringOffset: noteStringOffset(this.song, track),
       }),
       timeline,
       interaction: this.interaction,
