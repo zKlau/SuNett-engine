@@ -93,45 +93,72 @@ describe("note technique effects", () => {
     );
   });
 
-  it("renders Bravura guitar-shake glyphs across an affected chord beat", () => {
-    const parent = makeParent();
-    const bounds = makeBounds({ y: 20 });
-    const vibratoEffect = {
-      ...makeNote().effect,
-      vibrato: true,
-    };
+  it.each([false, true])(
+    "keeps chord vibrato close to its staff and clear of staccato (%s)",
+    (staccato) => {
+      const parent = makeParent();
+      const bounds = makeBounds({ y: 20 });
+      const vibratoEffect = {
+        ...makeNote().effect,
+        vibrato: true,
+        staccato,
+      };
 
-    renderMeasureNotes({
-      parent,
-      measure: makeMeasureFromVoices([
-        [
-          makeBeat({
-            notes: [
-              makeNote({ string: 1, effect: vibratoEffect }),
-              makeNote({ string: 2, effect: vibratoEffect }),
-            ],
-          }),
-        ],
-      ]),
-      measureIndex: 0,
-      beatLayouts: [makeBeatLayout({ x: 100, width: 180 })],
-      bounds,
-      stringCount: 6,
-      config: makeNoteConfig(),
-      metrics: makeNoteMetrics(),
-    });
+      renderMeasureNotes({
+        parent,
+        measure: makeMeasureFromVoices([
+          [
+            makeBeat({
+              notes: [
+                makeNote({ string: 1, effect: vibratoEffect }),
+                makeNote({ string: 2, effect: vibratoEffect }),
+              ],
+            }),
+          ],
+        ]),
+        measureIndex: 0,
+        beatLayouts: [makeBeatLayout({ x: 100, width: 180 })],
+        bounds,
+        stringCount: 6,
+        config: makeNoteConfig(),
+        metrics: makeNoteMetrics(),
+      });
 
-    const vibrato = parent.querySelectorAll(".tab-note-effect--vibrato path");
-    expect(vibrato.length).toBeGreaterThan(1);
-    vibrato.forEach((path) => {
-      expect(path.getAttribute("d")).toBe(
-        BravuraNotationGlyphs.GUITAR_SHAKE.path,
+      const vibrato = parent.querySelectorAll(".tab-note-effect--vibrato path");
+      expect(vibrato.length).toBeGreaterThan(1);
+      const translateY = Number(
+        vibrato[0]
+          .getAttribute("transform")!
+          .match(/translate\([^ ]+ ([^)]+)\)/)![1],
       );
-      expect(path.getAttribute("fill")).toContain("--sunett-color-muted");
-      expect(path.getAttribute("stroke")).toBe("none");
-      expect(path.getAttribute("transform")).toContain("scale(");
-    });
-  });
+      const centerY =
+        translateY -
+        BravuraNotationGlyphs.GUITAR_SHAKE.centerY *
+          constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE;
+      const staffTop = bounds.y + constants.MEASURE_TOP_PADDING;
+      if (staccato) {
+        const circle = parent.querySelector('[data-effect="staccato"] circle')!;
+        const circleTop =
+          Number(circle.getAttribute("cy")) - Number(circle.getAttribute("r"));
+        const vibratoBottom =
+          centerY +
+          (BravuraNotationGlyphs.GUITAR_SHAKE.height *
+            constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE) /
+            2;
+        expect(circleTop - vibratoBottom).toBeGreaterThanOrEqual(8);
+      } else {
+        expect(staffTop - centerY).toBe(18);
+      }
+      vibrato.forEach((path) => {
+        expect(path.getAttribute("d")).toBe(
+          BravuraNotationGlyphs.GUITAR_SHAKE.path,
+        );
+        expect(path.getAttribute("fill")).toContain("--sunett-color-muted");
+        expect(path.getAttribute("stroke")).toBe("none");
+        expect(path.getAttribute("transform")).toContain("scale(");
+      });
+    },
+  );
 
   it("omits linked techniques when no following note exists", () => {
     const note = makeNote({

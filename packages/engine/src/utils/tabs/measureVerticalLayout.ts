@@ -83,6 +83,12 @@ export function resolveMeasureBottomPadding(
           upperExtent = Math.max(
             upperExtent,
             constants.NOTE_EFFECT_VIBRATO_OFFSET + vibratoHeight / 2,
+            beat.notes.some((note) => note.effect?.staccato)
+              ? constants.NOTE_EFFECT_STACCATO_OFFSET +
+                  constants.NOTE_EFFECT_DOT_RADIUS +
+                  constants.MEASURE_NOTATION_CLEARANCE +
+                  vibratoHeight
+              : 0,
           );
         }
         beat.notes.forEach((note) => {

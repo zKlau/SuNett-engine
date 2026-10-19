@@ -45,21 +45,21 @@ function vibratoY(
   request: NoteEffectsRenderRequest,
   beatIndex: number,
 ): number {
-  const labels = request.parent.querySelectorAll<SVGTextElement>(
-    `[data-effect="bend"][data-beat-index="${beatIndex}"] text`,
+  const obstacles = request.parent.querySelectorAll<SVGElement>(
+    `[data-effect="bend"][data-beat-index="${beatIndex}"] text, ` +
+      `[data-effect="staccato"][data-beat-index="${beatIndex}"] circle`,
   );
   const halfHeight =
     (BravuraNotationGlyphs.GUITAR_SHAKE.height *
       constants.NOTE_EFFECT_GUITAR_SHAKE_SCALE) /
     2;
-  return Array.from(labels).reduce((y, label) => {
-    const labelTop =
-      Number(label.getAttribute("y")) -
-      Number(label.getAttribute("font-size")) / 2;
-    return Math.min(
-      y,
-      labelTop - constants.MEASURE_NOTATION_CLEARANCE - halfHeight,
-    );
+  return Array.from(obstacles).reduce((y, element) => {
+    const top =
+      element.tagName === "circle"
+        ? Number(element.getAttribute("cy")) - Number(element.getAttribute("r"))
+        : Number(element.getAttribute("y")) -
+          Number(element.getAttribute("font-size")) / 2;
+    return Math.min(y, top - constants.MEASURE_NOTATION_CLEARANCE - halfHeight);
   }, request.staffTop - constants.NOTE_EFFECT_VIBRATO_OFFSET);
 }
 
