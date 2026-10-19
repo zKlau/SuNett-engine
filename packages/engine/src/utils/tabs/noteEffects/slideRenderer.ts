@@ -11,6 +11,9 @@ import {
 } from "./effectLayout";
 import { createEffectGroup, createEffectPath } from "./effectSvg";
 
+const INCOMING_SLIDES = new Set(["IntoFromAbove", "IntoFromBelow"]);
+const OUTGOING_SLIDES = new Set(["OutDownwards", "OutUpWards"]);
+
 export function renderLegatoSlideSlurs(request: NoteEffectsRenderRequest) {
   const beats = collectEffectBeats(request.notes);
 
@@ -78,9 +81,12 @@ export function renderLegatoSlideSlurs(request: NoteEffectsRenderRequest) {
   });
 }
 
-export function renderSlides(state: EffectRenderState) {
+export function renderSlides(
+  state: EffectRenderState,
+  request: NoteEffectsRenderRequest,
+) {
   state.entry.context.note.effect.slides.forEach((slide, index) => {
-    const pathData = slidePath(state, slide, index);
+    const pathData = slidePath(state, slide, index, request);
     if (!pathData) {
       return;
     }
@@ -96,43 +102,86 @@ function slidePath(
   state: EffectRenderState,
   slide: string,
   index: number,
+  request: NoteEffectsRenderRequest,
 ): string | undefined {
-  const { context, width } = state.entry;
+  const { context } = state.entry;
   const height =
     constants.NOTE_EFFECT_SLIDE_HEIGHT +
     index * constants.NOTE_EFFECT_STROKE_WIDTH;
-  const length = Math.min(constants.NOTE_EFFECT_LINE_LENGTH, width / 2);
   const leftEdge = noteEdgeX(state.entry, -1);
   const rightEdge = noteEdgeX(state.entry, 1);
 
-  if (slide === "IntoFromAbove") {
-    return `M ${leftEdge - length} ${
-      context.y - height
-    } L ${leftEdge} ${context.y}`;
+  if (INCOMING_SLIDES.has(slide)) {
+    const length = slideLength(state, request, -1, height);
+    if (length <= 0) {
+      return undefined;
+    }
+    const offset = slide === "IntoFromAbove" ? -height : height;
+    return `M ${leftEdge - length} ${context.y + offset} L ${leftEdge} ${context.y}`;
   }
-  if (slide === "IntoFromBelow") {
-    return `M ${leftEdge - length} ${
-      context.y + height
-    } L ${leftEdge} ${context.y}`;
-  }
-  if (slide === "OutDownwards") {
-    return `M ${rightEdge} ${context.y} L ${rightEdge + length} ${
-      context.y + height
-    }`;
-  }
-  if (slide === "OutUpWards") {
-    return `M ${rightEdge} ${context.y} L ${rightEdge + length} ${
-      context.y - height
-    }`;
+  if (OUTGOING_SLIDES.has(slide)) {
+    const length = slideLength(state, request, 1, height);
+    if (length <= 0) {
+      return undefined;
+    }
+    const offset = slide === "OutDownwards" ? height : -height;
+    return `M ${rightEdge} ${context.y} L ${rightEdge + length} ${context.y + offset}`;
   }
   if ((slide === "ShiftSlideTo" || slide === "LegatoSlideTo") && state.next) {
+    const endX = noteEdgeX(state.next, -1);
+    if (endX <= rightEdge) {
+      return undefined;
+    }
     const direction =
-      state.next.context.note.value >= context.note.value ? 1 : -1;
-    return `M ${rightEdge} ${
-      context.y + direction * (height / 2)
-    } L ${noteEdgeX(state.next, -1)} ${
+      state.next.displayValue >= state.entry.displayValue ? 1 : -1;
+    return `M ${rightEdge} ${context.y + direction * (height / 2)} L ${endX} ${
       state.next.context.y - direction * (height / 2)
     }`;
   }
   return undefined;
+}
+
+function slideLength(
+  state: EffectRenderState,
+  request: NoteEffectsRenderRequest,
+  direction: -1 | 1,
+  height: number,
+): number {
+  const { entry } = state;
+  const anchorX = noteEdgeX(entry, direction);
+  const boundary = direction < 0 ? request.measureStartX : request.measureEndX;
+  let length = Math.min(
+    constants.NOTE_EFFECT_LINE_LENGTH,
+    entry.width / 2,
+    direction * (boundary - anchorX) - constants.NOTE_EFFECT_NOTE_GAP,
+  );
+  const complementarySlides = direction < 0 ? OUTGOING_SLIDES : INCOMING_SLIDES;
+
+  request.notes.forEach((candidate) => {
+    if (
+      direction * (candidate.context.x - entry.context.x) <= 0 ||
+      Math.abs(candidate.context.y - entry.context.y) >
+        height + candidate.glyphHeight / 2 + constants.NOTE_EFFECT_NOTE_GAP
+    ) {
+      return;
+    }
+    const gap =
+      direction * (noteEdgeX(candidate, direction === 1 ? -1 : 1) - anchorX);
+    if (candidate.labelVisible !== false) {
+      length = Math.min(length, gap);
+    }
+    if (
+      candidate.context.voiceIndex === entry.context.voiceIndex &&
+      candidate.context.beatIndex === entry.context.beatIndex + direction &&
+      candidate.context.note.effect.slides.some((slide) =>
+        complementarySlides.has(slide),
+      )
+    ) {
+      length = Math.min(
+        length,
+        (gap - constants.NOTE_EFFECT_SLIDE_PAIR_GAP) / 2,
+      );
+    }
+  });
+  return Math.max(0, length);
 }

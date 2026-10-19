@@ -13,6 +13,44 @@ import {
 } from "./fixtures";
 
 describe("calculateBeatLayouts", () => {
+  it("reserves room for separate outgoing and incoming slide marks", () => {
+    const effect = makeNote().effect;
+    const measure = makeMeasureFromVoices([
+      [
+        makeBeat({
+          notes: [
+            makeNote({
+              value: 10,
+              effect: { ...effect, slides: ["OutDownwards"] },
+            }),
+          ],
+        }),
+        makeBeat({
+          notes: [
+            makeNote({
+              value: 10,
+              effect: { ...effect, slides: ["IntoFromBelow"] },
+            }),
+          ],
+        }),
+      ],
+    ]);
+    const config = normalizeOptions({ notes: { fontSize: 13 } }).notes;
+    const metrics = resolveNoteMetrics(config, 16);
+    const minimums = measureBeatMinimumWidths(measure, config, metrics);
+    const layouts = calculateBeatLayouts(measure, 0, 100, minimums);
+    const glyphWidth =
+      2 * 13 * constants.NOTE_GLYPH_WIDTH_RATIO + 2 * config.paddingX;
+    const freeSpace =
+      layouts[1].x -
+      layouts[0].x -
+      glyphWidth -
+      2 * constants.NOTE_EFFECT_NOTE_GAP;
+    expect(freeSpace).toBeGreaterThanOrEqual(
+      2 * constants.NOTE_EFFECT_SLIDE_MIN_LENGTH +
+        constants.NOTE_EFFECT_SLIDE_PAIR_GAP,
+    );
+  });
   it("keeps two-digit frets and ghost notes apart after a long dotted note", () => {
     const measure = makeMeasureFromVoices([
       [

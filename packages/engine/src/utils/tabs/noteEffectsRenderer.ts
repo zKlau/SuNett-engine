@@ -54,7 +54,7 @@ export function renderNoteEffects(request: NoteEffectsRenderRequest) {
         ? (previous.context.note.effect.bend ?? undefined)
         : undefined;
     renderNoteSymbols(state, inheritedBend);
-    renderSlides(state);
+    renderSlides(state, request);
   });
   renderOutgoingRowTies(request);
 }

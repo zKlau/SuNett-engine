@@ -25,6 +25,9 @@ export function measureBeatMinimumWidths(
       const hasBend = beat.notes.some(
         (note) => note.effect?.bend && note.effect.bend.kind !== "None",
       );
+      const hasSlide = beat.notes.some((note) =>
+        note.effect?.slides.some((slide) => slide !== "None"),
+      );
       return (
         glyphWidth +
         constants.NOTE_MIN_GAP +
@@ -33,6 +36,10 @@ export function measureBeatMinimumWidths(
             (constants.NOTE_EFFECT_NOTE_GAP +
               constants.NOTE_EFFECT_BEND_MIN_WIDTH +
               constants.NOTE_EFFECT_BEND_END_GAP)
+          : 0) +
+        (hasSlide
+          ? 2 * constants.NOTE_EFFECT_SLIDE_MIN_LENGTH +
+            constants.NOTE_EFFECT_SLIDE_PAIR_GAP
           : 0)
       );
     }),

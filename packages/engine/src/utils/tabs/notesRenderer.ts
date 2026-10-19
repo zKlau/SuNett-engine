@@ -65,30 +65,28 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     notes.map(positionNote),
     request,
   );
+  const effectNotes = positionedNotes.map(
+    (
+      { context, width, glyphWidth, glyphHeight, displayValue, deferBend },
+      index,
+    ) => ({
+      context,
+      width,
+      glyphWidth,
+      glyphHeight,
+      displayValue,
+      deferBend,
+      labelVisible: !isInternalTie(positionedNotes, index),
+    }),
+  );
   positionedNotes.forEach(({ request: noteRequest, context, label }, index) => {
-    if (!isInternalTie(positionedNotes, index)) {
+    if (effectNotes[index].labelVisible) {
       renderNoteElement(noteRequest, context, label);
     }
   });
   renderNoteEffects({
     parent,
-    notes: positionedNotes.map(
-      ({
-        context,
-        width,
-        glyphWidth,
-        glyphHeight,
-        displayValue,
-        deferBend,
-      }) => ({
-        context,
-        width,
-        glyphWidth,
-        glyphHeight,
-        displayValue,
-        deferBend,
-      }),
-    ),
+    notes: effectNotes,
     classPrefix: config.classPrefix,
     spanY:
       bounds.y +
@@ -101,16 +99,7 @@ export function renderMeasureNotes(request: NotesRenderRequest) {
     nextRowMeasure: request.nextRowMeasure,
   });
 
-  return positionedNotes.map(
-    ({ context, width, glyphWidth, glyphHeight, displayValue, deferBend }) => ({
-      context,
-      width,
-      glyphWidth,
-      glyphHeight,
-      displayValue,
-      deferBend,
-    }),
-  );
+  return effectNotes;
 }
 
 function positionNote(request: NoteRenderRequest): PositionedNoteRender {

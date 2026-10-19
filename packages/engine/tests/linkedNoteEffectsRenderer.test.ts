@@ -21,6 +21,106 @@ function makeParent(): SVGGElement {
 }
 
 describe("linked note effects", () => {
+  it.each([
+    { sourceString: 1, targetString: 1 },
+    { sourceString: 1, targetString: 2 },
+  ])(
+    "keeps paired slides off the target fret after a hidden tie ($sourceString to $targetString)",
+    ({ sourceString, targetString }) => {
+      const parent = makeParent();
+      const source = makeNote({ string: sourceString, value: 10 });
+      const measure = makeMeasureFromVoices([
+        [
+          makeBeat({ notes: [source] }),
+          makeBeat({
+            notes: [
+              makeNote({
+                string: sourceString,
+                value: 10,
+                kind: "Tie",
+                effect: { ...source.effect, slides: ["OutDownwards"] },
+              }),
+            ],
+          }),
+          makeBeat({
+            notes: [
+              makeNote({
+                string: targetString,
+                value: 10,
+                effect: { ...source.effect, slides: ["IntoFromBelow"] },
+              }),
+            ],
+          }),
+        ],
+      ]);
+      renderMeasureNotes({
+        parent,
+        measure,
+        measureIndex: 12,
+        beatLayouts: [50, 130, 162].map((x, beatIndex) =>
+          makeBeatLayout({ x, beatIndex, width: 32 }),
+        ),
+        bounds: makeBounds({ width: 220, stringSpacing: 16 }),
+        stringCount: 6,
+        config: makeNoteConfig({ fontSize: 13 }),
+        metrics: makeNoteMetrics({ fontSize: 13, backgroundHeight: 15.6 }),
+      });
+      const target = parent.querySelector(
+        '.tab-note[data-beat-index="2"] .tab-note-bg',
+      )!;
+      const outgoing = parent
+        .querySelector('[data-slide-type="OutDownwards"] path')!
+        .getAttribute("d")!
+        .split(" ");
+      const incoming = parent
+        .querySelector('[data-slide-type="IntoFromBelow"] path')!
+        .getAttribute("d")!
+        .split(" ");
+      expect(parent.querySelector('.tab-note[data-beat-index="1"]')).toBeNull();
+      expect(Number(outgoing[1])).toBe(130 + constants.NOTE_EFFECT_NOTE_GAP);
+      expect(Number(outgoing[4])).toBeLessThan(
+        Number(target.getAttribute("x")) - constants.NOTE_EFFECT_NOTE_GAP,
+      );
+      expect(Number(incoming[4])).toBe(
+        Number(target.getAttribute("x")) - constants.NOTE_EFFECT_NOTE_GAP,
+      );
+      expect(Number(incoming[1]) - Number(outgoing[4])).toBeGreaterThanOrEqual(
+        constants.NOTE_EFFECT_SLIDE_PAIR_GAP,
+      );
+      expect(Number(outgoing[4])).toBeGreaterThan(Number(outgoing[1]));
+      expect(Number(incoming[4])).toBeGreaterThan(Number(incoming[1]));
+    },
+  );
+
+  it("omits a linked slide when the noteheads leave no forward space", () => {
+    const parent = makeParent();
+    renderMeasureNotes({
+      parent,
+      measure: makeMeasureFromVoices([
+        [
+          makeBeat({
+            notes: [
+              makeNote({
+                value: 10,
+                effect: { ...makeNote().effect, slides: ["ShiftSlideTo"] },
+              }),
+            ],
+          }),
+          makeBeat({ notes: [makeNote({ value: 12 })] }),
+        ],
+      ]),
+      measureIndex: 0,
+      beatLayouts: [50, 60].map((x, beatIndex) =>
+        makeBeatLayout({ x, beatIndex }),
+      ),
+      bounds: makeBounds(),
+      stringCount: 6,
+      config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
+    });
+    expect(parent.querySelector(".tab-note-effect--slide")).toBeNull();
+  });
+
   it("renders hammer-on and pull-off arcs between matching-string notes", () => {
     const hammer = makeNote({
       string: 1,

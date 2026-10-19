@@ -6,6 +6,7 @@ export type PositionedNote = {
   width: number;
   glyphWidth: number;
   glyphHeight: number;
+  labelVisible?: boolean;
   displayValue: number;
   deferBend: boolean;
 };
