@@ -20,7 +20,7 @@ export function renderRhythm(request: RhythmRenderRequest) {
     const beats = rhythmBeats(request, voiceIndex);
     const baseline =
       request.staffBottom +
-      constants.RHYTHM_STEM_LENGTH +
+      (request.stemLength ?? constants.RHYTHM_STEM_LENGTH) +
       voiceIndex * constants.RHYTHM_VOICE_OFFSET;
     const staffCenter = (request.staffTop + request.staffBottom) / 2;
 

@@ -4,15 +4,26 @@ import type { MeasureContext } from "../../types/UI/measureContext";
 import type { MeasureLayout } from "../../types/UI/tabLayout";
 import { clamp } from "../functions/clamp";
 import type { normalizeOptions } from "./tabsOptionsNormalizer";
+import { measureBeatMinimumWidths } from "./notesLayout";
+import { resolveNoteMetrics } from "./noteMetrics";
+import { shouldRenderTimeSignature } from "./measureContentRenderer";
+import { resolveMeasureBottomPadding } from "./measureVerticalLayout";
+import type { MeasureAnnotations } from "./measureVerticalLayout";
 
 type RendererConfig = ReturnType<typeof normalizeOptions>;
 
 export class LayoutCalculation {
   private track: Track;
   private config: RendererConfig;
-  constructor(track: Track, config: RendererConfig) {
+  private annotations: MeasureAnnotations;
+  constructor(
+    track: Track,
+    config: RendererConfig,
+    annotations: MeasureAnnotations = {},
+  ) {
     this.track = track;
     this.config = config;
+    this.annotations = annotations;
   }
 
   private calculateMeasureWidths(
@@ -29,8 +40,36 @@ export class LayoutCalculation {
       measureWeights.reduce((total, weight) => total + weight, 0) /
       Math.max(1, measureWeights.length);
 
-    return measureWeights.map((weight) =>
-      clamp(baseMeasureWidth * (weight / averageWeight), minWidth, maxWidth),
+    const metrics = resolveNoteMetrics(
+      this.config.notes,
+      clamp(
+        this.config.stringSpacing,
+        this.config.minStringSpacing,
+        this.config.maxStringSpacing,
+      ),
+    );
+
+    return measureWeights.map((weight, index) =>
+      Math.max(
+        clamp(baseMeasureWidth * (weight / averageWeight), minWidth, maxWidth),
+        constants.MEASURE_CONTENT_PADDING_START +
+          constants.MEASURE_CONTENT_PADDING_END +
+          (shouldRenderTimeSignature(
+            measures[index],
+            index === 0,
+            measures[index - 1]?.header,
+          )
+            ? constants.TIME_SIGNATURE_GUTTER
+            : 0) +
+          Math.max(
+            0,
+            ...measureBeatMinimumWidths(
+              measures[index].measure,
+              this.config.notes,
+              metrics,
+            ).map((widths) => widths.reduce((sum, width) => sum + width, 0)),
+          ),
+      ),
     );
   }
 
@@ -74,7 +113,12 @@ export class LayoutCalculation {
         widthGap = measureWidth + this.config.measureGap;
       }
 
-      if (currentRowWidth > 0 && currentRowWidth + widthGap > availableWidth) {
+      if (
+        currentRowWidth > 0 &&
+        (currentRowWidth + widthGap > availableWidth ||
+          (this.config.measuresPerRow !== undefined &&
+            currentRow.length >= this.config.measuresPerRow))
+      ) {
         measureRows.push(currentRow);
         currentRow = [];
         currentRowWidth = 0;
@@ -156,10 +200,15 @@ export class LayoutCalculation {
       ? constants.PERCUSSION_LINE_COUNT
       : this.track.strings.length || constants.DEFAULT_STRING_COUNT;
 
+    const bottomPadding = resolveMeasureBottomPadding(
+      this.track,
+      this.config,
+      this.annotations,
+    );
     const measureHeight: number =
       constants.MEASURE_TOP_PADDING +
       stringSpacing * (stringCount - 1) +
-      constants.MEASURE_BOTTOM_PADDING;
+      bottomPadding;
 
     const totalMeasureWidths: number[] = this.calculateMeasureWidths(
       measures,
@@ -192,6 +241,7 @@ export class LayoutCalculation {
       measureLayouts,
       stringSpacing,
       measureHeight,
+      bottomPadding,
       rowHeight: measureHeight + this.config.rowGap,
       contentWidth,
       measureGap: this.config.measureGap,

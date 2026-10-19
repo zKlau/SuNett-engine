@@ -12,6 +12,8 @@ describe("normalizeOptions", () => {
     expect(config.maxMeasureWidth).toBe(constants.MAX_MEASURE_WIDTH);
     expect(config.stringSpacing).toBe(constants.STRING_SPACING);
     expect(config.rowGap).toBe(constants.ROW_GAP);
+    expect(config.measureBottomPadding).toBe(constants.MEASURE_BOTTOM_PADDING);
+    expect(config.rhythmStemLength).toBe(constants.RHYTHM_STEM_LENGTH);
     expect(config.paddingX).toBe(constants.TAB_PADDING_X);
     expect(config.paddingY).toBe(constants.TAB_PADDING_Y);
   });
@@ -26,6 +28,23 @@ describe("normalizeOptions", () => {
     expect(config.minMeasureWidth).toBe(50);
     expect(config.rowGap).toBe(99);
     expect(config.trackIndex).toBe(2);
+  });
+
+  it("accepts compact rhythm sizing and guards against reversed stems", () => {
+    const compact = normalizeOptions({
+      measureBottomPadding: 56,
+      rhythmStemLength: 24,
+    });
+    expect(compact.measureBottomPadding).toBe(56);
+    expect(compact.rhythmStemLength).toBe(24);
+    const minimum = normalizeOptions({
+      measureBottomPadding: -10,
+      rhythmStemLength: -1,
+    });
+    expect(minimum.measureBottomPadding).toBe(0);
+    expect(minimum.rhythmStemLength).toBeGreaterThan(
+      constants.RHYTHM_STEM_START_OFFSET,
+    );
   });
 
   it("treats 0 as an explicit value, not a missing one", () => {

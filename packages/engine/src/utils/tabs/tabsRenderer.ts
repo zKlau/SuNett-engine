@@ -21,6 +21,8 @@ import { shouldReverseStrings } from "./stringOrder";
 import { stringTuningLabels } from "./stringTuning";
 import { noteStringOffset } from "../song/stringIndex";
 import type { Theme } from "../../theme/theme";
+import { resolveLabelFontSize } from "../../theme/theme";
+import { buildLyricsByMeasure } from "./lyricsLayout";
 import type { ThemeLike } from "../../theme/resolveTheme";
 import { coerceTheme } from "../../theme/resolveTheme";
 
@@ -116,7 +118,15 @@ export class TabsRenderer {
       theme: this.currentTheme,
       config,
       measures,
-      layoutCalculation: new LayoutCalculation(track, config),
+      layoutCalculation: new LayoutCalculation(track, config, {
+        lyricsByMeasure: buildLyricsByMeasure(
+          this.song,
+          track,
+          resolvedTrackIndex,
+        ),
+        labelFontSize: resolveLabelFontSize(this.currentTheme),
+        stringOffset: noteStringOffset(this.song, track),
+      }),
       timeline,
       interaction: this.interaction,
       reverseStrings,

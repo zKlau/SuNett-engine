@@ -8,6 +8,7 @@ export type RhythmRenderRequest = {
   beatLayouts: BeatLayout[];
   staffTop: number;
   staffBottom: number;
+  stemLength?: number;
 };
 
 export type RhythmBeat = {

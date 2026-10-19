@@ -86,7 +86,9 @@ export function findPreviousMeasureNote(
 export function noteEdgeX(note: PositionedNote, direction: -1 | 1): number {
   return (
     note.context.x +
-    direction * (note.glyphWidth / 2 + constants.NOTE_EFFECT_NOTE_GAP)
+    direction *
+      ((note.labelVisible === false ? 0 : note.glyphWidth / 2) +
+        constants.NOTE_EFFECT_NOTE_GAP)
   );
 }
 

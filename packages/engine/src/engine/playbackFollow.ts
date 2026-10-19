@@ -44,9 +44,8 @@ type Span = { top: number; bottom: number };
 const DEFAULT_MARGIN = 48;
 
 /**
- * Scrolls the cursor's row into view whenever it changes row. Row changes are
- * detected from the cursor's tab-space `y` (constant within a row), so no
- * layout is forced per frame - only on the rare row change.
+ * Scrolls vertically when the cursor changes row and horizontally when a
+ * dense bar extends beyond its scrollable container.
  * @returns A function that detaches the follow behavior.
  */
 export function attachPlaybackFollow(
@@ -63,6 +62,7 @@ export function attachPlaybackFollow(
     if (!geometry) {
       return;
     }
+    followHorizontal(source, margin);
     if (geometry.y === lastRowY) {
       return;
     }
@@ -89,6 +89,35 @@ export function attachPlaybackFollow(
   };
 
   return source.on("playbackPositionChanged", follow);
+}
+
+function followHorizontal(source: PlaybackFollowSource, margin: number): void {
+  const tab = source.getTabElement();
+  const view = tab?.ownerDocument.defaultView;
+  let node = tab?.parentElement;
+  while (node && view) {
+    const overflow = view.getComputedStyle(node).overflowX;
+    if (
+      (overflow === "auto" || overflow === "scroll") &&
+      node.scrollWidth > node.clientWidth
+    ) {
+      const cursor = source.getCursorRect();
+      if (!cursor) {
+        return;
+      }
+      const bounds = node.getBoundingClientRect();
+      const inset = Math.min(margin, node.clientWidth / 4);
+      const delta =
+        cursor.left < bounds.left + inset
+          ? cursor.left - bounds.left - inset
+          : cursor.right > bounds.right - inset
+            ? cursor.right - bounds.right + inset
+            : 0;
+      node.scrollLeft += delta;
+      return;
+    }
+    node = node.parentElement;
+  }
 }
 
 /**

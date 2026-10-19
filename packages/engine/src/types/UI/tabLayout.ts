@@ -10,6 +10,7 @@ export type TabLayout = {
   measureLayouts: MeasureLayout[];
   stringSpacing: number;
   measureHeight: number;
+  bottomPadding?: number;
   rowHeight: number;
   contentWidth: number;
   measureGap: number;

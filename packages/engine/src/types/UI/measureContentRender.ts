@@ -26,4 +26,5 @@ export type MeasureContentRenderRequest = {
   lyrics: LyricSyllable[];
   rowRightX?: number;
   labelFontSize?: number;
+  rhythmStemLength?: number;
 };

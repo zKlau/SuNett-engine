@@ -5,7 +5,9 @@ import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
 import type { BeatLayout } from "../../types/UI/noteLayout";
 import { renderMeasureNotation } from "./measureNotationRenderer";
-import { calculateBeatLayouts } from "./notesLayout";
+import { calculateBeatLayouts, measureBeatMinimumWidths } from "./notesLayout";
+import type { NoteMetrics } from "../../types/UI/noteMetrics";
+import type { NoteRenderConfig } from "../../types/UI/notesRender";
 import { renderMeasureNotes } from "./notesRenderer";
 import { renderRhythm } from "./rhythmRenderer";
 
@@ -13,6 +15,7 @@ export function calculateMeasureBeatLayouts(
   measureContext: MeasureContext,
   bounds: MeasureBounds,
   showTimeSignature: boolean,
+  sizing?: { config: NoteRenderConfig; metrics: NoteMetrics },
 ): BeatLayout[] {
   const startPadding = Math.min(
     constants.MEASURE_CONTENT_PADDING_START +
@@ -29,6 +32,13 @@ export function calculateMeasureBeatLayouts(
     measureContext.measure,
     bounds.x + startPadding,
     contentWidth,
+    sizing
+      ? measureBeatMinimumWidths(
+          measureContext.measure,
+          sizing.config,
+          sizing.metrics,
+        )
+      : undefined,
   );
 }
 
@@ -37,6 +47,7 @@ export function renderMeasureContent(request: MeasureContentRenderRequest) {
     request.measureContext,
     request.bounds,
     request.showTimeSignature,
+    { config: request.noteConfig, metrics: request.noteMetrics },
   );
   const positionedNotes = renderMeasureNotes({
     parent: request.notesParent,
@@ -65,6 +76,7 @@ export function renderMeasureContent(request: MeasureContentRenderRequest) {
     beatLayouts,
     staffTop,
     staffBottom,
+    stemLength: request.rhythmStemLength,
   });
   renderMeasureNotation({
     parent: request.notationParent,

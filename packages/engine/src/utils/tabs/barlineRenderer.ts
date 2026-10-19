@@ -19,7 +19,10 @@ export function renderBarlines(context: BarlineRenderContext): void {
   const { parent, measureContext, bounds, isRowStart, isFirstMeasure } =
     context;
   const top = bounds.y + constants.MEASURE_TOP_PADDING;
-  const bottom = bounds.y + bounds.height - constants.MEASURE_BOTTOM_PADDING;
+  const bottom =
+    bounds.y +
+    bounds.height -
+    (bounds.bottomPadding ?? constants.MEASURE_BOTTOM_PADDING);
   const leftX = bounds.x;
   const rightX = bounds.x + bounds.width;
 

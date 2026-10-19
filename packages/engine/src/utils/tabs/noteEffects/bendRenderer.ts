@@ -27,10 +27,16 @@ export function renderBend(
   const group = createEffectGroup(state, "bend");
   const extendsThroughBeat = Boolean(inheritedBend);
   const points = bendPoints(state, bend, extendsThroughBeat);
-  const path = createEffectPath(bendPath(points, extendsThroughBeat));
-  const arrow = createBendArrow(points);
+  const path = createEffectPath(bendPath(points));
+  const arrows = points.flatMap((point, index) => {
+    const previous = points[index - 1];
+    if (!previous || point.y === previous.y) {
+      return [];
+    }
+    return [createBendArrow(point, point.y < previous.y)];
+  });
   const labelPoint = points.reduce((highest, point) => {
-    return point.y <= highest.y ? point : highest;
+    return point.y < highest.y ? point : highest;
   }, points[0]);
   const arrowHeight =
     BravuraNotationGlyphs.BEND_ARROW_UP.height *
@@ -44,7 +50,7 @@ export function renderBend(
 
   group.setAttribute("data-bend-kind", bend.kind);
   group.setAttribute("data-bend-value", `${bend.value}`);
-  group.append(path, arrow, label);
+  group.append(path, ...arrows, label);
   state.parent.append(group);
 }
 
@@ -73,9 +79,10 @@ function bendPoints(
   const peak = source.reduce((highest, point) => {
     return Math.abs(point.value) > Math.abs(highest.value) ? point : highest;
   }, source[0]);
-  const renderedSource = extendsThroughBeat
-    ? [source[0], { ...peak, position: maxPosition }]
-    : source;
+  const renderedSource =
+    extendsThroughBeat && bend.kind === "Bend" && source[0].value === 0
+      ? [source[0], { ...peak, position: maxPosition }]
+      : source;
   const maxValue = Math.max(1, ...source.map((point) => Math.abs(point.value)));
   const effectWidth = extendsThroughBeat
     ? Math.max(
@@ -84,43 +91,55 @@ function bendPoints(
       )
     : Math.max(
         constants.NOTE_EFFECT_BEND_MIN_WIDTH,
-        Math.min(constants.NOTE_EFFECT_BEND_WIDTH, width / 2),
+        Math.min(
+          constants.NOTE_EFFECT_BEND_WIDTH,
+          width / 2 -
+            state.entry.glyphWidth / 2 -
+            constants.NOTE_EFFECT_NOTE_GAP -
+            constants.NOTE_EFFECT_BEND_END_GAP,
+        ),
       );
   const startX = noteEdgeX(state.entry, 1);
   const baseY =
     context.y - state.entry.glyphHeight / 2 - constants.NOTE_EFFECT_NOTE_GAP;
 
-  return renderedSource.map((point) => ({
+  const simplified = renderedSource.filter((point, index, all) => {
+    if (index === 0 || index === all.length - 1) {
+      return true;
+    }
+    const previous = all[index - 1];
+    const next = all[index + 1];
+    return (
+      Math.abs(
+        (point.value - previous.value) * (next.position - point.position) -
+          (next.value - point.value) * (point.position - previous.position),
+      ) > constants.NOTE_EFFECT_BEND_POINT_EPSILON
+    );
+  });
+  const points = simplified.map((point) => ({
     x: startX + (point.position / maxPosition) * effectWidth,
     y: baseY - (point.value / maxValue) * constants.NOTE_EFFECT_BEND_HEIGHT,
   }));
+  if (points[0].y !== baseY) {
+    points.unshift({ x: points[0].x, y: baseY });
+  }
+  return points;
 }
 
-function bendPath(points: Point[], endsVertically: boolean): string {
-  if (endsVertically && points.length === 2) {
-    const [start, end] = points;
-    const width = end.x - start.x;
-    const height = start.y - end.y;
-    const controlRatio = constants.NOTE_EFFECT_BEND_CURVE_CONTROL_RATIO;
-    return `M ${start.x} ${start.y} C ${
-      start.x + width * controlRatio
-    } ${start.y} ${end.x} ${end.y + height * controlRatio} ${end.x} ${end.y}`;
-  }
-
+function bendPath(points: Point[]): string {
   return points.slice(1).reduce((path, point, index) => {
     const previous = points[index];
-    const middleX = (previous.x + point.x) / 2;
-    return `${path} C ${middleX} ${previous.y} ${middleX} ${point.y} ${point.x} ${point.y}`;
+    if (point.y === previous.y || point.x === previous.x) {
+      return `${path} L ${point.x} ${point.y}`;
+    }
+    const width = point.x - previous.x;
+    const height = previous.y - point.y;
+    const controlRatio = constants.NOTE_EFFECT_BEND_CURVE_CONTROL_RATIO;
+    return `${path} C ${previous.x + width * controlRatio} ${previous.y} ${point.x} ${point.y + height * controlRatio} ${point.x} ${point.y}`;
   }, `M ${points[0].x} ${points[0].y}`);
 }
 
-function createBendArrow(points: Point[]): SVGPathElement {
-  const end = points[points.length - 1];
-  const previous = points[points.length - 2] ?? {
-    x: end.x,
-    y: end.y + 1,
-  };
-  const pointsUp = end.y <= previous.y;
+function createBendArrow(end: Point, pointsUp: boolean): SVGPathElement {
   const glyph = pointsUp
     ? BravuraNotationGlyphs.BEND_ARROW_UP
     : BravuraNotationGlyphs.BEND_ARROW_DOWN;
@@ -135,15 +154,22 @@ function createBendArrow(points: Point[]): SVGPathElement {
 }
 
 function bendLabel(bend: BendEffect): string {
-  const semitones = Math.abs(bend.value) / 100;
-  if (Math.abs(semitones - 0.5) < 0.01) {
+  const peak = Math.max(
+    0,
+    ...bend.points.map((point) => Math.abs(point.value)),
+  );
+  const tones =
+    peak > 0
+      ? peak / (4 * (bend.semitone_length || 1))
+      : Math.abs(bend.value) / 100;
+  if (Math.abs(tones - 0.5) < 0.01) {
     return "1/2";
   }
-  if (Math.abs(semitones - 1) < 0.01) {
+  if (Math.abs(tones - 1) < 0.01) {
     return "full";
   }
-  if (semitones > 0) {
-    return `${Number(semitones.toFixed(2))}`;
+  if (tones > 0) {
+    return `${Number(tones.toFixed(2))}`;
   }
   return "B";
 }

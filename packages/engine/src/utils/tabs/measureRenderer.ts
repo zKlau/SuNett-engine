@@ -66,6 +66,7 @@ export function renderMeasure(
     y,
     width,
     height: layout.measureHeight,
+    bottomPadding: layout.bottomPadding,
     stringSpacing: layout.stringSpacing,
     isLastMeasure,
   };
@@ -137,6 +138,7 @@ export function renderMeasure(
     lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
     rowRightX,
     labelFontSize: pass.labelFontSize,
+    rhythmStemLength: pass.config.rhythmStemLength,
   });
 
   measureGroup.append(

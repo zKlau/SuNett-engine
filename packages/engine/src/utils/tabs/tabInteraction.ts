@@ -185,7 +185,8 @@ function buildContext(input: InteractionUpdate): SelectionLayoutContext {
     measures,
     measureHeight: input.layout.measureHeight,
     topPadding: constants.MEASURE_TOP_PADDING,
-    bottomPadding: constants.MEASURE_BOTTOM_PADDING,
+    bottomPadding:
+      input.layout.bottomPadding ?? constants.MEASURE_BOTTOM_PADDING,
     labelOffset: constants.SELECTION_LABEL_OFFSET,
     minWidth: constants.SELECTION_MIN_WIDTH,
   };
