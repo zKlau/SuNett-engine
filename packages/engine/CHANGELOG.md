@@ -1,5 +1,13 @@
 # @zklau/sunett-engine
 
+## 1.2.1
+
+### Patch Changes
+
+- af5db44: Allow shorter rhythm stems and smaller measure footers. Preserve staff-aligned barlines and playback cursors, and reserve clearance for tuplets, multiple voices, bends, and lyrics when compact rows are requested.
+- af5db44: Preserve readable fret spacing at narrow widths, honor measures per row, follow dense bars horizontally during playback, and render smooth bend curves with labels derived from normalized pitch points.
+- af5db44: Reserve space for slide marks and constrain their paths to the gap between notes. Treat hidden tied fret labels as invisible anchors so outgoing and incoming slides cannot cross the next fret number.
+
 ## 1.2.0
 
 ### Minor Changes
