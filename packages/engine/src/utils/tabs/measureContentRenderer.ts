@@ -76,6 +76,7 @@ export function renderMeasureContent(request: MeasureContentRenderRequest) {
     beatLayouts,
     staffTop,
     staffBottom,
+    stemLength: request.rhythmStemLength,
   });
   renderMeasureNotation({
     parent: request.notationParent,

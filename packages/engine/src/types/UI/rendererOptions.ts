@@ -37,6 +37,10 @@ export type TabRendererOptions = {
   hideEmptyMeasures?: boolean;
   measureGap?: number;
   rowGap?: number;
+  /** Preferred space below the staff; notation clearance can increase it. */
+  measureBottomPadding?: number;
+  /** Distance from the bottom string to the rhythm beam baseline, in pixels. */
+  rhythmStemLength?: number;
   paddingX?: number;
   paddingY?: number;
   /**

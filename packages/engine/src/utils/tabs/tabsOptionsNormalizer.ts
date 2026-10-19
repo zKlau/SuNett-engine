@@ -46,6 +46,14 @@ export function normalizeOptions(
     measureGap: options.measureGap ?? constants.MEASURE_GAP,
 
     rowGap: options.rowGap ?? sizing?.rowSpacing ?? constants.ROW_GAP,
+    measureBottomPadding: Math.max(
+      0,
+      options.measureBottomPadding ?? constants.MEASURE_BOTTOM_PADDING,
+    ),
+    rhythmStemLength: Math.max(
+      constants.RHYTHM_STEM_START_OFFSET + constants.RHYTHM_MIN_STEM_LENGTH,
+      options.rhythmStemLength ?? constants.RHYTHM_STEM_LENGTH,
+    ),
 
     paddingX: options.paddingX ?? constants.TAB_PADDING_X,
 

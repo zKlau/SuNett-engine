@@ -14,6 +14,8 @@ export type NormalizedRendererOptions = {
   hideEmptyMeasures: boolean;
   measureGap: number;
   rowGap: number;
+  measureBottomPadding: number;
+  rhythmStemLength: number;
   paddingX: number;
   paddingY: number;
   virtualize: boolean;

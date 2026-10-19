@@ -3,6 +3,7 @@ export type MeasureBounds = {
   y: number;
   width: number;
   height: number;
+  bottomPadding?: number;
   stringSpacing: number;
   isLastMeasure: boolean;
 };

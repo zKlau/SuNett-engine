@@ -7,15 +7,23 @@ import type { normalizeOptions } from "./tabsOptionsNormalizer";
 import { measureBeatMinimumWidths } from "./notesLayout";
 import { resolveNoteMetrics } from "./noteMetrics";
 import { shouldRenderTimeSignature } from "./measureContentRenderer";
+import { resolveMeasureBottomPadding } from "./measureVerticalLayout";
+import type { MeasureAnnotations } from "./measureVerticalLayout";
 
 type RendererConfig = ReturnType<typeof normalizeOptions>;
 
 export class LayoutCalculation {
   private track: Track;
   private config: RendererConfig;
-  constructor(track: Track, config: RendererConfig) {
+  private annotations: MeasureAnnotations;
+  constructor(
+    track: Track,
+    config: RendererConfig,
+    annotations: MeasureAnnotations = {},
+  ) {
     this.track = track;
     this.config = config;
+    this.annotations = annotations;
   }
 
   private calculateMeasureWidths(
@@ -192,10 +200,15 @@ export class LayoutCalculation {
       ? constants.PERCUSSION_LINE_COUNT
       : this.track.strings.length || constants.DEFAULT_STRING_COUNT;
 
+    const bottomPadding = resolveMeasureBottomPadding(
+      this.track,
+      this.config,
+      this.annotations,
+    );
     const measureHeight: number =
       constants.MEASURE_TOP_PADDING +
       stringSpacing * (stringCount - 1) +
-      constants.MEASURE_BOTTOM_PADDING;
+      bottomPadding;
 
     const totalMeasureWidths: number[] = this.calculateMeasureWidths(
       measures,
@@ -228,6 +241,7 @@ export class LayoutCalculation {
       measureLayouts,
       stringSpacing,
       measureHeight,
+      bottomPadding,
       rowHeight: measureHeight + this.config.rowGap,
       contentWidth,
       measureGap: this.config.measureGap,

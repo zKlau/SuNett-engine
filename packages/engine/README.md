@@ -70,6 +70,18 @@ Keep the SVG at its rendered width inside a scrollable wrapper so a dense bar ca
 
 `engine.enableAutoScroll()` also follows the cursor horizontally within this wrapper.
 
+For tighter vertical spacing, shorten the rhythm stems and reduce the preferred space below the staff:
+
+```ts
+engine.render(0, {
+  rhythmStemLength: 28,
+  measureBottomPadding: 64,
+  rowGap: 12,
+});
+```
+
+The footer expands when tuplets, additional voices, bends, or lyrics need more room. Barline and cursor heights continue to match the strings. Omitting these options preserves the existing sizing.
+
 ## Virtualization
 
 By default only the measures near the viewport are drawn, added and removed as the tab scrolls, so long songs stay fast. Turn it off to draw every measure up front:
