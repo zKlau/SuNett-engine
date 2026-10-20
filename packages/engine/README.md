@@ -70,17 +70,35 @@ Keep the SVG at its rendered width inside a scrollable wrapper so a dense bar ca
 
 `engine.enableAutoScroll()` also follows the cursor horizontally within this wrapper.
 
-For tighter vertical spacing, shorten the rhythm stems and reduce the preferred space below the staff:
+Compact sizing is the engine default. It follows the tab container width and updates on resize:
+
+| Setting              | Above 760 px | 760 px and below |
+| -------------------- | ------------ | ---------------- |
+| String spacing       | 18 px        | 16 px            |
+| Derived note font    | 14 px        | 13 px            |
+| Rhythm stem baseline | 28 px        | 24 px            |
+| Preferred footer     | 64 px        | 56 px            |
+| Row gap              | -58 px       | -62 px           |
+
+The row gaps include the approved 70 px reduction from the former application presets (12 px desktop and 8 px mobile). They reduce the unused space around each staff; the footer still expands when tuplets, additional voices, bends, vibrato, or lyrics need clearance. Barline and cursor heights match the strings.
+
+Renderer options override theme sizing, and theme sizing overrides engine defaults. Consumers upgrading from application-specific presets should remove their old `stringSpacing`, `notes.fontSize`, `rowGap`, `rhythmStemLength`, and `measureBottomPadding` overrides to adopt the defaults. For example:
+
+```ts
+engine.render(0, { target: document.querySelector("svg")! });
+```
+
+To retain older sizing explicitly:
 
 ```ts
 engine.render(0, {
-  rhythmStemLength: 28,
-  measureBottomPadding: 64,
-  rowGap: 12,
+  stringSpacing: 20,
+  notes: { fontSize: 12.5 },
+  rhythmStemLength: 42,
+  measureBottomPadding: 110,
+  rowGap: 34,
 });
 ```
-
-The footer expands when tuplets, additional voices, bends, or lyrics need more room. Barline and cursor heights continue to match the strings. Omitting these options preserves the existing sizing.
 
 ## Virtualization
 

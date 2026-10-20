@@ -9,7 +9,6 @@ import type {
 import type { Selection } from "../../types/selection";
 
 import { normalizeOptions } from "./tabsOptionsNormalizer";
-import { LayoutCalculation } from "./layoutCalculation";
 import { buildSongTimeline } from "../timing/measureTimeline";
 import type { CursorGeometry } from "../../playback/cursorGeometry";
 import type { SnapMode } from "../timing/snapTime";
@@ -118,7 +117,8 @@ export class TabsRenderer {
       theme: this.currentTheme,
       config,
       measures,
-      layoutCalculation: new LayoutCalculation(track, config, {
+      options,
+      layoutAnnotations: {
         lyricsByMeasure: buildLyricsByMeasure(
           this.song,
           track,
@@ -126,7 +126,7 @@ export class TabsRenderer {
         ),
         labelFontSize: resolveLabelFontSize(this.currentTheme),
         stringOffset: noteStringOffset(this.song, track),
-      }),
+      },
       timeline,
       interaction: this.interaction,
       reverseStrings,

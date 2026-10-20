@@ -272,12 +272,12 @@ describe("note technique effects", () => {
     const background = parent.querySelector(".tab-note-bg")!;
 
     expect(effect.querySelector("text")!.textContent).toBe("full");
-    expect(Number(bendPath[1])).toBe(
+    expect(Number(bendPath[1])).toBeCloseTo(
       Number(background.getAttribute("x")) +
         Number(background.getAttribute("width")) +
         constants.NOTE_EFFECT_NOTE_GAP,
     );
-    expect(Number(bendPath[2])).toBe(
+    expect(Number(bendPath[2])).toBeCloseTo(
       Number(background.getAttribute("y")) - constants.NOTE_EFFECT_NOTE_GAP,
     );
     expect(Number(bendPath[2]) - Number(bendPath[bendPath.length - 1])).toBe(

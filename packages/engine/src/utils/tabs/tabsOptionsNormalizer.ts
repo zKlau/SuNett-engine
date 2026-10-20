@@ -7,13 +7,18 @@ import { TabsRendererConstants as constants } from "../../constants/tabRendererC
 export function normalizeOptions(
   options: TabRendererOptions,
   sizing?: ThemeSizing,
+  width?: number,
 ): NormalizedRendererOptions {
+  const mobile =
+    width !== undefined && width <= constants.COMPACT_MOBILE_MAX_WIDTH;
   return {
     trackIndex: options.trackIndex ?? 0,
     measuresPerRow:
       options.measuresPerRow !== undefined
         ? Math.max(1, options.measuresPerRow)
-        : undefined,
+        : mobile
+          ? 1
+          : undefined,
     minMeasureWidth: options.minMeasureWidth ?? constants.MIN_MEASURE_WIDTH,
 
     defaultMeasureWidth:
@@ -29,7 +34,7 @@ export function normalizeOptions(
     stringSpacing:
       options.stringSpacing ??
       sizing?.stringSpacing ??
-      constants.STRING_SPACING,
+      (mobile ? constants.MOBILE_STRING_SPACING : constants.STRING_SPACING),
 
     maxStringSpacing:
       options.maxStringSpacing ??
@@ -45,17 +50,28 @@ export function normalizeOptions(
 
     measureGap: options.measureGap ?? constants.MEASURE_GAP,
 
-    rowGap: options.rowGap ?? sizing?.rowSpacing ?? constants.ROW_GAP,
+    rowGap:
+      options.rowGap ??
+      sizing?.rowSpacing ??
+      (mobile ? constants.MOBILE_ROW_GAP : constants.ROW_GAP),
     measureBottomPadding: Math.max(
       0,
-      options.measureBottomPadding ?? constants.MEASURE_BOTTOM_PADDING,
+      options.measureBottomPadding ??
+        (mobile
+          ? constants.MOBILE_MEASURE_BOTTOM_PADDING
+          : constants.MEASURE_BOTTOM_PADDING),
     ),
     rhythmStemLength: Math.max(
       constants.RHYTHM_STEM_START_OFFSET + constants.RHYTHM_MIN_STEM_LENGTH,
-      options.rhythmStemLength ?? constants.RHYTHM_STEM_LENGTH,
+      options.rhythmStemLength ??
+        (mobile
+          ? constants.MOBILE_RHYTHM_STEM_LENGTH
+          : constants.RHYTHM_STEM_LENGTH),
     ),
 
-    paddingX: options.paddingX ?? constants.TAB_PADDING_X,
+    paddingX:
+      options.paddingX ??
+      (mobile ? constants.MOBILE_PADDING_X : constants.TAB_PADDING_X),
 
     paddingY: options.paddingY ?? constants.TAB_PADDING_Y,
 
