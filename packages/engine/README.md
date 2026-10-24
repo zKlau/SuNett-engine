@@ -309,7 +309,7 @@ Or set the variables in your own CSS:
 | `--sunett-font-note`       | `fonts.noteFamily`  | `ui-monospace, monospace` |
 | `--sunett-font-label`      | `fonts.labelFamily` | `system-ui, sans-serif`   |
 | `--sunett-font-label-size` | `fonts.labelSize`   | `11px`                    |
-| `--sunett-string-opacity`  | `opacity.string`    | `0.68`                    |
+| `--sunett-string-opacity`  | `opacity.string`    | `0.35`                    |
 | `--sunett-barline-opacity` | `opacity.barline`   | `0.68`                    |
 | `--sunett-string-width`    | `lines.stringWidth` | `1`                       |
 
