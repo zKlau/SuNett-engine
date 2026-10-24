@@ -88,14 +88,14 @@ describe("compact rhythm layout", () => {
       renderer.setCursor(100);
       expect(renderer.getCursorGeometry()!.height).toBe(staffHeight);
     }
-    assertLayout(90, 14, 20, 176);
+    assertLayout(80, 13, 18, 150);
     width = 390;
     renderer.rerender();
-    assertLayout(80, 13, 16, 154);
+    assertLayout(70, 11, 14, 135);
     expect(svg.querySelectorAll('.measure[y="18"]')).toHaveLength(1);
     width = 1440;
     renderer.rerender();
-    assertLayout(90, 14, 20, 176);
+    assertLayout(80, 13, 18, 150);
     renderer.dispose();
   });
 

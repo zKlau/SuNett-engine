@@ -79,7 +79,7 @@ describe("renderRhythm", () => {
     expect(parent.querySelectorAll(".rhythm-rest")).toHaveLength(1);
     expect(parent.querySelectorAll(".rhythm-beam")).toHaveLength(1);
     expect(parent.querySelector(".rhythm-beam")!.getAttribute("d")).toBe(
-      "M 40 128 H 120",
+      "M 40 126 H 120",
     );
   });
 
@@ -109,9 +109,9 @@ describe("renderRhythm", () => {
       Array.from(parent.querySelectorAll(".rhythm-beam")).map((beam) => {
         return beam.getAttribute("d");
       }),
-    ).toEqual(["M 20 128 H 60", "M 100 128 H 160"]);
+    ).toEqual(["M 20 126 H 60", "M 100 126 H 160"]);
     expect(parent.querySelector(".rhythm-flag")!.getAttribute("d")).toBe(
-      `M 200 128 H ${200 + constants.RHYTHM_FLAG_WIDTH}`,
+      `M 200 126 H ${200 + constants.RHYTHM_FLAG_WIDTH}`,
     );
   });
 
@@ -172,17 +172,17 @@ describe("renderRhythm", () => {
         return beam.getAttribute("d");
       }),
     ).toEqual([
-      "M 40 128 H 120",
-      "M 40 133 H 80",
-      "M 80 133 H 120",
-      "M 200 128 H 240",
+      "M 40 126 H 120",
+      "M 40 131 H 80",
+      "M 80 131 H 120",
+      "M 200 126 H 240",
     ]);
     expect(parent.querySelector(".rhythm-flag")!.getAttribute("d")).toBe(
-      `M 160 128 H ${160 + constants.RHYTHM_FLAG_WIDTH}`,
+      `M 160 126 H ${160 + constants.RHYTHM_FLAG_WIDTH}`,
     );
     expect(
       parent.querySelector(".rhythm-tuplet-bracket")!.getAttribute("d"),
-    ).toContain("M 32 139 V 146");
+    ).toContain("M 32 137 V 144");
     expect(parent.querySelector(".rhythm-tuplet-number")!.textContent).toBe(
       "3",
     );
@@ -207,7 +207,7 @@ describe("renderRhythm", () => {
       expect(parent.querySelectorAll(".rhythm-stem")).toHaveLength(1);
       expect(parent.querySelectorAll(".rhythm-flag")).toHaveLength(1);
       expect(parent.querySelector(".rhythm-flag")!.getAttribute("d")).toBe(
-        `M 50 128 H ${50 + constants.RHYTHM_FLAG_WIDTH}`,
+        `M 50 126 H ${50 + constants.RHYTHM_FLAG_WIDTH}`,
       );
     },
   );
