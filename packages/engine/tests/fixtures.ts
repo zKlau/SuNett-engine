@@ -138,7 +138,7 @@ export function makeNoteConfig(overrides: TabNoteOptions = {}) {
   return normalizeOptions({ notes: overrides }).notes;
 }
 
-/** Note sizes at the default string spacing: 10px text on a 12px background. */
+/** Note sizes derived from the engine default string spacing. */
 export function makeNoteMetrics(overrides: TabNoteOptions = {}) {
   return resolveNoteMetrics(overrides, constants.STRING_SPACING);
 }

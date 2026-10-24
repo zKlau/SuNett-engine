@@ -2,6 +2,28 @@ import { TabsRendererConstants as constants } from "../src/constants/tabRenderer
 import { normalizeOptions } from "../src/utils/tabs/tabsOptionsNormalizer";
 
 describe("normalizeOptions", () => {
+  it("preserves explicit and theme sizing overrides on narrow containers", () => {
+    const options = {
+      stringSpacing: 22,
+      rowGap: 14,
+      rhythmStemLength: 40,
+      measureBottomPadding: 90,
+      paddingX: 20,
+      measuresPerRow: 2,
+      notes: { fontSize: 15 },
+    };
+    expect(normalizeOptions(options, undefined, 390)).toEqual(
+      normalizeOptions(options, undefined, 1440),
+    );
+    const themed = normalizeOptions(
+      {},
+      { stringSpacing: 21, rowSpacing: 16, noteFontSize: 17 },
+      390,
+    );
+    expect(themed.stringSpacing).toBe(21);
+    expect(themed.rowGap).toBe(16);
+    expect(themed.notes.fontSize).toBe(17);
+  });
   it("falls back to constants when nothing is provided", () => {
     const config = normalizeOptions({});
 

@@ -7,13 +7,17 @@ import { TabsRendererConstants as constants } from "../../constants/tabRendererC
 export function normalizeOptions(
   options: TabRendererOptions,
   sizing?: ThemeSizing,
+  width?: number,
 ): NormalizedRendererOptions {
+  const defaults = resolveLayoutDefaults(width);
+  let measuresPerRow = defaults.measuresPerRow;
+  if (options.measuresPerRow !== undefined) {
+    measuresPerRow = Math.max(1, options.measuresPerRow);
+  }
+
   return {
     trackIndex: options.trackIndex ?? 0,
-    measuresPerRow:
-      options.measuresPerRow !== undefined
-        ? Math.max(1, options.measuresPerRow)
-        : undefined,
+    measuresPerRow,
     minMeasureWidth: options.minMeasureWidth ?? constants.MIN_MEASURE_WIDTH,
 
     defaultMeasureWidth:
@@ -29,7 +33,7 @@ export function normalizeOptions(
     stringSpacing:
       options.stringSpacing ??
       sizing?.stringSpacing ??
-      constants.STRING_SPACING,
+      defaults.stringSpacing,
 
     maxStringSpacing:
       options.maxStringSpacing ??
@@ -45,17 +49,20 @@ export function normalizeOptions(
 
     measureGap: options.measureGap ?? constants.MEASURE_GAP,
 
-    rowGap: options.rowGap ?? sizing?.rowSpacing ?? constants.ROW_GAP,
+    rowGap:
+      options.rowGap ??
+      sizing?.rowSpacing ??
+      defaults.rowGap,
     measureBottomPadding: Math.max(
       0,
-      options.measureBottomPadding ?? constants.MEASURE_BOTTOM_PADDING,
+      options.measureBottomPadding ?? defaults.measureBottomPadding,
     ),
     rhythmStemLength: Math.max(
       constants.RHYTHM_STEM_START_OFFSET + constants.RHYTHM_MIN_STEM_LENGTH,
-      options.rhythmStemLength ?? constants.RHYTHM_STEM_LENGTH,
+      options.rhythmStemLength ?? defaults.rhythmStemLength,
     ),
 
-    paddingX: options.paddingX ?? constants.TAB_PADDING_X,
+    paddingX: options.paddingX ?? defaults.paddingX,
 
     paddingY: options.paddingY ?? constants.TAB_PADDING_Y,
 
@@ -66,6 +73,28 @@ export function normalizeOptions(
     scrollContainer: options.scrollContainer,
 
     notes: normalizeNoteOptions(options.notes ?? {}, sizing),
+  };
+}
+
+function resolveLayoutDefaults(width?: number) {
+  if (width !== undefined && width <= constants.COMPACT_MOBILE_MAX_WIDTH) {
+    return {
+      measuresPerRow: 1,
+      stringSpacing: constants.MOBILE_STRING_SPACING,
+      rowGap: constants.MOBILE_ROW_GAP,
+      measureBottomPadding: constants.MOBILE_MEASURE_BOTTOM_PADDING,
+      rhythmStemLength: constants.MOBILE_RHYTHM_STEM_LENGTH,
+      paddingX: constants.MOBILE_PADDING_X,
+    };
+  }
+
+  return {
+    measuresPerRow: undefined,
+    stringSpacing: constants.STRING_SPACING,
+    rowGap: constants.ROW_GAP,
+    measureBottomPadding: constants.MEASURE_BOTTOM_PADDING,
+    rhythmStemLength: constants.RHYTHM_STEM_LENGTH,
+    paddingX: constants.TAB_PADDING_X,
   };
 }
 

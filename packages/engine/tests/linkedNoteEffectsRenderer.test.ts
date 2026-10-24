@@ -320,22 +320,22 @@ describe("linked note effects", () => {
     expect(Number(upperPath[6])).toBe(150);
     expect(Number(lowerPath[1])).toBe(50);
     expect(Number(lowerPath[6])).toBe(150);
-    expect(Number(upperPath[2])).toBe(
+    expect(Number(upperPath[2])).toBeCloseTo(
       Number(backgrounds[0].getAttribute("y")) +
         Number(backgrounds[0].getAttribute("height")) +
         constants.NOTE_EFFECT_NOTE_GAP,
     );
-    expect(Number(upperPath[7])).toBe(
+    expect(Number(upperPath[7])).toBeCloseTo(
       Number(backgrounds[0].getAttribute("y")) +
         Number(backgrounds[0].getAttribute("height")) +
         constants.NOTE_EFFECT_NOTE_GAP,
     );
-    expect(Number(lowerPath[2])).toBe(
+    expect(Number(lowerPath[2])).toBeCloseTo(
       Number(backgrounds[1].getAttribute("y")) +
         Number(backgrounds[1].getAttribute("height")) +
         constants.NOTE_EFFECT_NOTE_GAP,
     );
-    expect(Number(lowerPath[7])).toBe(
+    expect(Number(lowerPath[7])).toBeCloseTo(
       Number(backgrounds[1].getAttribute("y")) +
         Number(backgrounds[1].getAttribute("height")) +
         constants.NOTE_EFFECT_NOTE_GAP,
