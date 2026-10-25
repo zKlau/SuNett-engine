@@ -31,9 +31,7 @@ export function normalizeOptions(
       constants.MIN_STRING_SPACING,
 
     stringSpacing:
-      options.stringSpacing ??
-      sizing?.stringSpacing ??
-      defaults.stringSpacing,
+      options.stringSpacing ?? sizing?.stringSpacing ?? defaults.stringSpacing,
 
     maxStringSpacing:
       options.maxStringSpacing ??
@@ -49,10 +47,7 @@ export function normalizeOptions(
 
     measureGap: options.measureGap ?? constants.MEASURE_GAP,
 
-    rowGap:
-      options.rowGap ??
-      sizing?.rowSpacing ??
-      defaults.rowGap,
+    rowGap: options.rowGap ?? sizing?.rowSpacing ?? defaults.rowGap,
     measureBottomPadding: Math.max(
       0,
       options.measureBottomPadding ?? defaults.measureBottomPadding,
