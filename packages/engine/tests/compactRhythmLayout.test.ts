@@ -46,6 +46,59 @@ describe("compact rhythm layout", () => {
       ResizeObserverStub as unknown as typeof ResizeObserver;
   });
 
+  it("uses compact engine defaults and recomputes them when its container resizes", () => {
+    const svg = setupSvg();
+    let width = 1440;
+    Object.defineProperty(svg.parentElement, "clientWidth", {
+      get: () => width,
+    });
+    Object.defineProperty(svg, "clientWidth", { get: () => width });
+    const song = makeSong([
+      makeTrack(6, Array.from({ length: 8 }, quarterMeasure)),
+    ]);
+    const renderer = new TabsRenderer(song);
+    renderer.generateMeasures(0, { virtualize: false });
+    function assertLayout(
+      staffHeight: number,
+      fontSize: number,
+      stemLength: number,
+      rowPitch: number,
+    ) {
+      const measures = Array.from(svg.querySelectorAll(".measure"));
+      const rows = Array.from(
+        new Set(measures.map((measure) => Number(measure.getAttribute("y")))),
+      ).sort((a, b) => a - b);
+      const strings = measures[0].querySelectorAll(".string");
+      const top = Number(strings[0].getAttribute("d")!.split(" ")[2]);
+      const bottom = Number(strings[5].getAttribute("d")!.split(" ")[2]);
+      const stem = measures[0]
+        .querySelector(".rhythm-stem")!
+        .getAttribute("d")!
+        .split(" ");
+      expect(bottom - top).toBe(staffHeight);
+      expect(
+        Number(
+          measures[0]
+            .querySelector(".tab-note-text")!
+            .getAttribute("font-size"),
+        ),
+      ).toBe(fontSize);
+      expect(Number(stem[4]) - Number(stem[2])).toBe(stemLength);
+      expect(rows[1] - rows[0]).toBe(rowPitch);
+      renderer.setCursor(100);
+      expect(renderer.getCursorGeometry()!.height).toBe(staffHeight);
+    }
+    assertLayout(80, 13, 18, 150);
+    width = 390;
+    renderer.rerender();
+    assertLayout(70, 11, 14, 135);
+    expect(svg.querySelectorAll('.measure[y="18"]')).toHaveLength(1);
+    width = 1440;
+    renderer.rerender();
+    assertLayout(80, 13, 18, 150);
+    renderer.dispose();
+  });
+
   it("shortens stems and row spacing without changing barline or cursor height", () => {
     const svg = setupSvg();
     const song = makeSong([makeTrack(6, [quarterMeasure(), quarterMeasure()])]);

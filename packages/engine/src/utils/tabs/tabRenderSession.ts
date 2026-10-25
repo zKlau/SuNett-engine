@@ -9,7 +9,10 @@ import type { Theme } from "../../theme/theme";
 import { resolveLabelFontSize } from "../../theme/theme";
 import { applyTheme, clearTheme } from "../../theme/themeDom";
 import type { SongTimeline } from "../timing/measureTimeline";
-import type { LayoutCalculation } from "./layoutCalculation";
+import { LayoutCalculation } from "./layoutCalculation";
+import type { MeasureAnnotations } from "./measureVerticalLayout";
+import type { TabRendererOptions } from "../../types/UI/rendererOptions";
+import { normalizeOptions } from "./tabsOptionsNormalizer";
 import type { TabInteraction } from "./tabInteraction";
 import type { MeasureRange } from "./measureWindow";
 import {
@@ -33,7 +36,8 @@ export type TabRenderSessionParams = {
   theme: Theme;
   config: NormalizedRendererOptions;
   measures: MeasureContext[];
-  layoutCalculation: LayoutCalculation;
+  options: TabRendererOptions;
+  layoutAnnotations: MeasureAnnotations;
   timeline: SongTimeline;
   interaction: TabInteraction;
   reverseStrings: boolean;
@@ -115,10 +119,21 @@ export class TabRenderSession {
   }
 
   private renderFrame(): void {
-    const { svg, config, measures, layoutCalculation } = this.params;
-    const parentWidth = svg.parentElement?.clientWidth ?? svg.clientWidth;
+    const { svg, measures, options, theme, track, layoutAnnotations } =
+      this.params;
+    const parentWidth = svg.parentElement?.clientWidth || svg.clientWidth;
+    const config = normalizeOptions(
+      options,
+      theme.sizing,
+      parentWidth || undefined,
+    );
+    this.params.config = config;
     const svgWidth = parentWidth || config.defaultMeasureWidth;
-    const layout = layoutCalculation.calculateLayout(svgWidth, measures);
+    const layout = new LayoutCalculation(
+      track,
+      config,
+      layoutAnnotations,
+    ).calculateLayout(svgWidth, measures);
     this.layout = layout;
 
     const width = layout.contentWidth + config.paddingX * 2;

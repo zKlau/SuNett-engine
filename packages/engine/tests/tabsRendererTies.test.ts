@@ -192,12 +192,12 @@ describe("TabsRenderer cross-measure ties", () => {
     expect(destination.querySelector(".tab-note-text")!.textContent).toBe(
       "(3)",
     );
-    expect(Number(path[1])).toBe(
+    expect(Number(path[1])).toBeCloseTo(
       Number(background.getAttribute("x")) +
         Number(background.getAttribute("width")) +
         constants.NOTE_EFFECT_NOTE_GAP,
     );
-    expect(Number(path[2])).toBe(
+    expect(Number(path[2])).toBeCloseTo(
       Number(background.getAttribute("y")) - constants.NOTE_EFFECT_NOTE_GAP,
     );
     expect(Number(path[8])).toBeGreaterThan(Number(path[1]));

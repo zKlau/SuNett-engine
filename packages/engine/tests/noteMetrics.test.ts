@@ -11,7 +11,7 @@ describe("resolveNoteMetrics", () => {
 
   it("derives the default size from string spacing", () => {
     expect(resolveNoteMetrics({}, constants.STRING_SPACING).fontSize).toBe(
-      constants.STRING_SPACING * constants.NOTE_FONT_SIZE_RATIO,
+      Math.round(constants.STRING_SPACING * constants.NOTE_FONT_SIZE_RATIO),
     );
   });
 

@@ -40,7 +40,7 @@ const ThemeVariableFallbacks: Record<ThemeVariable, string> = {
   [ThemeVariables.FONT_NOTE]: "ui-monospace, monospace",
   [ThemeVariables.FONT_LABEL]: "system-ui, sans-serif",
   [ThemeVariables.FONT_LABEL_SIZE]: "11px",
-  [ThemeVariables.STRING_OPACITY]: "0.68",
+  [ThemeVariables.STRING_OPACITY]: "0.35",
   [ThemeVariables.BARLINE_OPACITY]: "0.68",
   [ThemeVariables.SELECTION_OPACITY]: "0.25",
   [ThemeVariables.STRING_WIDTH]: "1",

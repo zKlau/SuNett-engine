@@ -11,7 +11,8 @@ export function resolveNoteMetrics(
     stringSpacing,
   );
   const fontSize = clamp(
-    options.fontSize ?? stringSpacing * constants.NOTE_FONT_SIZE_RATIO,
+    options.fontSize ??
+      Math.round(stringSpacing * constants.NOTE_FONT_SIZE_RATIO),
     Math.min(constants.MIN_NOTE_FONT_SIZE, maxFontSize),
     maxFontSize,
   );
