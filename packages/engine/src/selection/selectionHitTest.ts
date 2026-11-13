@@ -7,6 +7,7 @@ import type {
 } from "./selectionRegions";
 import { computeSelectionRegions } from "./selectionRegions";
 import { clamp } from "../utils/functions/clamp";
+import { measureAnchors, timeAtX } from "../playback/measureTimeMap";
 
 type Point = {
   x: number;
@@ -32,8 +33,14 @@ export function timeAtPoint(
     return undefined;
   }
 
-  const fraction = clamp((point.x - hit.layout.x) / hit.layout.width, 0, 1);
-  return timing.startMs + fraction * timing.durationMs;
+  const anchors = measureAnchors(
+    context.anchorsFor,
+    hit.index,
+    timing,
+    hit.layout,
+  );
+  const x = clamp(point.x, hit.layout.x, hit.layout.x + hit.layout.width);
+  return timeAtX(anchors, x) ?? timing.startMs;
 }
 
 export function selectionAtPoint(
