@@ -28,6 +28,7 @@ import { createSvgElement } from "./svg";
 import { renderMeasure } from "./measureRenderer";
 import { resolveNoteMetrics } from "./noteMetrics";
 import { buildLyricsByMeasure } from "./lyricsLayout";
+import { createBeatAnchorResolver } from "./beatAnchorResolver";
 
 export type TabRenderSessionParams = {
   svg: SVGSVGElement;
@@ -169,6 +170,13 @@ export class TabRenderSession {
       measures,
       timeline: this.params.timeline,
       trackIndex: this.params.activeTrackIndex,
+      anchorsFor: createBeatAnchorResolver({
+        song: this.params.song,
+        layout,
+        measures,
+        timeline: this.params.timeline,
+        sizing: { config: config.notes, metrics: this.pass.metrics },
+      }),
     });
   }
 

@@ -2,7 +2,8 @@ import type { Selection } from "../types/selection";
 import type { MeasureLayout } from "../types/UI/tabLayout";
 import type { Rect } from "../types/UI/rect";
 import type { SongTimeline } from "../utils/timing/measureTimeline";
-import { clamp } from "../utils/functions/clamp";
+import type { TimeAnchorResolver } from "../playback/measureTimeMap";
+import { measureAnchors, xAtTime } from "../playback/measureTimeMap";
 
 export type SelectionMeasure = {
   index: number;
@@ -17,6 +18,7 @@ export type SelectionLayoutContext = {
   bottomPadding: number;
   labelOffset: number;
   minWidth: number;
+  anchorsFor?: TimeAnchorResolver;
 };
 
 export type SelectionLabel = {
@@ -74,13 +76,11 @@ function measureRect(
     return undefined;
   }
 
-  const duration = timing.durationMs > 0 ? timing.durationMs : 1;
-  const startFraction = clamp((startMs - timing.startMs) / duration, 0, 1);
-  const endFraction = clamp((endMs - timing.startMs) / duration, 0, 1);
-
-  const x = layout.x + startFraction * layout.width;
-  const rawWidth = (endFraction - startFraction) * layout.width;
-  const width = Math.max(rawWidth, context.minWidth);
+  const anchors = measureAnchors(context.anchorsFor, index, timing, layout);
+  const x = xAtTime(anchors, Math.max(startMs, timing.startMs)) ?? layout.x;
+  const endX =
+    xAtTime(anchors, Math.min(endMs, timing.endMs)) ?? layout.x + layout.width;
+  const width = Math.max(endX - x, context.minWidth);
 
   return {
     x,
