@@ -1,3 +1,4 @@
+import type { TimeAnchorResolver } from "../../playback/measureTimeMap";
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import type { Selection, SelectionSource } from "../../types/selection";
 import type { CursorOptions } from "../../types/UI/cursorOptions";
@@ -27,6 +28,7 @@ export type InteractionUpdate = {
   measures: MeasureContext[];
   timeline: SongTimeline;
   trackIndex: number;
+  anchorsFor?: TimeAnchorResolver;
 };
 
 export class TabInteraction {
@@ -189,5 +191,6 @@ function buildContext(input: InteractionUpdate): SelectionLayoutContext {
       input.layout.bottomPadding ?? constants.MEASURE_BOTTOM_PADDING,
     labelOffset: constants.SELECTION_LABEL_OFFSET,
     minWidth: constants.SELECTION_MIN_WIDTH,
+    anchorsFor: input.anchorsFor,
   };
 }

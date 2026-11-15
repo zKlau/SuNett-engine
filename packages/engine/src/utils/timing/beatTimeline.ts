@@ -1,6 +1,7 @@
 import type { Beat } from "../../types/beats/beat";
+import type { Measure } from "../../types/measure";
 import type { Track } from "../../types/track";
-import type { SongTimeline } from "./measureTimeline";
+import type { MeasureTiming, SongTimeline } from "./measureTimeline";
 import { measureLengthInWholeNotes } from "./measureTimeline";
 import { durationInWholeNotes } from "./durationLength";
 
@@ -41,25 +42,17 @@ export function buildBeatTimeline(
     if (!timing) {
       return;
     }
-    const wholeNoteMs = timing.durationMs / measureLengthInWholeNotes(measure);
 
-    measure.voices.forEach((voice, voiceIndex) => {
-      let cursorMs = timing.startMs;
-      voice.beats.forEach((beat, beatIndex) => {
-        const startMs = Math.min(cursorMs, timing.endMs);
-        const endMs = Math.min(
-          cursorMs + durationInWholeNotes(beat.duration) * wholeNoteMs,
-          timing.endMs,
-        );
+    voiceBeatSpans(measure, timing).forEach((spans, voiceIndex) => {
+      spans.forEach(({ startMs, endMs }, beatIndex) => {
         beats.push({
           measureIndex,
           voiceIndex,
           beatIndex,
           startMs,
           endMs,
-          beat,
+          beat: measure.voices[voiceIndex].beats[beatIndex],
         });
-        cursorMs = endMs;
       });
     });
   });
@@ -70,6 +63,30 @@ export function buildBeatTimeline(
     0,
   );
   return { beats, maxBeatDurationMs };
+}
+
+export type BeatSpan = {
+  startMs: number;
+  endMs: number;
+};
+
+export function voiceBeatSpans(
+  measure: Measure,
+  timing: MeasureTiming,
+): BeatSpan[][] {
+  const wholeNoteMs = timing.durationMs / measureLengthInWholeNotes(measure);
+  return measure.voices.map((voice) => {
+    let cursorMs = timing.startMs;
+    return voice.beats.map((beat) => {
+      const startMs = Math.min(cursorMs, timing.endMs);
+      const endMs = Math.min(
+        cursorMs + durationInWholeNotes(beat.duration) * wholeNoteMs,
+        timing.endMs,
+      );
+      cursorMs = endMs;
+      return { startMs, endMs };
+    });
+  });
 }
 
 /**
