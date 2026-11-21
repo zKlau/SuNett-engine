@@ -103,4 +103,65 @@ describe("beat-aligned playback cursor", () => {
     expect(cursorX()).toBeCloseTo(noteX(1, 0), 5);
     expect(cursorX() - before).toBeLessThan(0.1);
   });
+
+  it("keeps the original beat and selection timing across wrapped rows", () => {
+    document.body.innerHTML = '<div><svg id="tabs"></svg></div>';
+    const svg = document.querySelector("#tabs") as SVGSVGElement;
+    Object.defineProperty(svg.parentElement, "clientWidth", { value: 374 });
+    const dense = measureWithBeats(
+      Array.from({ length: 32 }, () => 12),
+      32,
+    );
+    dense.time_signature = {
+      numerator: 4,
+      denominator: makeDuration({ value: 4 }),
+      beams: [],
+    };
+    const next = measureWithBeats([3]);
+    const song = makeSong([makeTrack(6, [dense, next])]);
+    const {
+      measures: [first, second],
+    } = buildSongTimeline(song, song.tracks[0]);
+    const renderer = new TabsRenderer(song, {
+      selections: {
+        getSelections: () => [
+          {
+            id: "selection",
+            songId: "song",
+            startMs: first.startMs,
+            endMs: first.endMs,
+          },
+        ],
+      },
+    });
+    renderer.generateMeasures(0, { wrapMeasures: true, virtualize: false });
+
+    const fragments = svg.querySelectorAll('[measure-index="0"]');
+    expect(fragments.length).toBeGreaterThan(1);
+    const labels = svg.querySelectorAll('[measure-index="0"] .measure-index');
+    expect(Array.from(labels, (label) => label.textContent)).toEqual(["1"]);
+    expect(svg.querySelectorAll(".selection-region")).toHaveLength(
+      fragments.length,
+    );
+    expect(svg.querySelectorAll('[data-measure-index="0"]')).toHaveLength(32);
+    expect(svg.querySelectorAll(".time-signature")).toHaveLength(1);
+
+    for (let beatIndex = 0; beatIndex < 32; beatIndex += 1) {
+      const note = svg.querySelector(
+        `[data-measure-index="0"][data-beat-index="${beatIndex}"]`,
+      );
+      renderer.setCursor(first.startMs + (beatIndex * first.durationMs) / 32);
+      expect(cursorX()).toBeCloseTo(noteX(0, beatIndex), 5);
+      expect(renderer.getCursorGeometry()?.rowTop).toBe(
+        Number(note?.closest(".measure")?.getAttribute("y")),
+      );
+    }
+
+    renderer.setCursor(second.startMs);
+    expect(cursorX()).toBeCloseTo(noteX(1, 0), 5);
+    expect(renderer.snapTime(first.durationMs / 3, "Measure")).toBe(
+      first.startMs,
+    );
+    renderer.dispose();
+  });
 });

@@ -1,8 +1,24 @@
+export type BeatColumn = {
+  time: number;
+  minWidth: number;
+  beats: { voiceIndex: number; beatIndex: number }[];
+};
+
+export type MeasureFragment = {
+  part: number;
+  last: boolean;
+  start: number;
+  end: number;
+  columns: BeatColumn[];
+};
+
 export type MeasureLayout = {
   x: number;
   y: number;
   width: number;
   row: number;
+  measurePosition?: number;
+  fragment?: MeasureFragment;
 };
 
 export type TabLayout = {

@@ -48,7 +48,13 @@ engine.render(2);
 
 ## Narrow containers
 
-Notes keep enough horizontal space for their fret numbers, including short notes after a long note. Measures wrap to the next row; `measuresPerRow` limits how many bars share a row. A particularly dense bar can exceed `maxMeasureWidth` and the container width to preserve readability.
+Notes keep enough horizontal space for their fret numbers, including short notes after a long note. Use `measuresPerRow` to limit how many bars share a row. A particularly dense bar can exceed `maxMeasureWidth` and the container width to preserve readability.
+
+Set `wrapMeasures: true` to split oversized bars across staff rows at beat boundaries. The measure number appears on the first row, and the cursor, seeking, and selections use the original measure timing.
+
+```ts
+engine.render(0, { wrapMeasures: true });
+```
 
 Keep the SVG at its rendered width inside a scrollable wrapper so a dense bar can be panned without shrinking the notes:
 

@@ -3,6 +3,7 @@ import type { NoteRenderConfig } from "./notesRender";
 export type NormalizedRendererOptions = {
   trackIndex: number;
   measuresPerRow?: number;
+  wrapMeasures: boolean;
   minMeasureWidth: number;
   defaultMeasureWidth: number;
   maxMeasureWidth: number;

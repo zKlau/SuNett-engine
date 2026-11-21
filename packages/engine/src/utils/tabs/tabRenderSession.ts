@@ -29,6 +29,7 @@ import { renderMeasure } from "./measureRenderer";
 import { resolveNoteMetrics } from "./noteMetrics";
 import { buildLyricsByMeasure } from "./lyricsLayout";
 import { createBeatAnchorResolver } from "./beatAnchorResolver";
+import { buildVisualTimeline } from "./visualTimeline";
 
 export type TabRenderSessionParams = {
   svg: SVGSVGElement;
@@ -164,17 +165,22 @@ export class TabRenderSession {
     this.lastRange = undefined;
     this.renderWindow(true);
 
+    const visualTimeline = buildVisualTimeline(
+      layout,
+      measures,
+      this.params.timeline,
+    );
     this.params.interaction.update({
       svg,
       layout,
-      measures,
       timeline: this.params.timeline,
+      visualTimeline,
       trackIndex: this.params.activeTrackIndex,
       anchorsFor: createBeatAnchorResolver({
         song: this.params.song,
         layout,
         measures,
-        timeline: this.params.timeline,
+        timeline: visualTimeline,
         sizing: { config: config.notes, metrics: this.pass.metrics },
       }),
     });
@@ -203,12 +209,14 @@ export class TabRenderSession {
     }
     const { measures } = this.params;
     for (let index = range.first; index <= range.last; index += 1) {
+      const measure = this.layout.measureLayouts[index];
+      const next = this.layout.measureLayouts[index + 1];
       renderMeasure(
         this.container,
-        measures[index],
+        measures[measure.measurePosition ?? index],
         index,
         this.pass,
-        measures[index + 1],
+        next ? measures[next.measurePosition ?? index + 1] : undefined,
       );
     }
   }
@@ -218,10 +226,9 @@ export class TabRenderSession {
       return undefined;
     }
 
-    const { measures } = this.params;
     if (!this.virtualize || !this.scrollContainer) {
-      return measures.length > 0
-        ? { first: 0, last: measures.length - 1 }
+      return this.layout.measureLayouts.length > 0
+        ? { first: 0, last: this.layout.measureLayouts.length - 1 }
         : undefined;
     }
 
@@ -236,8 +243,7 @@ export class TabRenderSession {
   }
 
   private buildPass(layout: TabLayout): RenderPass {
-    const { song, track, theme, config, measures, resolvedTrackIndex } =
-      this.params;
+    const { song, track, theme, config, resolvedTrackIndex } = this.params;
     return {
       song,
       stringByIndex: theme.stringByIndex,
@@ -246,7 +252,7 @@ export class TabRenderSession {
       metrics: resolveNoteMetrics(config.notes, layout.stringSpacing),
       labelFontSize:
         resolveLabelFontSize(theme) ?? constants.BEAT_TEXT_FONT_SIZE,
-      totalMeasures: measures.length,
+      totalMeasures: layout.measureLayouts.length,
       reverseStrings: this.params.reverseStrings,
       stringOffset: this.params.stringOffset,
       tuningLabels: this.params.tuningLabels,

@@ -9,8 +9,13 @@ import { resolveNoteMetrics } from "./noteMetrics";
 import { shouldRenderTimeSignature } from "./measureContentRenderer";
 import { resolveMeasureBottomPadding } from "./measureVerticalLayout";
 import type { MeasureAnnotations } from "./measureVerticalLayout";
+import { measureStartPadding, splitMeasure } from "./measureFragments";
 
 type RendererConfig = ReturnType<typeof normalizeOptions>;
+type MeasureWidth = Pick<
+  MeasureLayout,
+  "width" | "measurePosition" | "fragment"
+>;
 
 export class LayoutCalculation {
   private track: Track;
@@ -29,9 +34,10 @@ export class LayoutCalculation {
   private calculateMeasureWidths(
     measures: MeasureContext[],
     baseMeasureWidth: number,
-    minWidth: number,
-    maxWidth: number,
-  ): number[] {
+    availableWidth: number,
+  ): MeasureWidth[] {
+    const maxWidth = Math.min(this.config.maxMeasureWidth, availableWidth);
+    const minWidth = Math.min(this.config.minMeasureWidth, maxWidth);
     const measureWeights = measures.map((measureContext) =>
       this.calculateWeights(measureContext),
     );
@@ -49,28 +55,48 @@ export class LayoutCalculation {
       ),
     );
 
-    return measureWeights.map((weight, index) =>
-      Math.max(
-        clamp(baseMeasureWidth * (weight / averageWeight), minWidth, maxWidth),
-        constants.MEASURE_CONTENT_PADDING_START +
-          constants.MEASURE_CONTENT_PADDING_END +
-          (shouldRenderTimeSignature(
-            measures[index],
-            index === 0,
-            measures[index - 1]?.header,
-          )
-            ? constants.TIME_SIGNATURE_GUTTER
-            : 0) +
-          Math.max(
-            0,
-            ...measureBeatMinimumWidths(
-              measures[index].measure,
-              this.config.notes,
-              metrics,
-            ).map((widths) => widths.reduce((sum, width) => sum + width, 0)),
+    return measureWeights.flatMap((weight, measurePosition) => {
+      const context = measures[measurePosition];
+      const showTimeSignature = shouldRenderTimeSignature(
+        context,
+        measurePosition === 0,
+        measures[measurePosition - 1]?.header,
+      );
+      const minimums = measureBeatMinimumWidths(
+        context.measure,
+        this.config.notes,
+        metrics,
+      );
+      const minContentWidth =
+        measureStartPadding(showTimeSignature) +
+        constants.MEASURE_CONTENT_PADDING_END +
+        Math.max(
+          0,
+          ...minimums.map((widths) =>
+            widths.reduce((sum, width) => sum + width, 0),
           ),
-      ),
-    );
+        );
+      const width = Math.max(
+        clamp(baseMeasureWidth * (weight / averageWeight), minWidth, maxWidth),
+        minContentWidth,
+      );
+      if (this.config.wrapMeasures && width > availableWidth) {
+        const fragments = splitMeasure(
+          context.measure,
+          minimums,
+          availableWidth,
+          showTimeSignature,
+        );
+        if (fragments.length > 0) {
+          return fragments.map((fragment) => ({
+            width: availableWidth,
+            measurePosition,
+            fragment,
+          }));
+        }
+      }
+      return [{ width, measurePosition }];
+    });
   }
 
   private calculateWeights(measureContext: MeasureContext) {
@@ -87,24 +113,25 @@ export class LayoutCalculation {
     );
   }
 
-  private getRowWidth(measureWidths: number[], measureGap: number) {
+  private getRowWidth(measureWidths: MeasureWidth[], measureGap: number) {
     return (
-      measureWidths.reduce((total, measureWidth) => total + measureWidth, 0) +
+      measureWidths.reduce((total, measure) => total + measure.width, 0) +
       Math.max(0, measureWidths.length - 1) * measureGap
     );
   }
 
   private calculateMeasureLayouts(
-    measureWidths: number[],
+    measureWidths: MeasureWidth[],
     availableWidth: number,
     measureHeight: number,
     tuningGutter: number,
   ): MeasureLayout[] {
-    const measureRows: number[][] = [];
-    let currentRow: number[] = [];
+    const measureRows: MeasureWidth[][] = [];
+    let currentRow: MeasureWidth[] = [];
     let currentRowWidth = 0;
 
-    measureWidths.forEach((measureWidth) => {
+    measureWidths.forEach((measure) => {
+      const measureWidth = measure.width;
       let widthGap = 0;
 
       if (currentRowWidth === 0) {
@@ -124,7 +151,7 @@ export class LayoutCalculation {
         currentRowWidth = 0;
       }
 
-      currentRow.push(measureWidth);
+      currentRow.push(measure);
 
       if (currentRowWidth === 0) {
         currentRowWidth += measureWidth;
@@ -147,10 +174,11 @@ export class LayoutCalculation {
       const y =
         this.config.paddingY + row * (measureHeight + this.config.rowGap);
 
-      return measureRow.map((measureWidth) => {
-        const width = measureWidth + extraMeasureWidth;
+      return measureRow.map((measure) => {
+        const width = measure.width + extraMeasureWidth;
 
         const measureLayout = {
+          ...measure,
           x,
           y,
           width,
@@ -210,11 +238,10 @@ export class LayoutCalculation {
       stringSpacing * (stringCount - 1) +
       bottomPadding;
 
-    const totalMeasureWidths: number[] = this.calculateMeasureWidths(
+    const totalMeasureWidths = this.calculateMeasureWidths(
       measures,
       measureWidth,
-      minMeasureWidth,
-      maxMeasureWidth,
+      availableWidth,
     );
     const measureLayouts: MeasureLayout[] = this.calculateMeasureLayouts(
       totalMeasureWidths,

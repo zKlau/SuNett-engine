@@ -5,8 +5,10 @@ import type { MeasureContext } from "./measureContext";
 import type { NoteMetrics } from "./noteMetrics";
 import type { NoteRenderConfig } from "./notesRender";
 import type { PositionedNote } from "./noteEffectsRender";
+import type { MeasureFragment } from "./tabLayout";
 
 export type MeasureContentRenderRequest = {
+  fragment?: MeasureFragment;
   notesParent: SVGGElement;
   rhythmParent: SVGGElement;
   notationParent: SVGGElement;
