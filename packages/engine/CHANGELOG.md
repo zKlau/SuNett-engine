@@ -1,5 +1,11 @@
 # @zklau/sunett-engine
 
+## 1.3.0
+
+### Minor Changes
+
+- b8dc491: Add the `wrapMeasures` render option to split oversized bars at beat boundaries. Continuation rows keep note sizes readable and use the original measure timing for playback, seeking, and selections.
+
 ## 1.2.3
 
 ### Patch Changes
