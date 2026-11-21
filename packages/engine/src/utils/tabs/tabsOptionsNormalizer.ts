@@ -18,6 +18,7 @@ export function normalizeOptions(
   return {
     trackIndex: options.trackIndex ?? 0,
     measuresPerRow,
+    wrapMeasures: options.wrapMeasures ?? false,
     minMeasureWidth: options.minMeasureWidth ?? constants.MIN_MEASURE_WIDTH,
 
     defaultMeasureWidth:

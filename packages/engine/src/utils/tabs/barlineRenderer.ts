@@ -2,6 +2,7 @@ import { TabsRendererConstants as constants } from "../../constants/tabRendererC
 import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
 import type { RepeatLine } from "../../types/UI/repeatLine";
+import type { MeasureFragment } from "../../types/UI/tabLayout";
 import { ThemeVariables, themeVar } from "../../theme/variables";
 import { clamp } from "../functions/clamp";
 import { createSvgElement } from "./svg";
@@ -13,11 +14,18 @@ export type BarlineRenderContext = {
   bounds: MeasureBounds;
   isRowStart: boolean;
   isFirstMeasure: boolean;
+  fragment?: MeasureFragment;
 };
 
 export function renderBarlines(context: BarlineRenderContext): void {
-  const { parent, measureContext, bounds, isRowStart, isFirstMeasure } =
-    context;
+  const {
+    parent,
+    measureContext,
+    bounds,
+    isRowStart,
+    isFirstMeasure,
+    fragment,
+  } = context;
   const top = bounds.y + constants.MEASURE_TOP_PADDING;
   const bottom =
     bounds.y +
@@ -28,11 +36,12 @@ export function renderBarlines(context: BarlineRenderContext): void {
 
   const header = measureContext.header;
   const repeatCount = Math.max(0, header?.repeat_close ?? 0);
-  const openRepeat = header?.repeat_open ?? false;
-  const closeRepeat = repeatCount > 0;
-  const doubleBar = Boolean(
-    header?.double_bar || measureContext.measure.has_double_bar,
-  );
+  const continues = fragment?.last === false;
+  const openRepeat = !fragment?.part && (header?.repeat_open ?? false);
+  const closeRepeat = !continues && repeatCount > 0;
+  const doubleBar =
+    !continues &&
+    Boolean(header?.double_bar || measureContext.measure.has_double_bar);
   const finalBar = bounds.isLastMeasure && !closeRepeat;
 
   if (isRowStart && !isFirstMeasure) {
@@ -62,7 +71,9 @@ export function renderBarlines(context: BarlineRenderContext): void {
     finalBar || closeRepeat
       ? repeatLine("barline-end", rightX, top, bottom)
       : measureBar("barline-end", rightX, top, bottom);
-  appendRepeatLine(parent, rightEdge);
+  if (!continues) {
+    appendRepeatLine(parent, rightEdge);
+  }
 
   if (finalBar || doubleBar || closeRepeat) {
     appendRepeatLine(

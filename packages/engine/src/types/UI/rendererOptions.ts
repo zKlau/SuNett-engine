@@ -26,6 +26,8 @@ export type TabRendererOptions = {
   theme?: ThemeLike;
   trackIndex?: number;
   measuresPerRow?: number;
+  /** Wrap an oversized measure at beat boundaries when it exceeds a row. */
+  wrapMeasures?: boolean;
   minMeasureWidth?: number;
   defaultMeasureWidth?: number;
   maxMeasureWidth?: number;

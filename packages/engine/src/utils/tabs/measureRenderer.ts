@@ -3,6 +3,7 @@ import type { MeasureContext } from "../../types/UI/measureContext";
 import type { RenderPass } from "../../types/UI/renderPass";
 import { createSvgElement } from "./svg";
 import { renderBarlines } from "./barlineRenderer";
+import { measureFragmentNotes } from "./measureFragments";
 import {
   renderMeasureIndex,
   renderStringLines,
@@ -36,7 +37,7 @@ export function renderMeasure(
   const isFirstMeasure = index === 0;
   const isLastMeasure = index === totalMeasures - 1;
 
-  const { x, y, width } = measureLayout;
+  const { x, y, width, fragment } = measureLayout;
   const measureGroup = createSvgElement("g");
   const stringsGroup = createSvgElement("g");
   const barlinesGroup = createSvgElement("g");
@@ -47,6 +48,9 @@ export function renderMeasure(
 
   measureGroup.setAttribute("class", "measure");
   measureGroup.setAttribute("measure-index", `${measureContext.index}`);
+  if (fragment) {
+    measureGroup.setAttribute("measure-part", `${fragment.part}`);
+  }
   measureGroup.setAttribute(
     "measure-number",
     `${measureContext.measure.number}`,
@@ -70,13 +74,17 @@ export function renderMeasure(
     stringSpacing: layout.stringSpacing,
     isLastMeasure,
   };
-  const showTimeSignature = shouldRenderTimeSignature(
-    measureContext,
-    isFirstMeasure,
-    pass.song.measure_headers[measureContext.index - 1],
-  );
+  const showTimeSignature =
+    !fragment?.part &&
+    shouldRenderTimeSignature(
+      measureContext,
+      isFirstMeasure,
+      pass.song.measure_headers[measureContext.index - 1],
+    );
 
-  renderMeasureIndex(labelsGroup, measureContext, x, y);
+  if (!fragment?.part) {
+    renderMeasureIndex(labelsGroup, measureContext, x, y);
+  }
   renderStringLines(
     stringsGroup,
     bounds,
@@ -98,6 +106,7 @@ export function renderMeasure(
     bounds,
     isRowStart,
     isFirstMeasure,
+    fragment,
   });
 
   const rowRightX = layout.measureLayouts.reduce(
@@ -109,9 +118,7 @@ export function renderMeasure(
   );
 
   const previousMeasureNotes =
-    pass.previousMeasureIndex === measureContext.index - 1
-      ? pass.previousNotes
-      : [];
+    pass.previousMeasureIndex === index - 1 ? pass.previousNotes : [];
   const previousNotes =
     pass.previousMeasureRow === measureLayout.row ? previousMeasureNotes : [];
   const positionedNotes = renderMeasureContent({
@@ -119,6 +126,7 @@ export function renderMeasure(
     rhythmParent: rhythmGroup,
     notationParent: notationGroup,
     measureContext,
+    fragment,
     bounds,
     stringCount: layout.stringCount,
     invertStrings: pass.config.invertStrings,
@@ -133,7 +141,9 @@ export function renderMeasure(
         ? nextMeasureContext?.measure
         : undefined,
     nextRowMeasure:
-      isRowEnd && nextMeasureContext ? nextMeasureContext.measure : undefined,
+      isRowEnd && nextMeasureContext
+        ? measureFragmentNotes(nextMeasureContext.measure, nextLayout?.fragment)
+        : undefined,
     showTimeSignature,
     lyrics: pass.lyricsByMeasure.get(measureContext.index) ?? [],
     rowRightX,
@@ -151,7 +161,7 @@ export function renderMeasure(
   );
   parent.append(measureGroup);
 
-  pass.previousMeasureIndex = measureContext.index;
+  pass.previousMeasureIndex = index;
   pass.previousMeasureRow = measureLayout.row;
   pass.previousNotes = positionedNotes;
 

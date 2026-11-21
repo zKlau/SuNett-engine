@@ -2,15 +2,11 @@ import type { TimeAnchorResolver } from "../../playback/measureTimeMap";
 import { TabsRendererConstants as constants } from "../../constants/tabRendererConstants";
 import type { Selection, SelectionSource } from "../../types/selection";
 import type { CursorOptions } from "../../types/UI/cursorOptions";
-import type { MeasureContext } from "../../types/UI/measureContext";
 import type { TabLayout } from "../../types/UI/tabLayout";
 import type { SongTimeline } from "../timing/measureTimeline";
 import type { SnapMode } from "../timing/snapTime";
 import { snapTime } from "../timing/snapTime";
-import type {
-  SelectionLayoutContext,
-  SelectionMeasure,
-} from "../../selection/selectionRegions";
+import type { SelectionLayoutContext } from "../../selection/selectionRegions";
 import { computeSelectionRegions } from "../../selection/selectionRegions";
 import {
   selectionAtPoint,
@@ -25,8 +21,8 @@ import { CursorLayer } from "./cursorLayer";
 export type InteractionUpdate = {
   svg: SVGSVGElement;
   layout: TabLayout;
-  measures: MeasureContext[];
   timeline: SongTimeline;
+  visualTimeline: SongTimeline;
   trackIndex: number;
   anchorsFor?: TimeAnchorResolver;
 };
@@ -174,17 +170,12 @@ export class TabInteraction {
 }
 
 function buildContext(input: InteractionUpdate): SelectionLayoutContext {
-  const measures: SelectionMeasure[] = [];
-  input.measures.forEach((measureContext, index) => {
-    const measureLayout = input.layout.measureLayouts[index];
-    if (measureLayout) {
-      measures.push({ index: measureContext.index, layout: measureLayout });
-    }
-  });
-
   return {
-    timeline: input.timeline,
-    measures,
+    timeline: input.visualTimeline,
+    measures: input.layout.measureLayouts.map((layout, index) => ({
+      index,
+      layout,
+    })),
     measureHeight: input.layout.measureHeight,
     topPadding: constants.MEASURE_TOP_PADDING,
     bottomPadding:

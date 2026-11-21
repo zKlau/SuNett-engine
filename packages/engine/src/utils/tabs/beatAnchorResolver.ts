@@ -26,11 +26,6 @@ export type BeatAnchorResolverInput = {
 export function createBeatAnchorResolver(
   input: BeatAnchorResolverInput,
 ): TimeAnchorResolver {
-  const positions = new Map<number, number>();
-  input.measures.forEach((measureContext, position) => {
-    positions.set(measureContext.index, position);
-  });
-
   const beatLayoutCache = new Map<number, BeatLayout[]>();
   const anchorCache = new Map<number, TimeAnchor[] | undefined>();
 
@@ -39,8 +34,9 @@ export function createBeatAnchorResolver(
     if (cached) {
       return cached;
     }
-    const measureContext = input.measures[position];
     const measureLayout = input.layout.measureLayouts[position];
+    const measureContext =
+      input.measures[measureLayout?.measurePosition ?? position];
     const beatLayouts =
       measureContext && measureLayout
         ? calculateMeasureBeatLayouts(
@@ -54,12 +50,14 @@ export function createBeatAnchorResolver(
               stringSpacing: input.layout.stringSpacing,
               isLastMeasure: position === input.measures.length - 1,
             },
-            shouldRenderTimeSignature(
-              measureContext,
-              position === 0,
-              input.song.measure_headers[measureContext.index - 1],
-            ),
+            !measureLayout.fragment?.part &&
+              shouldRenderTimeSignature(
+                measureContext,
+                position === 0,
+                input.song.measure_headers[measureContext.index - 1],
+              ),
             input.sizing,
+            measureLayout.fragment,
           )
         : [];
     beatLayoutCache.set(position, beatLayouts);
@@ -69,8 +67,8 @@ export function createBeatAnchorResolver(
   function nextStartX(position: number): number | undefined {
     const layout = input.layout.measureLayouts[position];
     const nextLayout = input.layout.measureLayouts[position + 1];
-    const next = input.measures[position + 1];
-    const nextTiming = next ? input.timeline.measures[next.index] : undefined;
+    const next = input.measures[nextLayout?.measurePosition ?? position + 1];
+    const nextTiming = input.timeline.measures[position + 1];
     if (!layout || !nextLayout || nextLayout.row !== layout.row) {
       return undefined;
     }
@@ -81,13 +79,25 @@ export function createBeatAnchorResolver(
   }
 
   function anchorsAt(position: number): TimeAnchor[] | undefined {
-    const measureContext = input.measures[position];
     const layout = input.layout.measureLayouts[position];
-    const timing = measureContext
-      ? input.timeline.measures[measureContext.index]
-      : undefined;
+    const measureContext = input.measures[layout?.measurePosition ?? position];
+    const timing = input.timeline.measures[position];
     if (!measureContext || !layout || !timing) {
       return undefined;
+    }
+    if (layout.fragment) {
+      const fragment = layout.fragment;
+      const beats = beatLayoutsAt(position);
+      let beatIndex = 0;
+      const anchors = fragment.columns.map((column) => {
+        const x = beats[beatIndex]?.x ?? layout.x;
+        beatIndex += column.beats.length;
+        const fraction =
+          (column.time - fragment.start) / (fragment.end - fragment.start);
+        return { ms: timing.startMs + fraction * timing.durationMs, x };
+      });
+      anchors.push({ ms: timing.endMs, x: layout.x + layout.width });
+      return anchors;
     }
     return buildBeatAnchors({
       measure: measureContext.measure,
@@ -98,11 +108,7 @@ export function createBeatAnchorResolver(
     });
   }
 
-  return (measureIndex) => {
-    const position = positions.get(measureIndex);
-    if (position === undefined) {
-      return undefined;
-    }
+  return (position) => {
     if (!anchorCache.has(position)) {
       anchorCache.set(position, anchorsAt(position));
     }

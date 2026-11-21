@@ -4,22 +4,24 @@ import type { MeasureContentRenderRequest } from "../../types/UI/measureContentR
 import type { MeasureBounds } from "../../types/UI/measureBounds";
 import type { MeasureContext } from "../../types/UI/measureContext";
 import type { BeatLayout } from "../../types/UI/noteLayout";
+import type { MeasureFragment } from "../../types/UI/tabLayout";
 import { renderMeasureNotation } from "./measureNotationRenderer";
 import { calculateBeatLayouts, measureBeatMinimumWidths } from "./notesLayout";
 import type { NoteMetrics } from "../../types/UI/noteMetrics";
 import type { NoteRenderConfig } from "../../types/UI/notesRender";
 import { renderMeasureNotes } from "./notesRenderer";
 import { renderRhythm } from "./rhythmRenderer";
+import { layoutFragmentBeats, measureStartPadding } from "./measureFragments";
 
 export function calculateMeasureBeatLayouts(
   measureContext: MeasureContext,
   bounds: MeasureBounds,
   showTimeSignature: boolean,
   sizing?: { config: NoteRenderConfig; metrics: NoteMetrics },
+  fragment?: MeasureFragment,
 ): BeatLayout[] {
   const startPadding = Math.min(
-    constants.MEASURE_CONTENT_PADDING_START +
-      (showTimeSignature ? constants.TIME_SIGNATURE_GUTTER : 0),
+    measureStartPadding(showTimeSignature),
     bounds.width / 3,
   );
   const endPadding = Math.min(
@@ -27,6 +29,9 @@ export function calculateMeasureBeatLayouts(
     bounds.width / 3,
   );
   const contentWidth = Math.max(0, bounds.width - startPadding - endPadding);
+  if (fragment) {
+    return layoutFragmentBeats(fragment, bounds.x + startPadding, contentWidth);
+  }
 
   return calculateBeatLayouts(
     measureContext.measure,
@@ -48,6 +53,7 @@ export function renderMeasureContent(request: MeasureContentRenderRequest) {
     request.bounds,
     request.showTimeSignature,
     { config: request.noteConfig, metrics: request.noteMetrics },
+    request.fragment,
   );
   const positionedNotes = renderMeasureNotes({
     parent: request.notesParent,

@@ -94,7 +94,7 @@ export function calculateBeatLayouts(
   });
 }
 
-function fitBeatWidths(
+export function fitBeatWidths(
   lengths: number[],
   totalLength: number,
   availableWidth: number,

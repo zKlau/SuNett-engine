@@ -20,9 +20,8 @@ type LayoutInternals = {
   calculateMeasureWidths: (
     measures: MeasureContext[],
     baseMeasureWidth: number,
-    minWidth: number,
-    maxWidth: number,
-  ) => number[];
+    availableWidth: number,
+  ) => { width: number }[];
   calculateWeights: (measureContext: MeasureContext) => number;
 };
 
@@ -81,13 +80,11 @@ describe("LayoutCalculation", () => {
       const widths = internals(layout).calculateMeasureWidths(
         measures,
         200,
-        constants.MIN_MEASURE_WIDTH,
         constants.MAX_MEASURE_WIDTH,
       );
 
       expect(widths).toHaveLength(2);
-      expect(widths[0]).toBe(widths[1]);
-      expect(widths[0]).toBe(200);
+      expect(widths.map(({ width }) => width)).toEqual([200, 200]);
     });
 
     it("uses the configured max as a preference while preserving readable dense bars", () => {
@@ -99,12 +96,11 @@ describe("LayoutCalculation", () => {
       const widths = internals(layout).calculateMeasureWidths(
         measures,
         constants.MAX_MEASURE_WIDTH * 2,
-        constants.MIN_MEASURE_WIDTH,
         constants.MAX_MEASURE_WIDTH,
       );
 
-      expect(widths[0]).toBe(constants.MIN_MEASURE_WIDTH);
-      expect(widths[1]).toBeGreaterThan(constants.MAX_MEASURE_WIDTH);
+      expect(widths[0].width).toBe(constants.MIN_MEASURE_WIDTH);
+      expect(widths[1].width).toBeGreaterThan(constants.MAX_MEASURE_WIDTH);
     });
   });
 
