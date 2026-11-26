@@ -160,8 +160,7 @@ export class TabRenderSession {
 
     svg.setAttribute("width", `${width}`);
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    // A host may constrain the SVG width with CSS. Scale its intrinsic height
-    // as well so the browser doesn't center the score inside a tall viewport.
+
     const renderedWidth = svg.clientWidth || width;
     const scale = width > 0 ? Math.min(1, renderedWidth / width) : 1;
     svg.setAttribute("height", `${height * scale}`);
