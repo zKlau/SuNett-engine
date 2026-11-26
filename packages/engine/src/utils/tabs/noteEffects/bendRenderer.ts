@@ -132,20 +132,26 @@ export function renderBend(
 }
 
 function bendWidth(entry: PositionedNote, extendsThroughBeat: boolean): number {
+  const minWidth = constants.NOTE_EFFECT_BEND_MIN_WIDTH;
+
+  if (extendsThroughBeat) {
+    const tiedWidth = entry.width * constants.NOTE_EFFECT_TIED_BEND_WIDTH_RATIO;
+    return Math.max(minWidth, tiedWidth);
+  }
+
   const glyphHalfWidth =
     entry.labelVisible === false ? 0 : entry.glyphWidth / 2;
-  return Math.max(
-    constants.NOTE_EFFECT_BEND_MIN_WIDTH,
-    extendsThroughBeat
-      ? entry.width * constants.NOTE_EFFECT_TIED_BEND_WIDTH_RATIO
-      : Math.min(
-          constants.NOTE_EFFECT_BEND_WIDTH,
-          entry.width / 2 -
-            glyphHalfWidth -
-            constants.NOTE_EFFECT_NOTE_GAP -
-            constants.NOTE_EFFECT_BEND_END_GAP,
-        ),
+  const availableWidth =
+    entry.width / 2 -
+    glyphHalfWidth -
+    constants.NOTE_EFFECT_NOTE_GAP -
+    constants.NOTE_EFFECT_BEND_END_GAP;
+  const cappedWidth = Math.min(
+    constants.NOTE_EFFECT_BEND_WIDTH,
+    availableWidth,
   );
+
+  return Math.max(minWidth, cappedWidth);
 }
 
 type BendCurvePoint = { progress: number; pitch: number };
