@@ -18,7 +18,7 @@ export function normalizeOptions(
   return {
     trackIndex: options.trackIndex ?? 0,
     measuresPerRow,
-    wrapMeasures: options.wrapMeasures ?? false,
+    wrapMeasures: options.wrapMeasures ?? defaults.wrapMeasures,
     minMeasureWidth: options.minMeasureWidth ?? constants.MIN_MEASURE_WIDTH,
 
     defaultMeasureWidth:
@@ -76,6 +76,7 @@ function resolveLayoutDefaults(width?: number) {
   if (width !== undefined && width <= constants.COMPACT_MOBILE_MAX_WIDTH) {
     return {
       measuresPerRow: 1,
+      wrapMeasures: true,
       stringSpacing: constants.MOBILE_STRING_SPACING,
       rowGap: constants.MOBILE_ROW_GAP,
       measureBottomPadding: constants.MOBILE_MEASURE_BOTTOM_PADDING,
@@ -86,6 +87,7 @@ function resolveLayoutDefaults(width?: number) {
 
   return {
     measuresPerRow: undefined,
+    wrapMeasures: false,
     stringSpacing: constants.STRING_SPACING,
     rowGap: constants.ROW_GAP,
     measureBottomPadding: constants.MEASURE_BOTTOM_PADDING,

@@ -27,3 +27,7 @@ type BendPoint = {
   value: number;
   vibrato: boolean;
 };
+
+export function isReleaseBend(bend: BendEffect): boolean {
+  return bend.kind === "ReleaseUp" || bend.kind === "ReleaseDown";
+}
