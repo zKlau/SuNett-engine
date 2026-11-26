@@ -25,7 +25,7 @@ export function renderTabBackground(
   svg: SVGSVGElement,
   width: number,
   height: number,
-): void {
+): SVGRectElement {
   const rect = createSvgElement("rect");
   rect.setAttribute("class", "tab-background");
   rect.setAttribute("x", "0");
@@ -34,6 +34,7 @@ export function renderTabBackground(
   rect.setAttribute("height", `${height}`);
   rect.setAttribute("fill", themeVar(ThemeVariables.COLOR_BG));
   svg.append(rect);
+  return rect;
 }
 
 export function renderNoteStyles(

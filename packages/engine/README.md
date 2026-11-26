@@ -50,7 +50,7 @@ engine.render(2);
 
 Notes keep enough horizontal space for their fret numbers, including short notes after a long note. Use `measuresPerRow` to limit how many bars share a row. A particularly dense bar can exceed `maxMeasureWidth` and the container width to preserve readability.
 
-Set `wrapMeasures: true` to split oversized bars across staff rows at beat boundaries. The measure number appears on the first row, and the cursor, seeking, and selections use the original measure timing.
+The engine splits oversized bars at beat boundaries in containers up to 760 px wide. Set `wrapMeasures: true` to enable wrapping at every width, or `wrapMeasures: false` to keep each bar on one row. The measure number appears on the first row, and the cursor, seeking, and selections use the original measure timing.
 
 ```ts
 engine.render(0, { wrapMeasures: true });

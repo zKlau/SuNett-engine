@@ -1,5 +1,4 @@
 import { TabsRendererConstants as constants } from "../../../constants/tabRendererConstants";
-import type { BendEffect } from "../../../types/notes/effects/bend";
 import type { EffectRenderState } from "../../../types/UI/noteEffectsRender";
 import {
   applyEffectPathDefaults,
@@ -7,13 +6,8 @@ import {
   createEffectText,
 } from "./effectSvg";
 import { createSvgElement } from "../svg";
-import { renderBend } from "./bendRenderer";
 
-export function renderNoteSymbols(
-  state: EffectRenderState,
-  inheritedBend?: BendEffect,
-) {
-  renderBend(state, inheritedBend);
+export function renderNoteSymbols(state: EffectRenderState) {
   renderAccent(state);
   renderTrill(state);
   renderHarmonic(state);

@@ -3,6 +3,8 @@
  */
 import { TabsRendererConstants as constants } from "../src/constants/tabRendererConstants";
 import { BravuraNotationGlyphs } from "../src/constants/notationGlyphPaths";
+import type { BendEffect } from "../src/types/notes/effects/bend";
+import { effectFontSize } from "../src/utils/tabs/noteEffects/effectSvg";
 import { renderMeasureNotes } from "../src/utils/tabs/notesRenderer";
 import {
   makeBeat,
@@ -18,6 +20,27 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 function makeParent(): SVGGElement {
   return document.createElementNS(SVG_NS, "g");
+}
+
+function makeBendBeat(
+  kind: BendEffect["kind"],
+  pitches: number[],
+  noteKind: "Normal" | "Tie" = "Normal",
+) {
+  const note = makeNote({ kind: noteKind, value: 3 });
+  note.effect.bend = {
+    kind,
+    value: Math.max(...pitches) * 2,
+    semitone_length: 1,
+    max_position: 12,
+    max_value: 12,
+    points: pitches.map((value, index) => ({
+      position: index * 6,
+      value,
+      vibrato: false,
+    })),
+  };
+  return makeBeat({ notes: [note] });
 }
 
 describe("note technique effects", () => {
@@ -368,6 +391,161 @@ describe("note technique effects", () => {
     expect(paths[2].getAttribute("d")).toBe(
       BravuraNotationGlyphs.BEND_ARROW_DOWN.path,
     );
+  });
+
+  it.each([
+    { pitches: [0, 1, 2], label: "1/2" },
+    { pitches: [0, 2, 4], label: "full" },
+  ])(
+    "joins a $label bend to its tied release within the measure",
+    ({ pitches, label }) => {
+      const parent = makeParent();
+      const bounds = makeBounds({ width: 178 });
+      const measure = makeMeasureFromVoices([
+        [
+          makeBendBeat("Bend", pitches),
+          makeBendBeat("ReleaseUp", [...pitches].reverse(), "Tie"),
+        ],
+      ]);
+      const metrics = makeNoteMetrics();
+      const originX = 55;
+      const releaseX = 140;
+      renderMeasureNotes({
+        parent,
+        measure,
+        measureIndex: 0,
+        beatLayouts: [
+          makeBeatLayout({ x: originX, width: 70 }),
+          makeBeatLayout({ beatIndex: 1, x: releaseX, width: 80 }),
+        ],
+        bounds,
+        stringCount: 6,
+        config: makeNoteConfig(),
+        metrics,
+      });
+
+      const bends = parent.querySelectorAll('[data-effect="bend"]');
+      expect(bends).toHaveLength(1);
+      expect(bends[0].getAttribute("data-bend-kind")).toBe("BendRelease");
+      const [curve, up, down] = bends[0].querySelectorAll("path");
+      expect(up.getAttribute("d")).toBe(
+        BravuraNotationGlyphs.BEND_ARROW_UP.path,
+      );
+      expect(down.getAttribute("d")).toBe(
+        BravuraNotationGlyphs.BEND_ARROW_DOWN.path,
+      );
+      const path = curve.getAttribute("d")!;
+      expect(path.match(/ C /g)).toHaveLength(2);
+      const coordinates = path.split(" ");
+      expect(Number(coordinates[1])).toBeGreaterThan(originX);
+      expect(Number(coordinates[1])).toBeLessThan(releaseX);
+      expect(Number(coordinates.at(-1))).toBeCloseTo(Number(coordinates[2]));
+      const downArrowLeft = Number(
+        down.getAttribute("transform")!.split("(")[1].split(" ")[0],
+      );
+      const downArrowRight =
+        downArrowLeft +
+        BravuraNotationGlyphs.BEND_ARROW_DOWN.width *
+          constants.NOTE_EFFECT_BEND_ARROW_SCALE;
+      expect(downArrowRight).toBeLessThanOrEqual(bounds.width);
+      const labels = bends[0].querySelectorAll("text");
+      expect(labels).toHaveLength(1);
+      expect(labels[0].textContent).toBe(label);
+      const labelHalfWidth =
+        (label.length *
+          effectFontSize(metrics.fontSize) *
+          constants.NOTE_GLYPH_WIDTH_RATIO) /
+        2;
+      expect(
+        Number(labels[0].getAttribute("x")) + labelHalfWidth,
+      ).toBeLessThanOrEqual(bounds.width);
+      expect(parent.querySelectorAll('[data-effect="tie"]')).toHaveLength(1);
+    },
+  );
+
+  it("starts a tied release at the held pitch after a row break", () => {
+    const firstRow = makeParent();
+    const secondRow = makeParent();
+    const bend = makeMeasureFromVoices([[makeBendBeat("Bend", [0, 2, 4])]]);
+    const release = makeMeasureFromVoices([
+      [makeBendBeat("ReleaseUp", [4, 2, 0], "Tie")],
+    ]);
+    const options = {
+      beatLayouts: [makeBeatLayout()],
+      stringCount: 6,
+      config: makeNoteConfig(),
+      metrics: makeNoteMetrics(),
+    };
+    const previousMeasureNotes = renderMeasureNotes({
+      ...options,
+      parent: firstRow,
+      measure: bend,
+      measureIndex: 0,
+      bounds: makeBounds(),
+      nextRowMeasure: release,
+    });
+    renderMeasureNotes({
+      ...options,
+      parent: secondRow,
+      measure: release,
+      measureIndex: 1,
+      bounds: makeBounds({ y: 200 }),
+      previousMeasureNotes,
+    });
+
+    const rise = firstRow.querySelector('[data-effect="bend"]')!;
+    const fall = secondRow.querySelector('[data-effect="bend"]')!;
+    const risingPaths = rise.querySelectorAll("path");
+    const fallingPaths = fall.querySelectorAll("path");
+    expect(risingPaths).toHaveLength(2);
+    expect(fallingPaths).toHaveLength(2);
+    expect(risingPaths[1].getAttribute("d")).toBe(
+      BravuraNotationGlyphs.BEND_ARROW_UP.path,
+    );
+    expect(fallingPaths[1].getAttribute("d")).toBe(
+      BravuraNotationGlyphs.BEND_ARROW_DOWN.path,
+    );
+    expect(rise.querySelector("text")?.textContent).toBe("full");
+    expect(fall.querySelector("text")).toBeNull();
+  });
+
+  it("keeps an inherited bend without a release and fits its label at the right edge", () => {
+    const parent = makeParent();
+    const bounds = makeBounds({ width: 180 });
+    const metrics = makeNoteMetrics();
+    renderMeasureNotes({
+      parent,
+      measure: makeMeasureFromVoices([
+        [
+          makeBendBeat("Bend", [0, 2, 4]),
+          makeBeat({ notes: [makeNote({ kind: "Tie" })] }),
+        ],
+      ]),
+      measureIndex: 0,
+      beatLayouts: [
+        makeBeatLayout({ x: 50, width: 90 }),
+        makeBeatLayout({ beatIndex: 1, x: 140, width: 60 }),
+      ],
+      bounds,
+      stringCount: 6,
+      config: makeNoteConfig(),
+      metrics,
+    });
+
+    const bend = parent.querySelector('[data-effect="bend"]')!;
+    expect(bend.getAttribute("data-beat-index")).toBe("1");
+    const paths = bend.querySelectorAll("path");
+    expect(paths).toHaveLength(2);
+    expect(paths[1].getAttribute("d")).toBe(
+      BravuraNotationGlyphs.BEND_ARROW_UP.path,
+    );
+    const label = bend.querySelector("text")!;
+    expect(label.textContent).toBe("full");
+    const fontSize = Number(label.getAttribute("font-size"));
+    const labelHalfWidth = 2 * fontSize * constants.NOTE_GLYPH_WIDTH_RATIO;
+    expect(
+      Number(label.getAttribute("x")) + labelHalfWidth,
+    ).toBeLessThanOrEqual(bounds.width);
   });
 
   it("groups consecutive palm-muted beats into P.M. notation spans", () => {

@@ -1,3 +1,4 @@
+import { isReleaseBend } from "../../../types/notes/effects/bend";
 import type {
   NotesRenderRequest,
   PositionedNoteRender,
@@ -40,6 +41,7 @@ export function resolveNoteContinuations(
     const deferBend = Boolean(
       bend &&
       bend.kind !== "None" &&
+      !(entry.context.note.kind === "Tie" && isReleaseBend(bend)) &&
       (next?.context.note.kind === "Tie" || nextMeasureNote?.kind === "Tie"),
     );
 

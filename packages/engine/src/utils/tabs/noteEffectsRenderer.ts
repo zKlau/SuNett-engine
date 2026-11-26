@@ -11,6 +11,7 @@ import {
   renderBeatStaccato,
   renderBeatVibrato,
 } from "./noteEffects/beatTechniqueRenderer";
+import { renderBend } from "./noteEffects/bendRenderer";
 import {
   renderHammer,
   renderHammerPhrases,
@@ -48,11 +49,12 @@ export function renderNoteEffects(request: NoteEffectsRenderRequest) {
       renderHammer(state, request.notes);
     }
     renderTie(state, previous, request.measureStartX);
-    const inheritedBend =
+    const bendOrigin =
       entry.context.note.kind === "Tie" && previous?.deferBend
-        ? (previous.context.note.effect.bend ?? undefined)
+        ? previous
         : undefined;
-    renderNoteSymbols(state, inheritedBend);
+    renderBend(state, request.measureEndX, bendOrigin);
+    renderNoteSymbols(state);
     renderSlides(state, request);
   });
   renderBeatVibrato(request);

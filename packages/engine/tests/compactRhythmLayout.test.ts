@@ -135,6 +135,41 @@ describe("compact rhythm layout", () => {
     renderer.dispose();
   });
 
+  it("wraps dense bars by default on mobile and scales the SVG if wrapping is disabled", () => {
+    const svg = setupSvg();
+    const width = 373;
+    Object.defineProperty(svg.parentElement, "clientWidth", { value: width });
+    Object.defineProperty(svg, "clientWidth", { value: width });
+    const beats = Array.from({ length: 32 }, () =>
+      makeBeat({
+        duration: makeDuration({ value: 32 }),
+        notes: [makeNote({ value: 12 })],
+      }),
+    );
+    const song = makeSong([makeTrack(6, [makeMeasureFromVoices([beats])])]);
+    const renderer = new TabsRenderer(song);
+    renderer.generateMeasures(0, { virtualize: false });
+
+    expect(Number(svg.getAttribute("width"))).toBeCloseTo(width);
+    expect(
+      svg.querySelectorAll(".measure[measure-part]").length,
+    ).toBeGreaterThan(1);
+    expect(svg.querySelectorAll(".measure-index")).toHaveLength(1);
+    expect(svg.querySelectorAll(".tab-note-text")).toHaveLength(beats.length);
+
+    renderer.generateMeasures(0, { virtualize: false, wrapMeasures: false });
+    expect(svg.querySelectorAll(".measure")).toHaveLength(1);
+    const [, , scoreWidth, scoreHeight] = svg
+      .getAttribute("viewBox")!
+      .split(" ")
+      .map(Number);
+    expect(scoreWidth).toBeGreaterThan(width);
+    expect(Number(svg.getAttribute("height"))).toBeCloseTo(
+      (scoreHeight * width) / scoreWidth,
+    );
+    renderer.dispose();
+  });
+
   it.each([8, -62, -92])(
     "keeps full bends and vibrato clear of the preceding row with a %ipx gap",
     (rowGap) => {

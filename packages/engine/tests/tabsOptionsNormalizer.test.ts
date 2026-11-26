@@ -10,6 +10,7 @@ describe("normalizeOptions", () => {
       measureBottomPadding: 90,
       paddingX: 20,
       measuresPerRow: 2,
+      wrapMeasures: false,
       notes: { fontSize: 15 },
     };
     expect(normalizeOptions(options, undefined, 390)).toEqual(

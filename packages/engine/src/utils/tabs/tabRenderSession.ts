@@ -59,6 +59,7 @@ export class TabRenderSession {
   private layout?: TabLayout;
   private pass?: RenderPass;
   private container?: SVGGElement;
+  private background?: SVGRectElement;
   private viewBoxHeight = 0;
   private lastRange: MeasureRange;
   private resizeObserver?: ResizeObserver;
@@ -148,7 +149,7 @@ export class TabRenderSession {
     clearSvg(svg);
     clearTheme(svg);
     applyTheme(this.params.theme, svg);
-    renderTabBackground(svg, width, height);
+    this.background = renderTabBackground(svg, width, height);
     renderNoteStyles(svg, config);
 
     this.container = createSvgElement("g");
@@ -158,8 +159,11 @@ export class TabRenderSession {
     this.pass = this.buildPass(layout);
 
     svg.setAttribute("width", `${width}`);
-    svg.setAttribute("height", `${height}`);
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    const renderedWidth = svg.clientWidth || width;
+    const scale = width > 0 ? Math.min(1, renderedWidth / width) : 1;
+    svg.setAttribute("height", `${height * scale}`);
     svg.setAttribute("role", "img");
 
     this.lastRange = undefined;
@@ -232,8 +236,9 @@ export class TabRenderSession {
         : undefined;
     }
 
+    const scoreRect = this.background?.getBoundingClientRect();
     const rows = visibleRowRange(
-      this.params.svg.getBoundingClientRect(),
+      scoreRect?.height ? scoreRect : this.params.svg.getBoundingClientRect(),
       viewportSpan(this.scrollContainer),
       this.layout,
       this.viewBoxHeight,

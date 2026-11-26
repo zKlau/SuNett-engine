@@ -106,6 +106,27 @@ describe("TabsRenderer virtualization", () => {
     expect(bottom.length).toBeLessThan(MEASURE_COUNT);
   });
 
+  it("uses the scaled score bounds when the SVG viewport has vertical margins", () => {
+    const svg = setupSvg();
+    stubRect(svg, () => -1200);
+    const renderer = new TabsRenderer(makeSixtyMeasureSong());
+    renderer.generateMeasures();
+    expect(renderedIndices(svg)[0]).toBeGreaterThan(0);
+
+    const score = svg.querySelector(".tab-background")!;
+    const scoreHeight = Number(score.getAttribute("height"));
+    jest
+      .spyOn(score, "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(0, 0, 440, scoreHeight / 2));
+    window.dispatchEvent(new Event("scroll"));
+
+    const indices = renderedIndices(svg);
+    expect(indices[0]).toBe(0);
+    expect(indices).toContain(4);
+    expect(indices).not.toContain(MEASURE_COUNT - 1);
+    renderer.dispose();
+  });
+
   it("keeps the selection overlay layered above the measures container", () => {
     const svg = setupSvg();
     stubRect(svg, () => 0);
