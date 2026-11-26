@@ -1,5 +1,11 @@
 # @zklau/sunett-engine
 
+## 1.3.1
+
+### Patch Changes
+
+- ee09236: Render tied bend releases with both arrows and keep bend labels within the measure. Wrap oversized measures by default on mobile and keep the visible score aligned with the SVG when its width is constrained.
+
 ## 1.3.0
 
 ### Minor Changes
